@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { getSession, canWrite } from "@/lib/auth";
 import { fiscalYearLabel } from "@/lib/format";
-import { logoutAction } from "@/app/actions";
+import UserMenu from "@/components/UserMenu";
 
 const OTHER_ENTITIES = ["Easy Mat", "Easy Home", "VBTP", "CovarBat"];
 
@@ -19,12 +19,6 @@ export default async function AppHeader({
     { key: "synthese", label: "Synthèse", href: "/" },
     { key: "chantiers", label: "Chantiers", href: "/chantiers" },
     { key: "fx", label: "Frais généraux", href: "/frais-generaux" },
-    ...(writer
-      ? [
-          { key: "imports", label: "Imports", href: "/imports" },
-          { key: "mapping", label: "Mapping", href: "/admin/mapping" },
-        ]
-      : []),
     { key: "assistant", label: "Assistant IA", href: "#", disabled: true },
   ];
 
@@ -67,21 +61,12 @@ export default async function AppHeader({
           {fiscalYearStart != null && (
             <span className="header-meta">Exercice {fiscalYearLabel(fiscalYearStart)}</span>
           )}
-          <span className="sync-pill">
-            <span className="sync-dot" />
-            Export Cegid
-          </span>
           {session && (
-            <form action={logoutAction}>
-              <button
-                type="submit"
-                className="header-meta"
-                style={{ background: "none", border: "none", cursor: "pointer", fontFamily: "inherit" }}
-                title={`${session.name} (${session.role}) — se déconnecter`}
-              >
-                {session.name.split(" ")[0]} ↩
-              </button>
-            </form>
+            <UserMenu
+              name={session.name}
+              role={session.role}
+              showAdminLinks={writer}
+            />
           )}
         </div>
       </div>

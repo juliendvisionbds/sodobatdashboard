@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Guide utilisateur — Tableaux de gestion Groupe SDG</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --blue:     #1B5EF7;
+    --blue-lt:  #EEF3FF;
+    --blue-mid: #3A74FF;
+    --black:    #111318;
+    --gray1:    #363840;
+    --gray2:    #6B6E7A;
+    --gray3:    #A8AAB4;
+    --gray4:    #E3E5EC;
+    --gray5:    #F2F3F7;
+    --bg:       #F7F8FC;
+    --white:    #FFFFFF;
+    --green:    #0A7A50;
+    --green-lt: #E4F5EE;
+    --red:      #C42B12;
+    --red-lt:   #FBEAE7;
+    --amber:    #9A5800;
+    --amber-lt: #FEF3E2;
+    --shadow-sm: 0 1px 3px rgba(17,19,24,0.06), 0 1px 2px rgba(17,19,24,0.04);
+    --radius:    10px;
+    --radius-sm: 7px;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--black);
+    font-family: 'Inter', -apple-system, sans-serif;
+    font-size: 15px;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+  .page { max-width: 860px; margin: 0 auto; padding: 48px 32px 100px; }
+
+  /* ── Hero ── */
+  .hero { margin-bottom: 48px; }
+  .hero .brand {
+    display: inline-flex; align-items: center; gap: 10px;
+    font-size: 13px; color: var(--gray2); margin-bottom: 18px;
+  }
+  .hero .brand .pill {
+    padding: 4px 12px; border: 1px solid var(--gray4); border-radius: 20px;
+    background: var(--white); font-weight: 600; color: var(--black); font-size: 13px;
+    box-shadow: var(--shadow-sm);
+  }
+  .hero h1 { font-size: 34px; font-weight: 700; letter-spacing: -0.03em; line-height: 1.15; margin-bottom: 12px; }
+  .hero p.lead { font-size: 17px; color: var(--gray2); max-width: 640px; }
+
+  /* ── Sections ── */
+  section { margin-bottom: 52px; }
+  h2 {
+    font-size: 22px; font-weight: 700; letter-spacing: -0.02em;
+    margin-bottom: 6px; padding-top: 12px;
+  }
+  .h2-sub { font-size: 14px; color: var(--gray2); margin-bottom: 22px; }
+  h3 { font-size: 15px; font-weight: 600; margin-bottom: 8px; }
+  p { margin-bottom: 12px; color: var(--gray1); }
+  p:last-child { margin-bottom: 0; }
+  strong { color: var(--black); font-weight: 600; }
+  code {
+    background: var(--gray5); border: 1px solid var(--gray4); border-radius: 4px;
+    padding: 1px 6px; font-size: 13px; font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+  }
+
+  .card {
+    background: var(--white); border: 1px solid var(--gray4);
+    border-radius: var(--radius); box-shadow: var(--shadow-sm);
+    padding: 24px 28px; margin-bottom: 14px;
+  }
+  .card-label {
+    font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.07em;
+    color: var(--gray3); margin-bottom: 14px; padding-bottom: 12px; border-bottom: 1px solid var(--gray4);
+  }
+
+  /* ── Flow diagram ── */
+  .flow { display: flex; align-items: stretch; gap: 0; margin: 8px 0 4px; }
+  .flow-step { flex: 1; text-align: center; padding: 18px 12px; background: var(--white);
+    border: 1px solid var(--gray4); border-radius: var(--radius); box-shadow: var(--shadow-sm); }
+  .flow-step .num {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 26px; height: 26px; border-radius: 50%;
+    background: var(--blue-lt); color: var(--blue); font-weight: 700; font-size: 13px;
+    margin-bottom: 10px;
+  }
+  .flow-step .t { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+  .flow-step .d { font-size: 12px; color: var(--gray2); line-height: 1.45; }
+  .flow-arrow { display: flex; align-items: center; padding: 0 10px; color: var(--gray3); font-size: 18px; }
+
+  /* ── Tags ── */
+  .tag { display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 20px;
+    font-size: 11.5px; font-weight: 500; white-space: nowrap; }
+  .tag.blue  { background: var(--blue-lt);  color: var(--blue); }
+  .tag.green { background: var(--green-lt); color: var(--green); }
+  .tag.amber { background: var(--amber-lt); color: var(--amber); }
+  .tag.red   { background: var(--red-lt);   color: var(--red); }
+  .tag.gray  { background: var(--gray5);    color: var(--gray2); }
+
+  /* ── Alert boxes ── */
+  .callout {
+    display: flex; gap: 12px; padding: 14px 18px; margin: 14px 0;
+    border-left: 3px solid; border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+    font-size: 13.5px;
+  }
+  .callout.blue  { background: var(--blue-lt);  border-color: var(--blue); }
+  .callout.warn  { background: var(--amber-lt); border-color: var(--amber); }
+  .callout.green { background: var(--green-lt); border-color: var(--green); }
+  .callout .ico { flex-shrink: 0; }
+  .callout p { margin: 0; font-size: 13.5px; }
+
+  /* ── Tables ── */
+  .table-wrap { border: 1px solid var(--gray4); border-radius: var(--radius);
+    box-shadow: var(--shadow-sm); overflow: hidden; background: var(--white); margin: 14px 0; }
+  table { width: 100%; border-collapse: collapse; }
+  thead { background: var(--gray5); }
+  thead th {
+    font-size: 10.5px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em;
+    color: var(--gray2); padding: 11px 16px; text-align: left; border-bottom: 1px solid var(--gray4);
+  }
+  tbody tr { border-bottom: 1px solid var(--gray5); }
+  tbody tr:last-child { border-bottom: none; }
+  td { padding: 11px 16px; font-size: 13px; color: var(--gray1); vertical-align: top; }
+  td:first-child { white-space: nowrap; }
+
+  /* ── Checklist ── */
+  ol.steps { counter-reset: step; list-style: none; margin: 6px 0; }
+  ol.steps li {
+    counter-increment: step;
+    position: relative; padding: 0 0 22px 46px;
+  }
+  ol.steps li::before {
+    content: counter(step);
+    position: absolute; left: 0; top: 0;
+    width: 30px; height: 30px; border-radius: 50%;
+    background: var(--white); border: 1.5px solid var(--blue); color: var(--blue);
+    font-weight: 700; font-size: 13px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  ol.steps li:not(:last-child)::after {
+    content: ""; position: absolute; left: 15px; top: 34px; bottom: 4px;
+    width: 1.5px; background: var(--gray4);
+  }
+  ol.steps .step-t { font-weight: 600; margin-bottom: 3px; }
+  ol.steps .step-d { font-size: 13.5px; color: var(--gray2); }
+
+  ul.clean { list-style: none; margin: 8px 0; }
+  ul.clean li { padding: 7px 0 7px 22px; position: relative; font-size: 14px; color: var(--gray1); }
+  ul.clean li::before { content: "—"; position: absolute; left: 0; color: var(--gray3); }
+
+  .toc { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 24px; }
+  .toc a { color: var(--gray1); text-decoration: none; font-size: 14px; padding: 5px 0; display: block; border-radius: 5px; }
+  .toc a:hover { color: var(--blue); }
+  .toc a .n { color: var(--blue); font-weight: 600; margin-right: 8px; font-size: 12px; }
+
+  .footer { margin-top: 60px; padding-top: 24px; border-top: 1px solid var(--gray4);
+    font-size: 12.5px; color: var(--gray3); display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+
+  @media (max-width: 640px) {
+    .flow { flex-direction: column; }
+    .flow-arrow { justify-content: center; padding: 6px 0; transform: rotate(90deg); }
+    .toc { grid-template-columns: 1fr; }
+    .page { padding: 32px 20px 80px; }
+  }
+  @media print {
+    body { background: var(--white); }
+    .card, .flow-step, .table-wrap { box-shadow: none; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- ═══════════ HERO ═══════════ -->
+  <div class="hero">
+    <div class="brand">
+      <span class="pill">Sodobat</span>
+      <span>Groupe SDG · Tableaux de gestion</span>
+    </div>
+    <h1>Guide utilisateur</h1>
+    <p class="lead">
+      Comment fonctionne votre tableau de bord financier : la logique du produit,
+      ce que fait chaque écran, et le rituel mensuel pour garder des chiffres toujours justes.
+    </p>
+  </div>
+
+  <!-- ═══════════ SOMMAIRE ═══════════ -->
+  <section>
+    <div class="card">
+      <div class="card-label">Sommaire</div>
+      <div class="toc">
+        <a href="#principe"><span class="n">01</span>Le principe en 30 secondes</a>
+        <a href="#logique"><span class="n">02</span>La logique du produit</a>
+        <a href="#ecrans"><span class="n">03</span>Les écrans, un par un</a>
+        <a href="#rituel"><span class="n">04</span>Le rituel mensuel</a>
+        <a href="#alertes"><span class="n">05</span>Les alertes et quoi en faire</a>
+        <a href="#roles"><span class="n">06</span>Rôles et accès</a>
+        <a href="#faq"><span class="n">07</span>Questions fréquentes</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════ 01 PRINCIPE ═══════════ -->
+  <section id="principe">
+    <h2>01 · Le principe en 30 secondes</h2>
+    <p class="h2-sub">De l'export comptable aux tableaux de gestion, sans ressaisie.</p>
+
+    <div class="flow">
+      <div class="flow-step">
+        <div class="num">1</div>
+        <div class="t">Export Cegid</div>
+        <div class="d">Chaque mois, le cabinet fournit 2 fichiers Excel : la balance ventilée et la balance analytique.</div>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">
+        <div class="num">2</div>
+        <div class="t">Import contrôlé</div>
+        <div class="d">Vous déposez les fichiers dans l'app. Elle les lit, les vérifie, et vous montre un contrôle avant intégration.</div>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">
+        <div class="num">3</div>
+        <div class="t">Tableaux à jour</div>
+        <div class="d">Dès validation, Synthèse, Chantiers et Frais généraux sont recalculés. Tout le monde voit les mêmes chiffres.</div>
+      </div>
+    </div>
+
+    <div class="callout blue">
+      <span class="ico">ℹ</span>
+      <p><strong>Aucune ressaisie, aucun copier-coller.</strong> Le seul geste mensuel est de déposer
+      les deux fichiers d'export et de valider après contrôle. Tout le reste est automatique.</p>
+    </div>
+  </section>
+
+  <!-- ═══════════ 02 LOGIQUE ═══════════ -->
+  <section id="logique">
+    <h2>02 · La logique du produit</h2>
+    <p class="h2-sub">Quatre idées simples qui garantissent la fiabilité des chiffres.</p>
+
+    <div class="card">
+      <h3>Deux fichiers sources, trois vues</h3>
+      <p>Les deux exports Cegid sont complémentaires, chacun alimente une partie du tableau de bord :</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Fichier</th><th>Contenu</th><th>Alimente</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><strong>Balance ventilée</strong></td>
+              <td>Tous les comptes, avec une colonne par mois de l'exercice.</td>
+              <td><span class="tag blue">Synthèse</span></td>
+            </tr>
+            <tr>
+              <td><strong>Balance analytique</strong></td>
+              <td>Les mêmes comptes, éclatés par centre (un centre = un chantier, plus le centre FX pour les frais généraux). Les montants sont cumulés depuis l'ouverture de chaque chantier.</td>
+              <td><span class="tag blue">Chantiers</span> <span class="tag blue">Frais généraux</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p style="font-size:13.5px; color:var(--gray2);">
+        Comme la balance analytique est un <em>cumul</em>, l'app conserve une photo à chaque import
+        et calcule automatiquement la différence avec le mois précédent pour obtenir l'activité du mois.
+        C'est aussi ce qui permet de suivre un chantier sur toute sa durée de vie, au-delà de l'exercice comptable.
+      </p>
+    </div>
+
+    <div class="card">
+      <h3>La nomenclature : chaque compte a sa place</h3>
+      <p>
+        Le cœur du produit est une <strong>table de correspondance</strong> (le « mapping ») qui dit, pour chaque
+        compte comptable, dans quelle ligne de gestion il doit apparaître. Par exemple : les comptes commençant
+        par <code>704</code> et <code>706</code> vont dans « CA Facturation », les comptes <code>621</code>
+        dans « Intérims », etc.
+      </p>
+      <p>
+        Cette nomenclature est <strong>commune à toutes les entités du groupe</strong> : c'est elle qui garantit
+        qu'un tableau Sodobat se lit exactement comme un futur tableau VBTP ou Easy Mat. Elle est modifiable
+        depuis l'écran Mapping, sans intervention technique.
+      </p>
+    </div>
+
+    <div class="card">
+      <h3>La règle d'or : jamais de classement par défaut</h3>
+      <p>
+        Si un compte apparaît dans un fichier importé et qu'<strong>aucune règle ne le couvre</strong>, l'app ne
+        décide jamais à votre place. Le compte est mis de côté et remonté en <span class="tag amber">alerte</span>
+        avec son numéro, son libellé et son montant. Un clic dans l'écran Mapping suffit alors pour l'affecter
+        à la bonne ligne — et ce choix est mémorisé pour tous les mois suivants.
+      </p>
+      <p style="font-size:13.5px; color:var(--gray2);">
+        Conséquence : un total ne peut jamais être faussé par un compte rangé silencieusement au mauvais endroit.
+        Soit un montant est classé selon une règle explicite, soit il est signalé.
+      </p>
+    </div>
+
+    <div class="card">
+      <h3>Réimporter remplace, proprement</h3>
+      <p>
+        Le cabinet comptable transmet souvent deux versions du même mois (une première rapide, puis une version
+        corrigée). C'est prévu : <strong>réimporter une période remplace la version précédente</strong>, après le
+        même contrôle. L'ancienne version passe au statut « Remplacé » dans l'historique — rien n'est perdu,
+        et il n'y a jamais de doublon dans les chiffres.
+      </p>
+    </div>
+  </section>
+
+  <!-- ═══════════ 03 ÉCRANS ═══════════ -->
+  <section id="ecrans">
+    <h2>03 · Les écrans, un par un</h2>
+    <p class="h2-sub">La navigation se fait par les onglets en haut de page.</p>
+
+    <div class="card">
+      <div class="card-label">Synthèse — la vue d'ensemble</div>
+      <p>
+        C'est la page d'accueil. Elle présente l'exercice en cours à partir de la balance ventilée :
+      </p>
+      <ul class="clean">
+        <li><strong>Indicateurs clés</strong> : CA cumulé, résultat net, marge, avec la comparaison N-1.</li>
+        <li><strong>CA mensuel</strong> : la facturation mois par mois, en barres.</li>
+        <li><strong>Structure des charges</strong> : le poids de chaque poste (sous-traitance, masse salariale, achats…).</li>
+        <li><strong>Résultat mensuel</strong> : le résultat de chaque mois de l'exercice.</li>
+        <li><strong>Tableau détaillé</strong> : toutes les lignes de gestion (produits, charges d'exploitation, personnel, frais généraux) avec les montants mensuels et cumulés.</li>
+        <li><strong>Alertes actives</strong> : ce qui demande votre attention (voir section 05).</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <div class="card-label">Chantiers — l'activité par affaire</div>
+      <p>
+        Construite à partir de la balance analytique, cette vue liste chaque chantier avec, pour le mois :
+        annulation de la provision précédente, prévision (travaux en cours), facturé, total produits, achats
+        de matières premières, sous-traitance, autres charges, et le résultat du mois. Les chantiers sont
+        regroupés par pôle et filtrables.
+      </p>
+      <p>
+        La colonne <strong>Prévision</strong> est saisissable directement dans le tableau (profils admin et DAF) :
+        c'est là que se gèrent les travaux en cours du mois. Une valeur saisie reste en
+        <span class="tag amber">brouillon</span> — modifiable à volonté — jusqu'à la clôture du mois, où elle
+        est figée et devient la référence pour les calculs du mois suivant. Chaque ligne peut aussi porter
+        une <strong>note</strong> libre (contexte, point d'attention, litige…).
+      </p>
+    </div>
+
+    <div class="card">
+      <div class="card-label">Frais généraux — les charges de structure</div>
+      <p>
+        Le détail du centre analytique FX : masse salariale sédentaire, crédit-bail, assurances, honoraires,
+        loyers, carburant… Chaque poste affiche le montant du mois, le cumul de l'exercice (YTD), son poids
+        en % du CA, et la comparaison avec N-1 et N-2. En haut de page : le total FX cumulé, le FX du mois
+        et le ratio FX / CA.
+      </p>
+    </div>
+
+    <div class="card">
+      <div class="card-label">Imports — le point d'entrée mensuel des données</div>
+      <p>
+        Accessible via le menu utilisateur (profils admin et DAF). C'est ici que vous déposez les exports
+        Cegid. L'écran montre aussi l'<strong>historique complet</strong> : qui a importé quoi, quand, et avec
+        quel statut —
+        <span class="tag amber">En attente de validation</span>
+        <span class="tag green">Validé</span>
+        <span class="tag gray">Remplacé</span>
+        <span class="tag red">Rejeté</span>.
+      </p>
+      <p>
+        Chaque dépôt ouvre une page de <strong>contrôle avant intégration</strong> : nombre de lignes lues,
+        mois couverts (ou nombre de chantiers), contrôles de cohérence, comptes non mappés. Rien n'entre
+        dans les tableaux tant que vous n'avez pas cliqué « Valider l'intégration ».
+      </p>
+    </div>
+
+    <div class="card">
+      <div class="card-label">Mapping — la nomenclature en libre-service</div>
+      <p>
+        Accessible via le menu utilisateur (profils admin et DAF). Cet écran liste les comptes non mappés
+        remontés en alerte et permet de les affecter à une ligne de gestion en deux clics. On peut aussi y
+        consulter, ajouter ou supprimer des règles existantes. Toute modification s'applique aux imports
+        suivants — c'est ainsi que la nomenclature s'affine au fil des mois.
+      </p>
+    </div>
+  </section>
+
+  <!-- ═══════════ 04 RITUEL ═══════════ -->
+  <section id="rituel">
+    <h2>04 · Le rituel mensuel</h2>
+    <p class="h2-sub">Une dizaine de minutes par mois, dès réception des exports du cabinet.</p>
+
+    <div class="card">
+      <ol class="steps">
+        <li>
+          <div class="step-t">Récupérer les 2 exports Cegid</div>
+          <div class="step-d">La balance ventilée et la balance analytique du mois, au format Excel (.xlsx), sans les modifier.</div>
+        </li>
+        <li>
+          <div class="step-t">Déposer la balance ventilée</div>
+          <div class="step-d">Écran Imports → choisir le fichier → l'app détecte automatiquement le type de balance et la période.</div>
+        </li>
+        <li>
+          <div class="step-t">Contrôler, puis valider</div>
+          <div class="step-d">La page de contrôle s'ouvre : vérifier que les contrôles de classes sont au vert et jeter un œil aux
+          éventuels comptes non mappés. Cliquer « Valider l'intégration ». En cas de doute, « Rejeter » — rien n'aura été intégré.</div>
+        </li>
+        <li>
+          <div class="step-t">Déposer la balance analytique</div>
+          <div class="step-d">Même geste, en renseignant le mois du fichier (ex. mai 2026). Contrôler, valider.</div>
+        </li>
+        <li>
+          <div class="step-t">Traiter les comptes non mappés, s'il y en a</div>
+          <div class="step-d">Écran Mapping : affecter chaque nouveau compte à sa ligne de gestion. Le choix vaut pour tous les mois suivants.</div>
+        </li>
+        <li>
+          <div class="step-t">Saisir les travaux en cours</div>
+          <div class="step-d">Écran Chantiers : renseigner la colonne Prévision pour les chantiers concernés. Les valeurs restent en brouillon, modifiables jusqu'à la clôture.</div>
+        </li>
+        <li>
+          <div class="step-t">Vérifier la Synthèse</div>
+          <div class="step-d">Un dernier regard sur les indicateurs et les alertes actives : le tableau de bord est à jour pour tout le monde.</div>
+        </li>
+      </ol>
+    </div>
+
+    <div class="callout green">
+      <span class="ico">✓</span>
+      <p><strong>Version corrigée du cabinet ?</strong> Répétez simplement les étapes 2 à 4 avec les nouveaux
+      fichiers : l'import remplace la version précédente de la même période, sans doublon.</p>
+    </div>
+  </section>
+
+  <!-- ═══════════ 05 ALERTES ═══════════ -->
+  <section id="alertes">
+    <h2>05 · Les alertes et quoi en faire</h2>
+    <p class="h2-sub">L'app surveille les données en continu et signale ce qui mérite un regard humain.</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Alerte</th><th>Ce que ça signifie</th><th>Quoi faire</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><span class="tag amber">Compte non mappé</span></td>
+            <td>Un compte du fichier importé n'est couvert par aucune règle de la nomenclature. Son montant n'apparaît dans aucune ligne de gestion tant qu'il n'est pas affecté.</td>
+            <td>Écran Mapping : l'affecter à la bonne ligne. Deux clics, mémorisé pour la suite.</td>
+          </tr>
+          <tr>
+            <td><span class="tag red">Écart de contrôle</span></td>
+            <td>Le total d'une classe de comptes recalculé par l'app ne correspond pas au total inscrit dans le fichier source. Le fichier est peut-être altéré ou incomplet.</td>
+            <td>Ne pas valider l'import. Redemander un export propre au cabinet.</td>
+          </tr>
+          <tr>
+            <td><span class="tag amber">Montant constant</span></td>
+            <td>Un poste affiche exactement le même montant plusieurs mois de suite (ex. des honoraires figés) : possible écriture oubliée ou abonnement à vérifier.</td>
+            <td>Vérifier que c'est normal (montant contractuel fixe), puis marquer l'alerte comme traitée.</td>
+          </tr>
+          <tr>
+            <td><span class="tag amber">Mois manquant</span></td>
+            <td>Une période attendue n'a pas encore de données validées : les cumuls et comparaisons sont incomplets.</td>
+            <td>Importer les fichiers du mois manquant.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout warn">
+      <span class="ico">⚠</span>
+      <p><strong>Une alerte n'est pas une erreur de l'app</strong> : c'est le produit qui fait son travail de
+      vigie. L'objectif est simple — qu'aucun écart ne passe inaperçu et que chaque anomalie ait un responsable
+      identifié : la nomenclature, le fichier source ou une écriture comptable.</p>
+    </div>
+  </section>
+
+  <!-- ═══════════ 06 RÔLES ═══════════ -->
+  <section id="roles">
+    <h2>06 · Rôles et accès</h2>
+    <p class="h2-sub">Chaque utilisateur se connecte avec son email et son mot de passe personnels.</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Rôle</th><th>Consulter les tableaux</th><th>Importer &amp; valider</th><th>Saisir prévisions &amp; notes</th><th>Gérer le mapping</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><span class="tag blue">Admin</span></td>
+            <td>Oui</td><td>Oui</td><td>Oui</td><td>Oui</td>
+          </tr>
+          <tr>
+            <td><span class="tag blue">DAF</span></td>
+            <td>Oui</td><td>Oui</td><td>Oui</td><td>Oui</td>
+          </tr>
+          <tr>
+            <td><span class="tag gray">Lecteur</span></td>
+            <td>Oui</td><td>—</td><td>—</td><td>—</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p style="font-size:13.5px; color:var(--gray2);">
+      Les profils Lecteur (dirigeants, associés) voient exactement les mêmes chiffres que la DAF, en temps réel,
+      sans pouvoir les modifier. La session reste ouverte 7 jours ; la déconnexion se fait via le menu
+      utilisateur en haut à droite.
+    </p>
+  </section>
+
+  <!-- ═══════════ 07 FAQ ═══════════ -->
+  <section id="faq">
+    <h2>07 · Questions fréquentes</h2>
+    <p class="h2-sub"></p>
+
+    <div class="card">
+      <h3>Où sont stockées les données ?</h3>
+      <p>Dans une base de données sécurisée, hébergée en Europe. Chaque import, chaque saisie et chaque
+      modification de mapping y est enregistré immédiatement — il n'y a rien à sauvegarder manuellement,
+      et tous les utilisateurs voient la même chose au même moment.</p>
+    </div>
+
+    <div class="card">
+      <h3>J'ai importé le mauvais fichier, que faire ?</h3>
+      <p>Si vous ne l'avez pas encore validé : cliquez « Rejeter cet import » sur la page de contrôle, rien
+      n'a été intégré. Si vous l'avez validé : réimportez le bon fichier pour la même période, il remplacera
+      proprement le précédent.</p>
+    </div>
+
+    <div class="card">
+      <h3>Les chiffres diffèrent de mon ancien tableau Excel, pourquoi ?</h3>
+      <p>Le tableau de bord reflète <strong>strictement la balance comptable importée</strong>, au centime.
+      Les écarts avec un tableau tenu à la main viennent en général d'une version antérieure de la balance,
+      d'un retraitement manuel non reporté, ou d'un compte classé différemment. Les ajustements de gestion
+      (travaux en cours, provisions) se font dans l'app, de façon explicite et traçable — jamais en modifiant
+      les données comptables.</p>
+    </div>
+
+    <div class="card">
+      <h3>Peut-on changer la façon dont un compte est classé ?</h3>
+      <p>Oui, à tout moment, dans l'écran Mapping : supprimez la règle existante et créez la nouvelle affectation.
+      Le changement s'applique aux calculs dès l'import suivant. Aucune intervention technique n'est nécessaire.</p>
+    </div>
+
+    <div class="card">
+      <h3>Et les autres entités du groupe ?</h3>
+      <p>La phase 1 couvre Sodobat. Easy Mat, Easy Home, VBTP et CovarBat suivront : la nomenclature commune
+      est déjà en place, chaque entité viendra s'y brancher avec ses propres règles là où sa comptabilité diffère.
+      L'assistant IA de consultation des données est également prévu pour une itération ultérieure.</p>
+    </div>
+  </section>
+
+  <div class="footer">
+    <span>Tableaux de gestion — Groupe SDG · Phase 1 : Sodobat</span>
+    <span>Vision BDS · 2026</span>
+  </div>
+
+</div>
+</body>
+</html>
