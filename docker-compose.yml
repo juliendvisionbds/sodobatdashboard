@@ -1,0 +1,34 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: sodobat
+      POSTGRES_USER: sodobat
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-sodobat}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sodobat"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://sodobat:${POSTGRES_PASSWORD:-sodobat}@db:5432/sodobat
+      AUTH_SECRET: ${AUTH_SECRET:?AUTH_SECRET est requis en production}
+      NODE_ENV: production
+    ports:
+      - "${APP_PORT:-3000}:3000"
+    volumes:
+      - uploads:/app/.data/uploads
+
+volumes:
+  pgdata:
+  uploads:
