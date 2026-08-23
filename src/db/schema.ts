@@ -220,3 +220,23 @@ export const alerts = pgTable(
   },
   (t) => [index("alerts_entity_status").on(t.entityId, t.status)]
 );
+
+// Journal d'usage de l'assistant IA — trace les questions et la consommation
+// de tokens (poste "Coûts IA variable" de l'abonnement).
+export const assistantLogs = pgTable(
+  "assistant_logs",
+  {
+    id: serial("id").primaryKey(),
+    entityId: integer("entity_id")
+      .notNull()
+      .references(() => entities.id),
+    userEmail: text("user_email").notNull(),
+    question: text("question").notNull(),
+    model: text("model").notNull(),
+    inputTokens: integer("input_tokens"),
+    outputTokens: integer("output_tokens"),
+    durationMs: integer("duration_ms"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => [index("assistant_logs_entity_date").on(t.entityId, t.createdAt)]
+);

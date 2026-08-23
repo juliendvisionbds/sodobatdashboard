@@ -15,11 +15,11 @@ export default async function AppHeader({
   const session = await getSession();
   const writer = session ? canWrite(session) : false;
 
-  const tabs: { key: string; label: string; href: string; disabled?: boolean }[] = [
+  const tabs: { key: string; label: string; href: string }[] = [
     { key: "synthese", label: "Synthèse", href: "/" },
     { key: "chantiers", label: "Chantiers", href: "/chantiers" },
     { key: "fx", label: "Frais généraux", href: "/frais-generaux" },
-    { key: "assistant", label: "Assistant IA", href: "#", disabled: true },
+    { key: "assistant", label: "Assistant IA", href: "/assistant" },
   ];
 
   return (
@@ -36,26 +36,15 @@ export default async function AppHeader({
           </div>
         </div>
         <nav className="nav">
-          {tabs.map((t) =>
-            t.disabled ? (
-              <span
-                key={t.key}
-                className="nav-tab"
-                style={{ color: "var(--gray3)", cursor: "default" }}
-                title="Disponible en itération 2"
-              >
-                {t.label}
-              </span>
-            ) : (
-              <Link
-                key={t.key}
-                href={t.href}
-                className={`nav-tab${active === t.key ? " active" : ""}`}
-              >
-                {t.label}
-              </Link>
-            )
-          )}
+          {tabs.map((t) => (
+            <Link
+              key={t.key}
+              href={t.href}
+              className={`nav-tab${active === t.key ? " active" : ""}`}
+            >
+              {t.label}
+            </Link>
+          ))}
         </nav>
         <div className="header-right">
           {fiscalYearStart != null && (

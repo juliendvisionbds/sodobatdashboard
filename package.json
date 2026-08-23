@@ -9,10 +9,15 @@
     "lint": "eslint",
     "db:push": "drizzle-kit push --force",
     "db:seed": "node --import=tsx src/db/seed.ts",
-    "recette": "node --import=tsx scripts/recette.ts"
+    "recette": "node --import=tsx scripts/recette.ts",
+    "recette:assistant": "node --import=tsx scripts/recette-assistant.ts",
+    "test:assistant": "node --env-file=.env.local --import=tsx scripts/test-assistant-live.ts"
   },
   "dependencies": {
+    "@ai-sdk/openai": "^4.0.46",
+    "@ai-sdk/react": "^4.0.80",
     "@electric-sql/pglite": "^0.5.4",
+    "ai": "^7.0.77",
     "bcryptjs": "^3.0.3",
     "drizzle-orm": "^0.45.2",
     "jose": "^6.2.4",
@@ -20,7 +25,10 @@
     "pg": "^8.22.0",
     "react": "19.2.4",
     "react-dom": "19.2.4",
-    "xlsx": "^0.18.5"
+    "react-markdown": "^10.1.0",
+    "remark-gfm": "^4.0.1",
+    "xlsx": "^0.18.5",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
