@@ -26,6 +26,25 @@ export default async function ImportsPage() {
     .orderBy(desc(tables.imports.createdAt))
     .limit(50);
 
+  // État du cycle mensuel : dernière période validée pour chaque type de balance
+  const lastValidated = (type: "ventilee" | "analytique") =>
+    rows
+      .filter((r) => r.type === type && r.status === "validated")
+      .map((r) => r.period)
+      .sort()
+      .at(-1) ?? null;
+  const lastVentilee = lastValidated("ventilee");
+  const lastAnalytique = lastValidated("analytique");
+  const analytiqueEnRetard =
+    lastVentilee != null && (lastAnalytique == null || lastAnalytique < lastVentilee);
+
+  // Règle CDC §4.3 : les données du mois M sont attendues à M+24 jours.
+  // Dernier mois exigible = le mois précédant (aujourd'hui − 24 jours).
+  const ref = new Date(Date.now() - 24 * 24 * 3600 * 1000);
+  const exigible = new Date(ref.getFullYear(), ref.getMonth() - 1, 1);
+  const expectedPeriod = `${exigible.getFullYear()}-${String(exigible.getMonth() + 1).padStart(2, "0")}-01`;
+  const donneesEnRetard = lastVentilee != null && lastVentilee < expectedPeriod;
+
   return (
     <>
       <AppHeader active="imports" />
@@ -39,6 +58,31 @@ export default async function ImportsPage() {
           </p>
         </div>
 
+        {lastVentilee && (
+          <div
+            className={`alert ${donneesEnRetard || analytiqueEnRetard ? "warn" : "pos"}`}
+            style={{ marginBottom: 20 }}
+          >
+            <div className="alert-ico">{donneesEnRetard || analytiqueEnRetard ? "⏳" : "✓"}</div>
+            <div>
+              <div className="alert-title">
+                {donneesEnRetard
+                  ? `Données en retard : dernier mois validé ${monthLabelLong(lastVentilee)}, attendu ${monthLabelLong(expectedPeriod)}`
+                  : analytiqueEnRetard
+                    ? `Cycle mensuel : ventilée ${monthLabelLong(lastVentilee)} validée · analytique ${monthLabelLong(lastVentilee)} attendue`
+                    : `Cycle mensuel à jour : ventilée et analytique ${monthLabelLong(lastVentilee)} validées`}
+              </div>
+              <div className="alert-desc">
+                {donneesEnRetard
+                  ? `Les exports du mois M sont attendus vers le 24 du mois M+1 (règle TVA). Relancez le cabinet si besoin, puis importez ${monthLabelLong(expectedPeriod)}${analytiqueEnRetard ? " — l'analytique du dernier mois est aussi en attente" : ""}.`
+                  : analytiqueEnRetard
+                    ? "Déposez la balance analytique du même mois pour mettre à jour Chantiers et Frais généraux."
+                    : "Les deux balances du dernier mois exigible sont intégrées."}
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="grid-2" style={{ gridTemplateColumns: "2fr 3fr" }}>
           <UploadForm />
 
@@ -46,8 +90,9 @@ export default async function ImportsPage() {
             <div className="card-label">Historique des imports</div>
             {rows.length === 0 && (
               <p style={{ fontSize: 13, color: "var(--gray2)" }}>
-                Aucun import pour l&apos;instant. Commencez par la balance ventilée puis
-                la balance analytique du même mois.
+                Aucun import pour l&apos;instant. Le cycle mensuel se fait en deux temps :
+                d&apos;abord la balance ventilée, puis la balance analytique du même mois —
+                chacune est contrôlée puis validée séparément.
               </p>
             )}
             {rows.map((r) => {

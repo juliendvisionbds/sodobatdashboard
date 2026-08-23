@@ -10,8 +10,25 @@ export default function UploadForm() {
     <form action={action} className="card">
       <div className="card-label">Nouvel import</div>
 
+      <div className="alert info" style={{ marginBottom: 18 }}>
+        <div className="alert-ico">ℹ</div>
+        <div>
+          <div className="alert-title">Chaque mois, 2 imports à faire l&apos;un après l&apos;autre</div>
+          <div className="alert-desc">
+            <strong>1.</strong> Balance <strong>ventilée</strong> — déposer le fichier
+            (le mois est détecté automatiquement) → contrôler → valider.
+            <br />
+            <strong>2.</strong> Balance <strong>analytique</strong> — déposer le fichier{" "}
+            <strong>et renseigner le mois du snapshot</strong> → contrôler → valider.
+            <br />
+            La ventilée alimente la Synthèse ; l&apos;analytique alimente Chantiers et
+            Frais généraux.
+          </div>
+        </div>
+      </div>
+
       <label className="field-label" htmlFor="file">
-        Fichier xlsx (balance ventilée ou analytique)
+        Fichier xlsx — le type de balance est détecté automatiquement
       </label>
       <input
         id="file"

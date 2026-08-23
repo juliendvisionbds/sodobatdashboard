@@ -250,6 +250,7 @@ body {
 .alert.warn { background: var(--amber-lt); border-color: var(--amber); }
 .alert.neg  { background: var(--red-lt);   border-color: var(--red);   }
 .alert.pos  { background: var(--green-lt); border-color: var(--green); }
+.alert.info { background: var(--blue-lt);  border-color: var(--blue);  }
 .alert-ico { font-size: 14px; flex-shrink: 0; }
 .alert-title { font-size: 13px; font-weight: 500; color: var(--black); margin-bottom: 2px; }
 .alert-desc  { font-size: 12px; color: var(--gray2); }
