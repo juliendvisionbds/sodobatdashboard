@@ -1,4 +1,4 @@
-// Nomenclature uniformisée Groupe SDG — issue de squelette.xlsx (maquette validée
+// Nomenclature uniformisée Groupe SDG, issue de squelette.xlsx (maquette validée
 // avec la DAF) et du mapping actuel de Fanny (codes de l'onglet FX de la balance
 // analytique). Les règles sont des données : l'écran admin permet de les compléter.
 
@@ -26,7 +26,7 @@ export const SECTIONS = {
 const S = SECTIONS.synthese;
 
 export const seedCategories: SeedCategory[] = [
-  // ── SYNTHÈSE — PRODUITS / CA (soldes créditeurs → sign -1 pour affichage positif)
+  // ── SYNTHÈSE · PRODUITS / CA (soldes créditeurs → sign -1 pour affichage positif)
   {
     code: "syn_ca_facturation",
     view: "synthese",
@@ -80,7 +80,7 @@ export const seedCategories: SeedCategory[] = [
     rules: ["758"],
   },
 
-  // ── SYNTHÈSE — CHARGES D'EXPLOITATION
+  // ── SYNTHÈSE · CHARGES D'EXPLOITATION
   {
     code: "syn_achats_mp",
     view: "synthese",
@@ -179,7 +179,7 @@ export const seedCategories: SeedCategory[] = [
     rules: ["62261", "6282"],
   },
 
-  // ── SYNTHÈSE — CHARGES DE PERSONNEL
+  // ── SYNTHÈSE · CHARGES DE PERSONNEL
   {
     code: "syn_masse_salariale",
     view: "synthese",
@@ -197,7 +197,7 @@ export const seedCategories: SeedCategory[] = [
     rules: ["621"],
   },
 
-  // ── SYNTHÈSE — FRAIS GÉNÉRAUX & AUTRES (résumé, détail dans la vue FX)
+  // ── SYNTHÈSE · FRAIS GÉNÉRAUX & AUTRES (résumé, détail dans la vue FX)
   {
     code: "syn_fx_credit_bail",
     view: "synthese",
@@ -295,7 +295,7 @@ export const seedCategories: SeedCategory[] = [
     rules: ["695"],
   },
 
-  // ── ACTIVITÉ CHANTIER — buckets des colonnes du tableau
+  // ── ACTIVITÉ CHANTIER · buckets des colonnes du tableau
   {
     code: "cha_facture",
     view: "chantier",
@@ -361,7 +361,7 @@ export const seedCategories: SeedCategory[] = [
     rules: ["7"],
   },
 
-  // ── FRAIS GÉNÉRAUX (centre analytique FX) — reprend les codes de Fanny
+  // ── FRAIS GÉNÉRAUX (centre analytique FX) · reprend les codes de Fanny
   {
     code: "fx_ms",
     view: "fx",
@@ -369,7 +369,7 @@ export const seedCategories: SeedCategory[] = [
     label: "Masse salariale sédentaire (salaires + charges)",
     sign: 1,
     rules: ["64", "633"],
-    notes: "Code Fanny 4 — liste nominative à confirmer (question squelette)",
+    notes: "Code Fanny 4, liste nominative à confirmer (question squelette)",
   },
   {
     code: "fx_carburant",
@@ -443,7 +443,7 @@ export const seedCategories: SeedCategory[] = [
     label: "Assurances (nettes d'indemnités)",
     sign: 1,
     rules: ["616", "7587"],
-    notes: "Code Fanny 5 — inclut indemnités d'assurances en déduction",
+    notes: "Code Fanny 5, inclut indemnités d'assurances en déduction",
   },
   {
     code: "fx_honoraires_njw",
@@ -453,7 +453,7 @@ export const seedCategories: SeedCategory[] = [
     sign: 1,
     entityScope: "sodobat",
     rules: [{ exact: "62263000" }],
-    notes: "Codes Fanny 10/17 — montant fixe mensuel, surveillé par alerte",
+    notes: "Codes Fanny 10/17, montant fixe mensuel, surveillé par alerte",
   },
   {
     code: "fx_honoraires_divers",
@@ -504,7 +504,7 @@ export const seedCategories: SeedCategory[] = [
     code: "fx_amortissements",
     view: "fx",
     section: "FRAIS GÉNÉRAUX",
-    label: "Dotations aux amortissements — VNC",
+    label: "Dotations aux amortissements (VNC)",
     sign: 1,
     rules: ["68", "657"],
     notes: "Code Fanny 16",

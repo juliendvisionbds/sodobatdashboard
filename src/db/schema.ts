@@ -223,7 +223,7 @@ export const alerts = pgTable(
   (t) => [index("alerts_entity_status").on(t.entityId, t.status)]
 );
 
-// Journal d'usage de l'assistant IA — trace les questions et la consommation
+// Journal d'usage de l'assistant IA, trace les questions et la consommation
 // de tokens (poste "Coûts IA variable" de l'abonnement).
 export const assistantLogs = pgTable(
   "assistant_logs",

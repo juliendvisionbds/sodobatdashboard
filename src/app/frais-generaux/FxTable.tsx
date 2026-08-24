@@ -51,7 +51,7 @@ export default function FxTable({ data }: { data: FxData }) {
         />
         {filtering && (
           <span style={{ fontSize: 11, color: "var(--gray3)", alignSelf: "center" }}>
-            Filtre actif — les sous-totaux affichés restent ceux de la section complète.
+            Filtre actif : les sous-totaux affichés restent ceux de la section complète.
           </span>
         )}
       </div>
@@ -81,13 +81,13 @@ export default function FxTable({ data }: { data: FxData }) {
             ))}
             {!filtering && (
               <tr className="total-row">
-                <td className="left">—</td>
+                <td className="left">-</td>
                 <td className="label-cell">TOTAL GÉNÉRAL (toutes sections)</td>
                 <td>{fmtEur(data.totalMois)}</td>
                 <td>{fmtEur(data.totalYtd)}</td>
                 <td>{fmtPct(ratioFx)}</td>
-                <td className="muted">—</td>
-                <td className="muted">—</td>
+                <td className="muted">-</td>
+                <td className="muted">-</td>
               </tr>
             )}
           </tbody>
@@ -118,23 +118,23 @@ function FxSection({
           <td className="label-cell" title={r.category.notes ?? undefined}>
             {r.category.label}
           </td>
-          <td className={r.mois < 0 ? "neg" : ""}>{r.mois === 0 ? "—" : fmtEur(r.mois)}</td>
+          <td className={r.mois < 0 ? "neg" : ""}>{r.mois === 0 ? "-" : fmtEur(r.mois)}</td>
           <td className={r.ytd < 0 ? "neg" : ""} style={{ fontWeight: 500 }}>
             {fmtEur(r.ytd)}
           </td>
           <td className="muted">{fmtPct(r.pctCa)}</td>
-          <td className="muted">—</td>
-          <td className="muted">—</td>
+          <td className="muted">-</td>
+          <td className="muted">-</td>
         </tr>
       ))}
       <tr className="subtotal-row">
-        <td className="code-cell">—</td>
+        <td className="code-cell">-</td>
         <td className="label-cell">TOTAL {section.name}</td>
         <td>{fmtEur(section.subtotal.mois)}</td>
         <td>{fmtEur(section.subtotal.ytd)}</td>
         <td>{fmtPct(caRef ? (section.subtotal.ytd / caRef) * 100 : null)}</td>
-        <td className="muted">—</td>
-        <td className="muted">—</td>
+        <td className="muted">-</td>
+        <td className="muted">-</td>
       </tr>
     </>
   );

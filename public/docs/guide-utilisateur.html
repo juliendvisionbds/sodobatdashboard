@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Guide utilisateur — Tableaux de gestion Groupe SDG</title>
+<title>Guide utilisateur · Tableaux de gestion Groupe SDG</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -152,7 +152,7 @@
 
   ul.clean { list-style: none; margin: 8px 0; }
   ul.clean li { padding: 7px 0 7px 22px; position: relative; font-size: 14px; color: var(--gray1); }
-  ul.clean li::before { content: "—"; position: absolute; left: 0; color: var(--gray3); }
+  ul.clean li::before { content: "•"; position: absolute; left: 0; color: var(--gray3); }
 
   .toc { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 24px; }
   .toc a { color: var(--gray1); text-decoration: none; font-size: 14px; padding: 5px 0; display: block; border-radius: 5px; }
@@ -291,7 +291,7 @@
         Si un compte apparaît dans un fichier importé et qu'<strong>aucune règle ne le couvre</strong>, l'app ne
         décide jamais à votre place. Le compte est mis de côté et remonté en <span class="tag amber">alerte</span>
         avec son numéro, son libellé et son montant. Un clic dans l'écran Mapping suffit alors pour l'affecter
-        à la bonne ligne — et ce choix est mémorisé pour tous les mois suivants.
+        à la bonne ligne, et ce choix est mémorisé pour tous les mois suivants.
       </p>
       <p style="font-size:13.5px; color:var(--gray2);">
         Conséquence : un total ne peut jamais être faussé par un compte rangé silencieusement au mauvais endroit.
@@ -304,7 +304,7 @@
       <p>
         Le cabinet comptable transmet souvent deux versions du même mois (une première rapide, puis une version
         corrigée). C'est prévu : <strong>réimporter une période remplace la version précédente</strong>, après le
-        même contrôle. L'ancienne version passe au statut « Remplacé » dans l'historique — rien n'est perdu,
+        même contrôle. L'ancienne version passe au statut « Remplacé » dans l'historique, rien n'est perdu,
         et il n'y a jamais de doublon dans les chiffres.
       </p>
     </div>
@@ -316,7 +316,7 @@
     <p class="h2-sub">La navigation se fait par les onglets en haut de page.</p>
 
     <div class="card">
-      <div class="card-label">Synthèse — la vue d'ensemble</div>
+      <div class="card-label">Synthèse · la vue d'ensemble</div>
       <p>
         C'est la page d'accueil. Elle présente l'exercice en cours à partir de la balance ventilée :
       </p>
@@ -325,7 +325,7 @@
         <li><strong>CA mensuel</strong> : la facturation mois par mois, en barres.</li>
         <li><strong>Structure des charges</strong> : le poids de chaque poste (sous-traitance, masse salariale, achats…).</li>
         <li><strong>Résultat mensuel</strong> : le résultat de chaque mois de l'exercice.</li>
-        <li><strong>Tableau détaillé</strong> : toutes les lignes de gestion (produits, charges d'exploitation, personnel, frais généraux) avec les montants mensuels et cumulés — filtrable par section et par recherche libre.</li>
+        <li><strong>Tableau détaillé</strong> : toutes les lignes de gestion (produits, charges d'exploitation, personnel, frais généraux) avec les montants mensuels et cumulés, filtrable par section et par recherche libre.</li>
         <li><strong>Alertes actives</strong> : ce qui demande votre attention (voir section 05).</li>
       </ul>
       <p>
@@ -337,7 +337,7 @@
     </div>
 
     <div class="card">
-      <div class="card-label">Chantiers — l'activité par affaire</div>
+      <div class="card-label">Chantiers · l'activité par affaire</div>
       <p>
         Construite à partir de la balance analytique, cette vue liste chaque chantier avec, pour le mois :
         annulation de la provision précédente, provision (travaux en cours), facturé, total produits, achats
@@ -347,14 +347,14 @@
       <p>
         La colonne <strong>Provision (TEC)</strong> est saisissable directement dans le tableau (profils admin et DAF) :
         c'est là que se gèrent les travaux en cours du mois. Une valeur saisie reste en
-        <span class="tag amber">brouillon</span> — modifiable à volonté — jusqu'à la clôture du mois, où elle
+        <span class="tag amber">brouillon</span> (modifiable à volonté) jusqu'à la clôture du mois, où elle
         est figée et devient la référence pour les calculs du mois suivant. Chaque ligne peut aussi porter
         une <strong>note</strong> libre (contexte, point d'attention, litige…).
       </p>
     </div>
 
     <div class="card">
-      <div class="card-label">Frais généraux — les charges de structure</div>
+      <div class="card-label">Frais généraux · les charges de structure</div>
       <p>
         Le détail du centre analytique FX : masse salariale sédentaire, crédit-bail, assurances, honoraires,
         loyers, carburant… Chaque poste affiche le montant du mois, le cumul de l'exercice (YTD), son poids
@@ -370,11 +370,11 @@
     </div>
 
     <div class="card">
-      <div class="card-label">Imports — le point d'entrée mensuel des données</div>
+      <div class="card-label">Imports · le point d'entrée mensuel des données</div>
       <p>
         Accessible via le menu utilisateur (profils admin et DAF). C'est ici que vous déposez les exports
         Cegid. L'écran montre aussi l'<strong>historique complet</strong> : qui a importé quoi, quand, et avec
-        quel statut —
+        quel statut :
         <span class="tag amber">En attente de validation</span>
         <span class="tag green">Validé</span>
         <span class="tag gray">Remplacé</span>
@@ -388,24 +388,24 @@
     </div>
 
     <div class="card">
-      <div class="card-label">Assistant IA — poser une question en français</div>
+      <div class="card-label">Assistant IA · poser une question en français</div>
       <p>
         Accessible à tous les profils. Posez votre question en langage naturel (« Quel est le CA du mois ? »,
         « Quels chantiers perdent de l'argent ? », « Où en est la masse salariale ? ») : l'assistant répond
-        en s'appuyant <strong>exclusivement</strong> sur les chiffres calculés par l'application — les mêmes
+        en s'appuyant <strong>exclusivement</strong> sur les chiffres calculés par l'application, les mêmes
         que ceux des écrans, au centime. Il ne calcule rien lui-même et n'invente jamais un chiffre : si une
         donnée n'est pas disponible, il le dit.
       </p>
     </div>
 
     <div class="card">
-      <div class="card-label">Mapping — la nomenclature en libre-service</div>
+      <div class="card-label">Mapping · la nomenclature en libre-service</div>
       <p>
         Accessible via le menu utilisateur (profils admin et DAF). Cet écran permet trois choses :
         <strong>affecter les comptes non mappés</strong> remontés en alerte (deux clics),
         <strong>créer une règle librement</strong> sans attendre qu'un compte pose problème (un compte précis
         ou tout un préfixe, avec un aperçu en direct de ce que la règle changera), et
-        <strong>remplacer une règle de la nomenclature groupe</strong> pour cette entité — l'ancienne règle
+        <strong>remplacer une règle de la nomenclature groupe</strong> pour cette entité, l'ancienne règle
         est conservée et peut être rétablie à tout moment. Les règles suivent un ordre de priorité clair :
         règle exacte, puis préfixe le plus long, puis préfixe court. Toute modification s'applique
         immédiatement à tous les tableaux, sans réimport.
@@ -431,7 +431,7 @@
         <li>
           <div class="step-t">Contrôler, puis valider</div>
           <div class="step-d">La page de contrôle s'ouvre : vérifier que les contrôles de classes sont au vert et jeter un œil aux
-          éventuels comptes non mappés. Cliquer « Valider l'intégration ». En cas de doute, « Rejeter » — rien n'aura été intégré.</div>
+          éventuels comptes non mappés. Cliquer « Valider l'intégration ». En cas de doute, « Rejeter » : rien n'aura été intégré.</div>
         </li>
         <li>
           <div class="step-t">Déposer la balance analytique</div>
@@ -495,7 +495,7 @@
     <p>Toutes les alertes se gèrent depuis la page <strong>Alertes</strong> (menu utilisateur en haut à droite,
     ou lien « Gérer » sur la carte de la Synthèse). Pour chaque alerte ouverte : un bouton d'action contextuel
     (affecter dans Mapping, marquer comme traitée / comme normal). Une alerte traitée <strong>ne revient pas</strong>
-    aux imports suivants — la décision est mémorisée. Elle reste visible dans l'historique en bas de page, avec
+    aux imports suivants, la décision est mémorisée. Elle reste visible dans l'historique en bas de page, avec
     qui l'a traitée et quand, et un bouton « Réactiver la surveillance » permet d'annuler la décision à tout
     moment. Seule exception : l'écart de contrôle, trop grave pour être ignoré durablement, est re-signalé à
     chaque import concerné.</p>
@@ -503,7 +503,7 @@
     <div class="callout warn">
       <span class="ico">⚠</span>
       <p><strong>Une alerte n'est pas une erreur de l'app</strong> : c'est le produit qui fait son travail de
-      vigie. L'objectif est simple — qu'aucun écart ne passe inaperçu et que chaque anomalie ait un responsable
+      vigie. L'objectif est simple : qu'aucun écart ne passe inaperçu et que chaque anomalie ait un responsable
       identifié : la nomenclature, le fichier source ou une écriture comptable.</p>
     </div>
   </section>
@@ -527,7 +527,7 @@
           </tr>
           <tr>
             <td><span class="tag gray">Lecteur</span></td>
-            <td>Oui</td><td>—</td><td>—</td><td>—</td>
+            <td>Oui</td><td>-</td><td>-</td><td>-</td>
           </tr>
         </tbody>
       </table>
@@ -535,7 +535,7 @@
 
     <p style="font-size:13.5px; color:var(--gray2);">
       Les profils Lecteur (dirigeants, associés) voient exactement les mêmes chiffres que la DAF, en temps réel,
-      sans pouvoir les modifier — l'Assistant IA leur est aussi ouvert. Les écrans Imports et Mapping sont
+      sans pouvoir les modifier. L'Assistant IA leur est aussi ouvert. Les écrans Imports et Mapping sont
       réservés aux profils admin et DAF, y compris en tapant l'adresse directement. La session reste ouverte
       7 jours ; la déconnexion se fait via le menu utilisateur en haut à droite.
     </p>
@@ -549,7 +549,7 @@
     <div class="card">
       <h3>Où sont stockées les données ?</h3>
       <p>Dans une base de données sécurisée, hébergée en Europe. Chaque import, chaque saisie et chaque
-      modification de mapping y est enregistré immédiatement — il n'y a rien à sauvegarder manuellement,
+      modification de mapping y est enregistré immédiatement, il n'y a rien à sauvegarder manuellement,
       et tous les utilisateurs voient la même chose au même moment.</p>
     </div>
 
@@ -565,14 +565,14 @@
       <p>Le tableau de bord reflète <strong>strictement la balance comptable importée</strong>, au centime.
       Les écarts avec un tableau tenu à la main viennent en général d'une version antérieure de la balance,
       d'un retraitement manuel non reporté, ou d'un compte classé différemment. Les ajustements de gestion
-      (travaux en cours, provisions) se font dans l'app, de façon explicite et traçable — jamais en modifiant
+      (travaux en cours, provisions) se font dans l'app, de façon explicite et traçable, jamais en modifiant
       les données comptables.</p>
     </div>
 
     <div class="card">
       <h3>Peut-on changer la façon dont un compte est classé ?</h3>
       <p>Oui, à tout moment, dans l'écran Mapping : créez une règle plus spécifique (elle est automatiquement
-      prioritaire), ou remplacez la règle existante — si c'est une règle de la nomenclature groupe, elle est
+      prioritaire), ou remplacez la règle existante, si c'est une règle de la nomenclature groupe, elle est
       désactivée et non supprimée, donc le choix est réversible. Le changement s'applique immédiatement à tous
       les tableaux, sans réimport. Aucune intervention technique n'est nécessaire.</p>
     </div>
@@ -585,7 +585,7 @@
   </section>
 
   <div class="footer">
-    <span>Tableaux de gestion — Groupe SDG · Phase 1 : Sodobat</span>
+    <span>Tableaux de gestion · Groupe SDG · Phase 1 : Sodobat</span>
     <span>Vision BDS · 2026</span>
   </div>
 

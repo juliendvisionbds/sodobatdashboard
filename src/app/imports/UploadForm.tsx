@@ -15,10 +15,10 @@ export default function UploadForm() {
         <div>
           <div className="alert-title">Chaque mois, 2 imports à faire l&apos;un après l&apos;autre</div>
           <div className="alert-desc">
-            <strong>1.</strong> Balance <strong>ventilée</strong> — déposer le fichier
+            <strong>1.</strong> Balance <strong>ventilée</strong> : déposer le fichier
             (le mois est détecté automatiquement) → contrôler → valider.
             <br />
-            <strong>2.</strong> Balance <strong>analytique</strong> — déposer le fichier{" "}
+            <strong>2.</strong> Balance <strong>analytique</strong> : déposer le fichier{" "}
             <strong>et renseigner le mois du snapshot</strong> → contrôler → valider.
             <br />
             La ventilée alimente la Synthèse ; l&apos;analytique alimente Chantiers et
@@ -28,7 +28,7 @@ export default function UploadForm() {
       </div>
 
       <label className="field-label" htmlFor="file">
-        Fichier xlsx — le type de balance est détecté automatiquement
+        Fichier xlsx : le type de balance est détecté automatiquement
       </label>
       <input
         id="file"
@@ -42,7 +42,7 @@ export default function UploadForm() {
 
       <label className="field-label" htmlFor="period">
         Mois du snapshot <span style={{ fontWeight: 400, textTransform: "none" }}>
-          (requis pour la balance analytique — la ventilée est détectée automatiquement)
+          (requis pour la balance analytique, la ventilée est détectée automatiquement)
         </span>
       </label>
       <input

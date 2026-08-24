@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Documentation — Tableaux de gestion Groupe SDG</title>
+<title>Documentation · Tableaux de gestion Groupe SDG</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -127,12 +127,15 @@
   tbody tr:last-child { border-bottom: none; }
   td { padding: 11px 16px; font-size: 13px; color: var(--gray1); vertical-align: top; }
   td:first-child { white-space: nowrap; }
+  table.wrap-first { table-layout: fixed; }
+  table.wrap-first th:first-child,
+  table.wrap-first td:first-child { white-space: normal; width: 46%; }
   td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
   th.num { text-align: right; }
 
   ul.clean { list-style: none; margin: 8px 0; }
   ul.clean li { padding: 7px 0 7px 22px; position: relative; font-size: 14px; color: var(--gray1); }
-  ul.clean li::before { content: "—"; position: absolute; left: 0; color: var(--gray3); }
+  ul.clean li::before { content: "-"; position: absolute; left: 0; color: var(--gray3); }
 
   .timeline { margin: 10px 0; }
   .tl-row { display: grid; grid-template-columns: 120px 1fr; gap: 16px; padding: 12px 0; border-bottom: 1px solid var(--gray5); }
@@ -198,8 +201,8 @@
     <p>
       L'application remplace les fichiers Excel mensuels de gestion du Groupe SDG
       (référence : devis n°2026-047 « Tableaux de gestion intelligents »). Elle est
-      alimentée par les exports comptables Cegid — les mêmes balances que celles produites
-      par le cabinet comptable — et en tire trois vues de gestion toujours cohérentes
+      alimentée par les exports comptables Cegid, les mêmes balances que celles produites
+      par le cabinet comptable, et en tire trois vues de gestion toujours cohérentes
       entre elles, plus un assistant IA pour interroger les chiffres en langage naturel.
     </p>
     <p>
@@ -221,7 +224,7 @@
       <div class="flow-arrow">→</div>
       <div class="flow-step">
         <div class="t">Trois vues de gestion</div>
-        <div class="d">Synthèse, Chantiers, Frais généraux — recalculées à chaque validation.</div>
+        <div class="d">Synthèse, Chantiers, Frais généraux, recalculées à chaque validation.</div>
       </div>
       <div class="flow-arrow">→</div>
       <div class="flow-step">
@@ -241,7 +244,7 @@
 
   <section id="pres-vues">
     <h2>02 · Les trois vues en un coup d'œil</h2>
-    <p class="h2-sub">Chaque vue répond à une question différente — détail dans l'onglet « Les vues ».</p>
+    <p class="h2-sub">Chaque vue répond à une question différente, détail dans l'onglet « Les vues ».</p>
 
     <div class="table-wrap">
       <table>
@@ -280,16 +283,16 @@
         <tbody>
           <tr><td><strong>Admin</strong></td><td>Oui</td><td>Oui</td></tr>
           <tr><td><strong>DAF</strong></td><td>Oui</td><td>Oui</td></tr>
-          <tr><td><strong>Lecteur</strong></td><td>Oui</td><td>Non — lecture seule partout</td></tr>
+          <tr><td><strong>Lecteur</strong></td><td>Oui</td><td>Non, lecture seule partout</td></tr>
         </tbody>
       </table>
     </div>
 
     <p>
       La connexion se fait par email et mot de passe ; la session dure 7 jours. La
-      navigation principale comporte quatre onglets — <strong>Synthèse</strong>,
-      <strong>Chantiers</strong>, <strong>Frais généraux</strong>,
-      <strong>Assistant IA</strong> — et le menu utilisateur donne accès aux écrans
+      navigation principale comporte quatre onglets : <strong>Synthèse</strong>,
+      <strong>Chantiers</strong>, <strong>Frais généraux</strong> et
+      <strong>Assistant IA</strong>. Le menu utilisateur donne accès aux écrans
       <strong>Imports</strong> et <strong>Mapping</strong> pour les profils admin et DAF.
     </p>
 
@@ -314,9 +317,9 @@
     <p class="h2-sub">La santé de l'entité sur l'exercice, construite sur la balance ventilée.</p>
 
     <p>
-      C'est la page d'accueil. Elle présente d'abord quatre indicateurs clés — CA cumulé
+      C'est la page d'accueil. Elle présente d'abord quatre indicateurs clés, CA cumulé
       (avec rappel N-1 si l'historique est importé), résultat d'exploitation, résultat net
-      (tous deux en euros et en % du CA) et le nombre d'alertes ouvertes — puis des
+      (tous deux en euros et en % du CA) et le nombre d'alertes ouvertes, puis des
       graphiques (CA mensuel, résultat net des derniers mois, structure des charges) et
       enfin le tableau de synthèse détaillé.
     </p>
@@ -351,18 +354,18 @@
     <p class="h2-sub">Le résultat de chaque affaire, mois par mois, sur la balance analytique.</p>
 
     <p>
-      Chaque ligne est un chantier (centre analytique), regroupé par pôle — la lettre en
+      Chaque ligne est un chantier (centre analytique), regroupé par pôle, la lettre en
       suffixe du code chantier (1003B → pôle B). Les colonnes du mois :
     </p>
 
     <ul class="clean">
-      <li><strong>Annulation</strong> — extourne de la provision de travaux en cours du mois précédent (négatif).</li>
-      <li><strong>Provision (TEC)</strong> — le manque à facturer du mois, issu de la comptabilité et ajustable à la main (voir l'onglet Provisions).</li>
-      <li><strong>Facturé</strong> — la facturation réelle du mois.</li>
+      <li><strong>Annulation</strong> : extourne de la provision de travaux en cours du mois précédent (négatif).</li>
+      <li><strong>Provision (TEC)</strong> : le manque à facturer du mois, issu de la comptabilité et ajustable à la main (voir l'onglet Provisions).</li>
+      <li><strong>Facturé</strong> : la facturation réelle du mois.</li>
       <li><strong>Total produits</strong> = Facturé + Provision + Annulation.</li>
-      <li><strong>Achats MP</strong>, <strong>Sous-traitance</strong>, <strong>Autres charges</strong> — les charges directes affectées au chantier.</li>
+      <li><strong>Achats MP</strong>, <strong>Sous-traitance</strong>, <strong>Autres charges</strong> : les charges directes affectées au chantier.</li>
       <li><strong>Résultat mois</strong> = Total produits − charges directes.</li>
-      <li><strong>Note</strong> — champ libre pour expliquer un écart ou un point d'attention.</li>
+      <li><strong>Note</strong> : champ libre pour expliquer un écart ou un point d'attention.</li>
     </ul>
 
     <p>
@@ -379,14 +382,14 @@
       Quatre indicateurs en tête : total cumulé sur l'exercice (YTD), frais du mois, ratio
       frais généraux / CA, et nombre de comptes FX non mappés. Le tableau détaille chaque
       poste (comptes regroupés par catégorie) avec la dépense du mois, le cumul exercice,
-      le poids en % du CA — le CA de référence étant le cumul de la balance ventilée
+      le poids en % du CA, le CA de référence étant le cumul de la balance ventilée
       <strong>arrêté au mois affiché</strong>, pour que les ratios restent comparables
       quand on consulte un mois passé. Les colonnes N-1 / N-2 s'activeront après la
       reprise de l'historique.
     </p>
     <p>
-      Le tableau regroupe trois sections — <strong>Masse salariale sédentaire</strong>,
-      <strong>Frais généraux</strong> et <strong>Crédit-bail / LLD</strong> — chacune avec
+      Le tableau regroupe trois sections : <strong>Masse salariale sédentaire</strong>,
+      <strong>Frais généraux</strong> et <strong>Crédit-bail / LLD</strong>, chacune avec
       son sous-total ; la dernière ligne, « TOTAL GÉNÉRAL (toutes sections) », est la somme
       des trois. Il se filtre par section et par recherche libre (libellé ou numéro de
       compte).
@@ -407,21 +410,21 @@
         Un <strong>sélecteur de mois</strong> se trouve à côté du titre des trois vues.
         Sur Chantiers et Frais généraux, il liste tous les mois pour lesquels un snapshot
         analytique a été validé, du plus récent au plus ancien. Choisir un mois passé
-        recalcule toute la vue pour cette période — y compris la colonne « du mois », qui
+        recalcule toute la vue pour cette période, y compris la colonne « du mois », qui
         reprend le delta avec le snapshot précédent de l'époque.
       </p>
       <ul class="clean">
         <li>Avec un seul mois importé, le sélecteur est visible mais grisé : il s'active dès le deuxième snapshot validé.</li>
-        <li>Sur un mois passé, la vue Chantiers passe en <strong>lecture seule</strong> (badge « mois passé — lecture seule ») : provisions et notes ne sont saisissables que sur le dernier mois, on ne réécrit pas une période close.</li>
+        <li>Sur un mois passé, la vue Chantiers passe en <strong>lecture seule</strong> (badge « mois passé, lecture seule ») : provisions et notes ne sont saisissables que sur le dernier mois, on ne réécrit pas une période close.</li>
       </ul>
       <p>
         La <strong>Synthèse</strong> a son propre sélecteur d'<strong>arrêté mensuel</strong>,
         avec une nuance importante : comme chaque balance ventilée contient tout l'exercice
-        et remplace la précédente, revenir à un mois passé ne rouvre pas l'ancien fichier —
+        et remplace la précédente, revenir à un mois passé ne rouvre pas l'ancien fichier :
         la vue est recalculée depuis le <strong>dernier fichier importé, tronqué au mois
         choisi</strong>. Autrement dit : les chiffres de mai <em>tels qu'on les connaît
         aujourd'hui</em>, révisions du cabinet incluses (un badge le rappelle :
-        « arrêté au … — chiffres à jour des dernières révisions »).
+        « arrêté au …, chiffres à jour des dernières révisions »).
       </p>
     </div>
   </section>
@@ -496,8 +499,8 @@
           </tr>
           <tr>
             <td><strong>Au réimport</strong></td>
-            <td><span class="tag amber">Remplacement</span> — le nouvel export remplace l'ancien, pour tout l'exercice.</td>
-            <td><span class="tag green">Accumulation</span> — chaque snapshot mensuel est conservé, ils coexistent.</td>
+            <td><span class="tag amber">Remplacement</span>, le nouvel export remplace l'ancien, pour tout l'exercice.</td>
+            <td><span class="tag green">Accumulation</span>, chaque snapshot mensuel est conservé, ils coexistent.</td>
           </tr>
           <tr>
             <td><strong>Alimente</strong></td>
@@ -512,7 +515,7 @@
       <h3>Ventilée : le dernier import validé est la seule vérité</h3>
       <p>
         Puisque chaque export ventilée contient l'exercice entier, garder plusieurs versions
-        actives n'aurait aucun sens : elles se recouvriraient. La règle est donc simple —
+        actives n'aurait aucun sens : elles se recouvriraient. La règle est donc simple :
         <strong>l'application ne lit toujours qu'un seul import ventilée : le dernier validé de
         l'exercice</strong>.
       </p>
@@ -520,7 +523,7 @@
         Concrètement, quand la balance de juin est validée alors que celle de mai l'était déjà :
         l'import de mai passe au statut <span class="tag gray">Remplacé</span>, ses alertes
         encore ouvertes sont purgées, et le nouvel import régénère les siennes sur des données
-        fraîches. Rien n'est supprimé de l'historique — l'import de mai reste consultable — mais
+        fraîches. Rien n'est supprimé de l'historique, l'import de mai reste consultable, mais
         il ne participe plus à aucun calcul.
       </p>
       <p>
@@ -553,7 +556,7 @@
         suivre un chantier sur toute sa durée de vie, au-delà de l'exercice comptable de 12 mois.
       </p>
       <p style="font-size: 13.5px; color: var(--gray2);">
-        Cas particulier du tout premier snapshot : sans mois précédent, aucun delta n'est possible —
+        Cas particulier du tout premier snapshot : sans mois précédent, aucun delta n'est possible,
         la vue Chantiers affiche alors le cumul depuis l'ouverture des chantiers, et l'indique.
         L'activité mensuelle apparaît à partir du deuxième snapshot.
       </p>
@@ -597,7 +600,7 @@
       <span class="ico">⚠</span>
       <p><strong>La validation est le seul point d'entrée des chiffres.</strong> Un fichier déposé
       mais non validé n'a strictement aucun effet sur les tableaux. Et avant de valider, l'écran de
-      contrôle annonce explicitement si l'import va remplacer une version existante — il n'y a
+      contrôle annonce explicitement si l'import va remplacer une version existante, il n'y a
       jamais de remplacement silencieux.</p>
     </div>
   </section>
@@ -623,7 +626,7 @@
         </div>
         <div class="tl-row">
           <div class="tl-when">Après validation</div>
-          <div class="tl-what">Les alertes sont régénérées : comptes non mappés des nouveaux fichiers, montants constants suspects, mois sans données. Les nouveaux comptes jamais vus sont à affecter dans l'écran Mapping — jamais classés par défaut.</div>
+          <div class="tl-what">Les alertes sont régénérées : comptes non mappés des nouveaux fichiers, montants constants suspects, mois sans données. Les nouveaux comptes jamais vus sont à affecter dans l'écran Mapping, jamais classés par défaut.</div>
         </div>
         <div class="tl-row">
           <div class="tl-when">Semaines suivantes</div>
@@ -639,27 +642,27 @@
     <p class="h2-sub">Chaque choix de conception répond à une exigence contractuelle.</p>
 
     <div class="table-wrap">
-      <table>
+      <table class="wrap-first">
         <thead><tr><th>Exigence du CDC</th><th>Réponse du système</th></tr></thead>
         <tbody>
           <tr>
-            <td><strong>§4.3</strong> — « 2 mises à jour mensuelles : une à M+24, une seconde à la suite des corrections comptables »</td>
+            <td><strong>§4.3</strong> : « 2 mises à jour mensuelles : une à M+24, une seconde à la suite des corrections comptables »</td>
             <td>Le remplacement idempotent : réimporter une période écrase proprement la version précédente, après le même contrôle. La seconde mise à jour mensuelle est un geste identique à la première.</td>
           </tr>
           <tr>
-            <td><strong>§4.2</strong> — « Conservation et intégration de l'historique »</td>
-            <td>Rien n'est supprimé : les imports remplacés restent dans l'historique avec leur statut, et les snapshots analytiques sont conservés mois par mois — c'est même la matière première du calcul des deltas.</td>
+            <td><strong>§4.2</strong> : « Conservation et intégration de l'historique »</td>
+            <td>Rien n'est supprimé : les imports remplacés restent dans l'historique avec leur statut, et les snapshots analytiques sont conservés mois par mois, c'est même la matière première du calcul des deltas.</td>
           </tr>
           <tr>
-            <td><strong>§4.1</strong> — « Tout compte non mappé doit remonter en alerte, jamais classé par défaut »</td>
+            <td><strong>§4.1</strong> : « Tout compte non mappé doit remonter en alerte, jamais classé par défaut »</td>
             <td>À chaque import, chaque compte est confronté aux règles de mapping. Sans correspondance : alerte avec numéro, libellé et montant, à traiter dans l'écran Mapping. Le choix est mémorisé pour les mois suivants.</td>
           </tr>
           <tr>
-            <td><strong>§3</strong> — « Suivi chantier sur toute la durée de vie, non borné à l'exercice »</td>
+            <td><strong>§3</strong> : « Suivi chantier sur toute la durée de vie, non borné à l'exercice »</td>
             <td>Les snapshots analytiques cumulent depuis l'ouverture de chaque chantier ; l'historique d'un chantier traverse les exercices comptables.</td>
           </tr>
           <tr>
-            <td><strong>Objectif n°1</strong> — « Fiabilité à 100 % entre les sources comptables et les tableaux »</td>
+            <td><strong>Objectif n°1</strong> : « Fiabilité à 100 % entre les sources comptables et les tableaux »</td>
             <td>Contrôles de classes à chaque import (totaux du fichier vs totaux recalculés), validation humaine obligatoire, et lecture exclusive du dernier état comptable validé.</td>
           </tr>
         </tbody>
@@ -673,10 +676,10 @@
     <p class="h2-sub"></p>
 
     <div class="card">
-      <h3>Les chiffres d'un mois passé ont changé après un import — c'est normal ?</h3>
+      <h3>Les chiffres d'un mois passé ont changé après un import, c'est normal ?</h3>
       <p>Oui, et c'est voulu. Le nouvel export ventilée contient tout l'exercice : si le cabinet a
       corrigé des écritures de mars, la colonne de mars change à la validation du nouvel import.
-      Le tableau reflète toujours l'état comptable le plus récent — c'est l'exigence de fiabilité
+      Le tableau reflète toujours l'état comptable le plus récent, c'est l'exigence de fiabilité
       du projet qui s'exprime.</p>
     </div>
 
@@ -697,10 +700,10 @@
     </div>
 
     <div class="card">
-      <h3>Un fichier a été validé par erreur — comment revenir en arrière ?</h3>
+      <h3>Un fichier a été validé par erreur, comment revenir en arrière ?</h3>
       <p>On ne « dévalide » pas : on réimporte la bonne version du même mois (ou le bon export de
       l'exercice pour la ventilée), et elle remplace la version erronée. L'erreur reste tracée dans
-      l'historique avec son statut, la correction aussi — la piste d'audit est complète.</p>
+      l'historique avec son statut, la correction aussi, la piste d'audit est complète.</p>
     </div>
 
     <div class="card">
@@ -728,7 +731,7 @@
       jamais exactement l'avancement réel des travaux. Fin juin, un chantier peut avoir
       consommé <strong>50 000 €</strong> de travaux alors que seuls <strong>30 000 €</strong>
       ont été facturés au client. À la lecture des seules factures, le chantier paraît
-      déficitaire ce mois-là — alors qu'il se porte très bien. C'est un simple décalage de
+      déficitaire ce mois-là, alors qu'il se porte très bien. C'est un simple décalage de
       facturation.
     </p>
     <p>
@@ -765,7 +768,7 @@
       <span class="ico">ℹ</span>
       <p><strong>Attention au vocabulaire :</strong> au sens comptable strict, une « provision »
       sert à anticiper un risque ou une charge future (comptes 15 et 68). Ici, le terme est
-      employé — comme le fait le Groupe SDG — pour le <strong>manque à facturer des travaux en
+      employé, comme le fait le Groupe SDG, pour le <strong>manque à facturer des travaux en
       cours</strong> (compte 713). Les provisions comptables « classiques » (dotations aux
       amortissements et provisions, créances douteuses) sont, elles, traitées comme des charges
       normales dans les vues Synthèse et Frais généraux.</p>
@@ -775,7 +778,7 @@
   <!-- ═══════════ 02 CALCUL AUTOMATIQUE ═══════════ -->
   <section id="prov-calcul">
     <h2>02 · Comment l'application les calcule</h2>
-    <p class="h2-sub">Tout part de la balance analytique — aucune saisie n'est nécessaire par défaut.</p>
+    <p class="h2-sub">Tout part de la balance analytique, aucune saisie n'est nécessaire par défaut.</p>
 
     <p>
       Comme expliqué dans l'onglet Imports, la vue Chantiers travaille sur le
@@ -841,7 +844,7 @@
       La provision issue de la balance date du dernier export comptable. Entre deux exports,
       la DAF connaît souvent un manque à facturer plus à jour (avancement réel du chantier,
       situation en préparation…). Plutôt que d'attendre la prochaine clôture, elle peut
-      <strong>modifier la provision directement dans la vue Chantiers</strong> — c'est le
+      <strong>modifier la provision directement dans la vue Chantiers</strong> : c'est le
       mécanisme demandé au §4.6 du cahier des charges.
     </p>
 
@@ -866,10 +869,10 @@
     <ul class="clean">
       <li>La saisie est rattachée à <strong>un chantier et un mois</strong> précis : au changement de période, on repart de la valeur comptable.</li>
       <li>La saisie n'est possible que sur <strong>le dernier mois importé</strong> : un mois passé consulté via le sélecteur de mois est en lecture seule.</li>
-      <li>Dès qu'une valeur manuelle existe, <strong>c'est elle</strong> qui entre dans le total produits et le résultat du chantier — à la place de la valeur issue de la balance.</li>
+      <li>Dès qu'une valeur manuelle existe, <strong>c'est elle</strong> qui entre dans le total produits et le résultat du chantier, à la place de la valeur issue de la balance.</li>
       <li>Chaque saisie est <strong>tracée</strong> : qui a modifié, quand, et avec quel statut (brouillon ou figé).</li>
       <li>Seuls les utilisateurs habilités (admin, DAF) peuvent saisir ; les lecteurs voient la valeur et son statut.</li>
-      <li>Un <strong>champ note</strong> par chantier permet d'expliquer l'écart avec la comptabilité (§4.5 du CDC) — c'est la bonne pratique à chaque ajustement.</li>
+      <li>Un <strong>champ note</strong> par chantier permet d'expliquer l'écart avec la comptabilité (§4.5 du CDC), c'est la bonne pratique à chaque ajustement.</li>
     </ul>
 
     <div class="callout green">
@@ -918,24 +921,24 @@
     <p class="h2-sub">Où chaque exigence trouve sa réponse.</p>
 
     <div class="table-wrap">
-      <table>
+      <table class="wrap-first">
         <thead><tr><th>Exigence du CDC</th><th>Réponse du système</th></tr></thead>
         <tbody>
           <tr>
-            <td><strong>§4.6</strong> — « Modification en direct sur l'outil avec un enregistrement brouillon modifiable, puis un enregistrement final figé jusqu'au mois suivant »</td>
+            <td><strong>§4.6</strong> : « Modification en direct sur l'outil avec un enregistrement brouillon modifiable, puis un enregistrement final figé jusqu'au mois suivant »</td>
             <td>Édition de la provision directement dans la cellule, statut brouillon 🟡 modifiable, bouton « figer » qui verrouille 🔒 la valeur pour la période.</td>
           </tr>
           <tr>
-            <td><strong>§4.5</strong> — « Champ notes permettant d'expliquer les travaux en cours en décalage par rapport aux données comptables »</td>
+            <td><strong>§4.5</strong> : « Champ notes permettant d'expliquer les travaux en cours en décalage par rapport aux données comptables »</td>
             <td>Note libre par chantier et par mois, affichée dans la vue Chantiers, à côté de la provision qu'elle documente.</td>
           </tr>
           <tr>
-            <td><strong>Objectif n°1</strong> — « Fiabilité à 100 % entre les sources comptables et les tableaux »</td>
+            <td><strong>Objectif n°1</strong> : « Fiabilité à 100 % entre les sources comptables et les tableaux »</td>
             <td>Valeur par défaut issue de la balance au centime ; tout écart manuel est explicite (statut visible), tracé (auteur, date) et réversible tant qu'il n'est pas figé.</td>
           </tr>
           <tr>
-            <td><strong>§2.1</strong> — BDD SIT : « source d'information pour comprendre son fonctionnement… sans remplacer son processus comptable »</td>
-            <td>L'outil n'importe pas la BDD SIT mais reproduit la même logique d'extourne mensuelle via le compte 713 de la balance — le processus comptable de la DAF reste inchangé.</td>
+            <td><strong>§2.1</strong> : BDD SIT : « source d'information pour comprendre son fonctionnement… sans remplacer son processus comptable »</td>
+            <td>L'outil n'importe pas la BDD SIT mais reproduit la même logique d'extourne mensuelle via le compte 713 de la balance, le processus comptable de la DAF reste inchangé.</td>
           </tr>
         </tbody>
       </table>
@@ -953,8 +956,8 @@
         La vue Synthèse est construite sur la balance ventilée : sa ligne « Travaux en cours »
         reflète uniquement les écritures comptables du 713. Si une provision manuelle a été saisie
         dans la vue Chantiers, <strong>les deux vues peuvent différer</strong> le temps que la
-        comptabilité passe ses écritures de clôture. C'est un choix de conception — la Synthèse
-        reste « pure comptabilité » — mais il faut le savoir pour ne pas chercher un écart qui
+        comptabilité passe ses écritures de clôture. C'est un choix de conception, la Synthèse
+        reste « pure comptabilité », mais il faut le savoir pour ne pas chercher un écart qui
         n'est pas une erreur.
       </p>
     </div>
@@ -965,7 +968,7 @@
         Les lignes de la vue Chantiers sont créées à partir des mouvements de la balance du mois.
         Un chantier totalement dormant (aucun mouvement dans le delta mensuel) n'apparaît pas dans
         le tableau, même si une provision manuelle a été enregistrée pour lui. Cas rare en
-        pratique — un chantier avec un manque à facturer a généralement des mouvements — mais à
+        pratique, un chantier avec un manque à facturer a généralement des mouvements, mais à
         garder en tête.
       </p>
     </div>
@@ -992,8 +995,8 @@
     <p>
       Une règle dit : « tout compte qui commence par 604 » (règle par préfixe) ou « le
       compte 604000 exactement » (règle exacte) appartient à telle catégorie. Une base de
-      règles est fournie au départ, puis s'enrichit des affectations faites au fil des mois
-      — chaque choix est mémorisé et s'applique à tous les imports suivants.
+      règles est fournie au départ, puis s'enrichit des affectations faites au fil des mois,
+      chaque choix est mémorisé et s'applique à tous les imports suivants.
     </p>
   </section>
 
@@ -1004,9 +1007,9 @@
     <div class="card">
       <h3>Ce qu'on y fait</h3>
       <ul class="clean">
-        <li><strong>Affecter un compte non mappé</strong> : choisir la catégorie de destination (proposées par vue et section) et la portée de la règle — ce compte uniquement, ou tous les comptes commençant pareil. L'affectation s'applique immédiatement à toutes les vues et clôt l'alerte associée.</li>
+        <li><strong>Affecter un compte non mappé</strong> : choisir la catégorie de destination (proposées par vue et section) et la portée de la règle, ce compte uniquement, ou tous les comptes commençant pareil. L'affectation s'applique immédiatement à toutes les vues et clôt l'alerte associée.</li>
         <li><strong>Ignorer un compte</strong> : clôt l'alerte sans créer de règle, pour les comptes volontairement hors gestion.</li>
-        <li><strong>Créer une règle librement</strong> : sans attendre qu'un compte remonte en alerte, via le formulaire « Nouvelle règle » — avec un aperçu en direct qui indique quelle règle existante couvre déjà le compte saisi et si la nouvelle sera prioritaire.</li>
+        <li><strong>Créer une règle librement</strong> : sans attendre qu'un compte remonte en alerte, via le formulaire « Nouvelle règle », avec un aperçu en direct qui indique quelle règle existante couvre déjà le compte saisi et si la nouvelle sera prioritaire.</li>
         <li><strong>Remplacer une règle de la nomenclature groupe</strong> : l'ancienne règle est <em>désactivée</em> (jamais supprimée) et une règle propre à l'entité prend le relais ; le bouton « Rétablir l'origine » annule le remplacement à tout moment.</li>
         <li><strong>Gérer les règles manuelles</strong> : la liste complète des règles (origine groupe ou ajout manuel, avec leur auteur) est consultable ; les règles manuelles peuvent être supprimées.</li>
         <li><strong>Consulter la nomenclature</strong> : toutes les catégories et leurs règles, par vue.</li>
@@ -1040,7 +1043,7 @@
           <tr>
             <td><span class="tag red">Écart de contrôle</span></td>
             <td>Erreur</td>
-            <td>Les totaux par classe comptable recalculés ne correspondent pas aux totaux du fichier importé — le fichier est suspect, à vérifier avec le cabinet.</td>
+            <td>Les totaux par classe comptable recalculés ne correspondent pas aux totaux du fichier importé, le fichier est suspect, à vérifier avec le cabinet.</td>
           </tr>
           <tr>
             <td><span class="tag amber">Compte non mappé</span></td>
@@ -1050,12 +1053,12 @@
           <tr>
             <td><span class="tag amber">Mois sans données</span></td>
             <td>Avertissement</td>
-            <td>Un mois de l'exercice, antérieur à la période importée, n'a aucune écriture — trou probable dans l'export.</td>
+            <td>Un mois de l'exercice, antérieur à la période importée, n'a aucune écriture, trou probable dans l'export.</td>
           </tr>
           <tr>
             <td><span class="tag amber">Montant constant</span></td>
             <td>Avertissement</td>
-            <td>Le même montant non nul se répète au moins 3 mois de suite sur un compte — souvent le signe d'une écriture dupliquée ou d'un abonnement à contrôler.</td>
+            <td>Le même montant non nul se répète au moins 3 mois de suite sur un compte, souvent le signe d'une écriture dupliquée ou d'un abonnement à contrôler.</td>
           </tr>
         </tbody>
       </table>
@@ -1070,10 +1073,10 @@
     </p>
 
     <div class="card">
-      <h3>Traiter une alerte — et pourquoi la décision persiste</h3>
+      <h3>Traiter une alerte, et pourquoi la décision persiste</h3>
       <p>
         La page <strong>Alertes</strong> (menu utilisateur, ou lien « Gérer » sur la Synthèse)
-        centralise le traitement : chaque alerte ouverte propose une action contextuelle —
+        centralise le traitement : chaque alerte ouverte propose une action contextuelle :
         « Affecter dans Mapping » pour un compte non mappé, « Marquer comme normal » pour un
         montant constant, « Marquer comme traitée » pour les autres.
       </p>
@@ -1083,7 +1086,7 @@
         identique. Concrètement : un compte ignoré reste ignoré ; un montant constant marqué
         comme normal ne re-signale que si le montant fixe <em>change</em> ; un mois sans données
         traité ne revient pas pour ce même mois. Seul l'<strong>écart de contrôle</strong>
-        (intégrité du fichier) est toujours re-signalé — il ne doit jamais être ignoré durablement.
+        (intégrité du fichier) est toujours re-signalé, il ne doit jamais être ignoré durablement.
         L'historique en bas de page liste les alertes traitées (par qui, quand) et le bouton
         « Réactiver la surveillance » annule la décision : l'alerte sera recréée au prochain
         import si l'anomalie persiste.
@@ -1155,7 +1158,7 @@
 
   <section id="acces-roles">
     <h2>03 · Comptes, rôles et navigation</h2>
-    <p class="h2-sub">Trois niveaux d'accès — un compte par rôle.</p>
+    <p class="h2-sub">Trois niveaux d'accès, un compte par rôle.</p>
 
     <div class="table-wrap">
       <table>
@@ -1180,8 +1183,8 @@
           <tr>
             <td><strong>Lecteur</strong></td>
             <td>Consultation</td>
-            <td>—</td>
-            <td>—</td>
+            <td>-</td>
+            <td>-</td>
             <td>Lecture seule</td>
             <td>Lecture seule</td>
           </tr>
@@ -1191,7 +1194,7 @@
 
     <ul class="clean">
       <li>Connexion par email et mot de passe ; session de 7 jours ; toute page exige d'être connecté.</li>
-      <li>Les onglets <strong>Synthèse · Chantiers · Frais généraux · Assistant IA</strong> sont visibles par tous ; <strong>Imports</strong> et <strong>Mapping</strong> n'apparaissent dans le menu utilisateur que pour les profils admin et DAF — et sont aussi protégés côté serveur : un lecteur qui en tape l'adresse directement est renvoyé à la Synthèse.</li>
+      <li>Les onglets <strong>Synthèse · Chantiers · Frais généraux · Assistant IA</strong> sont visibles par tous ; <strong>Imports</strong> et <strong>Mapping</strong> n'apparaissent dans le menu utilisateur que pour les profils admin et DAF, et sont aussi protégés côté serveur : un lecteur qui en tape l'adresse directement est renvoyé à la Synthèse.</li>
       <li>L'en-tête rappelle l'exercice comptable affiché (ex. « Exercice 2025 / 2026 »).</li>
     </ul>
   </section>
@@ -1199,7 +1202,7 @@
   </div><!-- /panel-assistant -->
 
   <div class="footer">
-    <span>Tableaux de gestion — Groupe SDG · Documentation de fonctionnement</span>
+    <span>Tableaux de gestion · Groupe SDG · Documentation de fonctionnement</span>
     <span>Vision BDS · 2026</span>
   </div>
 

@@ -52,8 +52,8 @@ export default async function FxPage({
       <AppHeader active="fx" fiscalYearStart={fiscalYearOf(data.period)} />
       <div className="page">
         <div className="page-header">
-          <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
-            <h1>Frais généraux — {monthLabelLong(data.period)}</h1>
+          <div className="page-header-row">
+            <h1>Frais généraux · {monthLabelLong(data.period)}</h1>
             {periods.length > 0 && (
               <MonthSelect basePath="/frais-generaux" periods={periods} current={data.period} />
             )}
@@ -86,7 +86,7 @@ export default async function FxPage({
           <div className="kpi">
             <div className="kpi-label">Ratio FX / CA</div>
             <div className="kpi-value" style={{ color: "var(--blue)" }}>
-              {ratioFx != null ? fmtPct(ratioFx) : "—"}
+              {ratioFx != null ? fmtPct(ratioFx) : "-"}
             </div>
             <div className="kpi-sub">
               {data.caReference != null

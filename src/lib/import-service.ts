@@ -305,14 +305,14 @@ async function generateAlerts(importId: number) {
   const summary = imp.summary as ImportSummary;
   const alerts: (typeof tables.alerts.$inferInsert)[] = [];
 
-  // 1) comptes non mappés — jamais de classement par défaut
+  // 1) comptes non mappés, jamais de classement par défaut
   for (const u of summary.unmapped) {
     alerts.push({
       entityId: imp.entityId,
       importId,
       type: "compte_non_mappe",
       severity: "warn",
-      title: `Compte non mappé : ${u.account} — ${u.label}`,
+      title: `Compte non mappé : ${u.account} · ${u.label}`,
       description: `Montant ${fmt(u.total)} € non affecté (vues : ${u.views.join(", ")}). À affecter dans l'écran Mapping.`,
       account: u.account,
       amount: String(round2(u.total)),
@@ -386,8 +386,8 @@ async function generateAlerts(importId: number) {
             importId,
             type: "montant_constant",
             severity: "warn",
-            title: `${account} — ${rec.label} : montant fixe sur ${run}+ mois`,
-            description: `${fmt(cur!)} € identiques plusieurs mois consécutifs — à vérifier (abonnement, forfait ou erreur de saisie).`,
+            title: `${account} · ${rec.label} : montant fixe sur ${run}+ mois`,
+            description: `${fmt(cur!)} € identiques plusieurs mois consécutifs : à vérifier (abonnement, forfait ou erreur de saisie).`,
             account,
             amount: String(round2(cur!)),
             period: imp.period,

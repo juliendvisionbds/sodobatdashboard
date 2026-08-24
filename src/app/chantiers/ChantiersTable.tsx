@@ -2,13 +2,20 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { ChantierRow, ChantiersData } from "@/lib/finance";
-import { fmtNum } from "@/lib/format";
+import { fmtEur } from "@/lib/format";
 import { saveManualEntryAction } from "@/app/actions";
 
-function Amount({ v, posGreen = false }: { v: number; posGreen?: boolean }) {
-  if (v === 0) return <span className="muted">—</span>;
-  const cls = v < 0 ? "neg" : posGreen ? "pos" : "";
-  return <span className={cls}>{v > 0 && posGreen ? "+" : ""}{fmtNum(v)}</span>;
+// Classe et texte appliqués directement sur le <td> (et non sur un <span>
+// interne) : les règles CSS td.neg / td.pos / .total-row td.neg ciblent le
+// <td> lui-même, sinon les négatifs ne ressortent jamais en rouge.
+function amountClass(v: number, posGreen = false) {
+  if (v === 0) return "muted";
+  return v < 0 ? "neg" : posGreen ? "pos" : "";
+}
+
+function amountText(v: number, posGreen = false) {
+  if (v === 0) return "-";
+  return `${v > 0 && posGreen ? "+" : ""}${fmtEur(v)}`;
 }
 
 export default function ChantiersTable({
@@ -116,14 +123,14 @@ export default function ChantiersTable({
             <tr className="total-row">
               <td className="left">Total</td>
               <td className="label-cell">{filtered.length} chantiers</td>
-              <td><Amount v={totals.annulation} /></td>
-              <td><Amount v={totals.prevision} /></td>
-              <td><Amount v={totals.facture} posGreen /></td>
-              <td><Amount v={totals.totalProduits} /></td>
-              <td><Amount v={totals.achatsMp} /></td>
-              <td><Amount v={totals.sousTraitance} /></td>
-              <td><Amount v={totals.autresCharges} /></td>
-              <td><Amount v={totals.resultat} posGreen /></td>
+              <td className={amountClass(totals.annulation)}>{amountText(totals.annulation)}</td>
+              <td className={amountClass(totals.prevision)}>{amountText(totals.prevision)}</td>
+              <td className={amountClass(totals.facture, true)}>{amountText(totals.facture, true)}</td>
+              <td className={amountClass(totals.totalProduits)}>{amountText(totals.totalProduits)}</td>
+              <td className={amountClass(totals.achatsMp)}>{amountText(totals.achatsMp)}</td>
+              <td className={amountClass(totals.sousTraitance)}>{amountText(totals.sousTraitance)}</td>
+              <td className={amountClass(totals.autresCharges)}>{amountText(totals.autresCharges)}</td>
+              <td className={amountClass(totals.resultat, true)}>{amountText(totals.resultat, true)}</td>
               <td />
             </tr>
           </tbody>
@@ -198,15 +205,15 @@ function ChantierTr({
     <tr style={isPending ? { opacity: 0.5 } : undefined}>
       <td className="code-cell">{row.centreCode}</td>
       <td className="label-cell">{row.centreLabel}</td>
-      <td><Amount v={row.annulation} /></td>
-      <td>
+      <td className={amountClass(row.annulation)}>{amountText(row.annulation)}</td>
+      <td className={canEdit && !isFinal ? undefined : amountClass(previsionValue)}>
         {canEdit && !isFinal ? (
           <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
             <input
               className={`inline-num${manual ? " draft" : ""}`}
               defaultValue={previsionValue || ""}
               placeholder="0"
-              title={manual ? "Saisie manuelle (brouillon)" : "Provision issue de la balance — modifiable"}
+              title={manual ? "Saisie manuelle (brouillon)" : "Provision issue de la balance, modifiable"}
               onBlur={(e) => {
                 const v = e.target.value.trim();
                 if (v !== "" && parseFloat(v.replace(",", ".")) !== previsionValue) {
@@ -227,17 +234,17 @@ function ChantierTr({
           </span>
         ) : (
           <span title={isFinal ? "Valeur figée" : undefined}>
-            <Amount v={previsionValue} />
+            {amountText(previsionValue)}
             {isFinal && " 🔒"}
           </span>
         )}
       </td>
-      <td><Amount v={row.facture} posGreen /></td>
-      <td><Amount v={row.totalProduits} /></td>
-      <td><Amount v={row.achatsMp} /></td>
-      <td><Amount v={row.sousTraitance} /></td>
-      <td><Amount v={row.autresCharges} /></td>
-      <td><Amount v={row.resultat} posGreen /></td>
+      <td className={amountClass(row.facture, true)}>{amountText(row.facture, true)}</td>
+      <td className={amountClass(row.totalProduits)}>{amountText(row.totalProduits)}</td>
+      <td className={amountClass(row.achatsMp)}>{amountText(row.achatsMp)}</td>
+      <td className={amountClass(row.sousTraitance)}>{amountText(row.sousTraitance)}</td>
+      <td className={amountClass(row.autresCharges)}>{amountText(row.autresCharges)}</td>
+      <td className={amountClass(row.resultat, true)}>{amountText(row.resultat, true)}</td>
       <td className="left" style={{ maxWidth: 160 }}>
         {canEdit ? (
           <input

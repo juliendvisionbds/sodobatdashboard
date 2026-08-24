@@ -33,7 +33,7 @@ export default async function ImportPreviewPage({
       <div className="page">
         <div className="page-header">
           <h1>
-            Contrôle avant intégration —{" "}
+            Contrôle avant intégration ·{" "}
             {s.type === "ventilee" ? "Balance ventilée" : "Balance analytique"}
           </h1>
           <p>
@@ -72,7 +72,7 @@ export default async function ImportPreviewPage({
           <div className="kpi">
             <div className="kpi-label">Contrôles de classes</div>
             <div className="kpi-value" style={{ color: koChecks.length ? "var(--red)" : "var(--green)" }}>
-              {s.classChecks ? `${s.classChecks.length - koChecks.length}/${s.classChecks.length}` : "—"}
+              {s.classChecks ? `${s.classChecks.length - koChecks.length}/${s.classChecks.length}` : "-"}
             </div>
             <div className={`kpi-sub ${koChecks.length ? "neg" : "pos"}`}>
               {s.classChecks
@@ -89,7 +89,7 @@ export default async function ImportPreviewPage({
             </div>
             <div className="kpi-sub warn">
               {s.unmapped.length
-                ? "seront remontés en alerte — jamais classés par défaut"
+                ? "seront remontés en alerte, jamais classés par défaut"
                 : "tous les comptes sont affectés"}
             </div>
           </div>
@@ -150,7 +150,7 @@ export default async function ImportPreviewPage({
             ))}
             {s.unmapped.length > 15 && (
               <p style={{ fontSize: 12, color: "var(--gray3)", marginTop: 8 }}>
-                … et {s.unmapped.length - 15} autres — traitables ensuite dans l&apos;écran Mapping.
+                … et {s.unmapped.length - 15} autres, traitables ensuite dans l&apos;écran Mapping.
               </p>
             )}
           </div>

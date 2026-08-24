@@ -103,7 +103,7 @@ export default function Chat() {
             <div className="alert-ico">✕</div>
             <div>
               <div className="alert-title">L&apos;assistant n&apos;a pas pu répondre</div>
-              <div className="alert-desc">Réessayez — si le problème persiste, contactez Vision BDS.</div>
+              <div className="alert-desc">Réessayez. Si le problème persiste, contactez Vision BDS.</div>
             </div>
           </div>
         )}
@@ -121,7 +121,7 @@ export default function Chat() {
           className="field-input"
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder="Posez votre question — ex. « quel était le CA d'avril vs octobre ? »"
+          placeholder="Posez votre question, ex. « quel était le CA d'avril vs octobre ? »"
           disabled={busy}
         />
         <button type="submit" className="btn" disabled={busy || !input.trim()}>

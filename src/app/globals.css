@@ -46,7 +46,7 @@ body {
   box-shadow: 0 1px 0 var(--gray4), var(--shadow-sm);
 }
 .header-inner {
-  max-width: 1280px;
+  max-width: 1600px;
   margin: 0 auto;
   padding: 0 40px;
   display: flex;
@@ -199,13 +199,19 @@ body {
 }
 
 /* ── LAYOUT ── */
-.page { max-width: 1280px; margin: 0 auto; padding: 36px 40px 80px; }
+.page { max-width: 1600px; margin: 0 auto; padding: 36px 40px 80px; }
 .page-header { margin-bottom: 32px; }
 .page-header h1 {
   font-size: 26px; font-weight: 700; color: var(--black);
-  letter-spacing: -0.03em; line-height: 1.2; margin-bottom: 6px;
+  letter-spacing: -0.03em; line-height: 1.2; margin-bottom: 10px;
 }
 .page-header p { font-size: 14px; color: var(--gray2); }
+/* Row wrapping the h1 with an inline MonthSelect/tag: the h1's own margin-bottom
+   makes it taller than the select in the flex line, which pushes align-items: center
+   to sit the select lower than the title text. Zero it here and move the spacing to
+   the row itself so the title/select line up on their visual centers. */
+.page-header-row { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-bottom: 10px; }
+.page-header-row h1 { margin-bottom: 0; }
 
 /* ── KPI ── */
 .kpi-strip { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 28px; }
@@ -253,6 +259,7 @@ body {
 .ca-bar { position: absolute; top: 0; left: 0; height: 100%; border-radius: 6px; }
 .ca-value { font-size: 12px; font-weight: 500; text-align: right; color: var(--gray1); }
 .ca-value.pos { color: var(--blue); }
+.ca-value.neg { color: var(--red); }
 .ca-value.muted { color: var(--gray3); }
 
 /* ── CHARGES ── */
@@ -320,28 +327,50 @@ body {
 .tctl-input::placeholder { color: var(--gray3); }
 .tctl-stats { margin-left: auto; font-size: 12px; color: var(--gray3); }
 
-/* ── TABLE ── */
+/* ── TABLE ──
+   overflow-x:auto (nécessaire pour le défilement horizontal des tableaux larges)
+   force overflow-y à "auto" même si on demande "visible" (interdépendance
+   des deux axes en CSS) : le conteneur devient donc de toute façon une
+   "scrolling box". On assume ce comportement en lui donnant une hauteur
+   maximale + son propre défilement vertical, ce qui permet à l'en-tête
+   sticky de s'accrocher de façon fiable (contrairement à un sticky calé
+   sur le scroll de la page, structurellement incompatible avec le
+   défilement horizontal du même conteneur). */
 .table-wrap {
   border: 1px solid var(--gray4); border-radius: var(--radius);
-  box-shadow: var(--shadow-sm); overflow: hidden; overflow-x: auto; background: var(--white);
+  box-shadow: var(--shadow-sm); overflow: auto; background: var(--white);
+  max-height: calc(100vh - 220px);
 }
-.ct { width: 100%; border-collapse: collapse; }
+.ct { width: 100%; border-collapse: separate; border-spacing: 0; }
 .ct thead { background: var(--gray5); }
 .ct thead th {
   font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em;
   color: var(--gray2); padding: 12px 14px; text-align: right;
   border-bottom: 1px solid var(--gray4); white-space: nowrap;
+  position: sticky; top: 0; z-index: 5; background: var(--gray5);
 }
 .ct thead th.left { text-align: left; }
 .ct tbody tr { border-bottom: 1px solid var(--gray5); transition: background 0.1s; background: var(--white); }
 .ct tbody tr:hover { background: var(--blue-hover); }
 .ct td { padding: 10px 14px; font-size: 12px; color: var(--gray1); text-align: right; white-space: nowrap; }
 .ct td.left { text-align: left; }
-.ct td.label-cell { font-size: 13px; color: var(--black); text-align: left; max-width: 280px; overflow: hidden; text-overflow: ellipsis; }
+.ct td.label-cell { font-size: 13px; color: var(--black); text-align: left; white-space: normal; max-width: 480px; }
 .ct td.code-cell { color: var(--gray3); font-size: 11px; text-align: left; }
 td.pos { color: var(--green); font-weight: 500; }
 td.neg { color: var(--red); }
 td.muted { color: var(--gray3); }
+
+/* Colonne % / CA : mise en avant, indicateur clé pour le client.
+   L'accent visuel vient du badge pilule (.pct-badge) autour de la valeur,
+   pas d'un fond de colonne entier. */
+.ct th.pct-col { color: var(--blue); font-weight: 600; }
+.ct td.pct-col { font-size: 12.5px; }
+.pct-badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  padding: 2px 9px; border-radius: 20px; font-size: 12px; font-weight: 600;
+  background: var(--blue-lt); color: var(--blue); line-height: 1.5;
+}
+.pct-badge.neg { background: var(--red-lt); color: var(--red); }
 
 .section-row td {
   padding: 14px 14px 5px; font-size: 10px; font-weight: 600;
@@ -349,9 +378,15 @@ td.muted { color: var(--gray3); }
   background: var(--blue-lt) !important; text-align: left;
 }
 .section-row:hover td { background: var(--blue-lt) !important; }
-.subtotal-row td { font-weight: 600; color: var(--black); background: var(--gray5); }
+.subtotal-row td { font-weight: 600; color: var(--black); background: var(--gray4); }
+.subtotal-row td.neg { color: var(--red); }
 .total-row { border-top: 2px solid var(--gray4) !important; }
-.total-row td { font-weight: 600; color: var(--black) !important; font-size: 13px !important; }
+.total-row td {
+  font-weight: 600; color: var(--black) !important; font-size: 13px !important;
+  background: var(--blue-lt) !important;
+}
+.total-row td.neg { color: var(--red) !important; }
+.total-row:hover td { background: var(--blue-lt) !important; }
 
 /* ── TAGS / BADGES ── */
 .tag { display: inline-flex; align-items: center; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 500; }

@@ -57,7 +57,7 @@ export default async function ImportsPage() {
           <h1>Imports mensuels</h1>
           <p>
             Déposez les exports Cegid (balance ventilée et balance analytique). Chaque
-            import est prévisualisé et contrôlé avant intégration — ré-importer une
+            import est prévisualisé et contrôlé avant intégration. Ré-importer une
             période remplace la version précédente.
           </p>
         </div>
@@ -78,7 +78,7 @@ export default async function ImportsPage() {
               </div>
               <div className="alert-desc">
                 {donneesEnRetard
-                  ? `Les exports du mois M sont attendus vers le 24 du mois M+1 (règle TVA). Relancez le cabinet si besoin, puis importez ${monthLabelLong(expectedPeriod)}${analytiqueEnRetard ? " — l'analytique du dernier mois est aussi en attente" : ""}.`
+                  ? `Les exports du mois M sont attendus vers le 24 du mois M+1 (règle TVA). Relancez le cabinet si besoin, puis importez ${monthLabelLong(expectedPeriod)}.${analytiqueEnRetard ? " L'analytique du dernier mois est aussi en attente." : ""}`
                   : analytiqueEnRetard
                     ? "Déposez la balance analytique du même mois pour mettre à jour Chantiers et Frais généraux."
                     : "Les deux balances du dernier mois exigible sont intégrées."}
@@ -95,7 +95,7 @@ export default async function ImportsPage() {
             {rows.length === 0 && (
               <p style={{ fontSize: 13, color: "var(--gray2)" }}>
                 Aucun import pour l&apos;instant. Le cycle mensuel se fait en deux temps :
-                d&apos;abord la balance ventilée, puis la balance analytique du même mois —
+                d&apos;abord la balance ventilée, puis la balance analytique du même mois,
                 chacune est contrôlée puis validée séparément.
               </p>
             )}
@@ -118,7 +118,7 @@ export default async function ImportsPage() {
                     <div>
                       <div className="charge-name">
                         {r.type === "ventilee" ? "Balance ventilée" : "Balance analytique"}{" "}
-                        — {monthLabelLong(r.period)}
+                        · {monthLabelLong(r.period)}
                       </div>
                       <div className="charge-code">
                         {r.fileName} · {r.createdAt.toLocaleDateString("fr-FR")} ·{" "}

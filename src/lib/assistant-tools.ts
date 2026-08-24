@@ -1,6 +1,6 @@
 // Outils exposés au LLM de l'assistant. Tous en lecture seule, et tous branchés
 // sur le moteur de calcul des écrans (finance.ts) : un chiffre retourné ici est
-// par construction identique à celui affiché dans l'app — le modèle ne calcule
+// par construction identique à celui affiché dans l'app. Le modèle ne calcule
 // rien lui-même, il reformule.
 
 import { tool } from "ai";
@@ -26,14 +26,14 @@ export function buildAssistantTools(entity: Entity) {
   return {
     synthese: tool({
       description:
-        "Vue Synthèse de l'exercice en cours : CA, charges, résultats — totaux mensuels et cumulés, " +
+        "Vue Synthèse de l'exercice en cours : CA, charges, résultats, totaux mensuels et cumulés, " +
         "par ligne de gestion et par section, avec % du CA et comparaison N-1 si disponible. " +
         "Source : balance générale ventilée (comptabilité). Montants en euros.",
       inputSchema: z.object({
         detail: z
           .enum(["totaux", "complet"])
           .describe(
-            "'totaux' : uniquement les agrégats (CA, charges, résultats) par mois — suffisant pour la plupart des questions. " +
+            "'totaux' : uniquement les agrégats (CA, charges, résultats) par mois, suffisant pour la plupart des questions. " +
               "'complet' : ajoute chaque ligne de gestion (sous-traitance, intérim, masse salariale…)."
           ),
       }),
@@ -58,7 +58,7 @@ export function buildAssistantTools(entity: Entity) {
           resultatNet: agg(data.resultatNet),
           comparaisonN1: data.hasPrevYear
             ? { caExercicePrecedent: eur(data.prevCaTotal ?? 0) }
-            : "exercice précédent non importé — comparaison N-1 indisponible",
+            : "exercice précédent non importé, comparaison N-1 indisponible",
         };
         if (detail === "totaux") return base;
 

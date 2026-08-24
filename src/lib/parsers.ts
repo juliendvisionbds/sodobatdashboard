@@ -217,7 +217,7 @@ function tryParseVentilee(grid: Grid): ParsedVentilee | null {
 
 // ── Balance analytique ───────────────────────────────────────────────────────
 // Structure : en-tête "Centre / Intitulé du centre / Compte / Intitulé du compte
-// / Débit / Crédit / Solde". Seul l'onglet brut est importé — les onglets de
+// / Débit / Crédit / Solde". Seul l'onglet brut est importé, les onglets de
 // travail (X°, PDTS, FX avec tableaux croisés) sont ignorés.
 
 function tryParseAnalytique(grid: Grid): ParsedAnalytique | null {

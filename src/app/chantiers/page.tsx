@@ -23,7 +23,7 @@ export default async function ChantiersPage({
   const data = await getChantiers(entity, { period });
   const session = await getSession();
   // Saisies (provision TEC, notes) réservées au dernier mois : un mois passé est consultable
-  // mais figé — on ne réécrit pas l'histoire d'une période déjà clôturée.
+  // mais figé, on ne réécrit pas l'histoire d'une période déjà clôturée.
   const isLatestPeriod = !data || data.period === periods[0];
   const writer = !!session && canWrite(session) && isLatestPeriod;
 
@@ -58,8 +58,8 @@ export default async function ChantiersPage({
       <AppHeader active="chantiers" fiscalYearStart={fiscalYearOf(data.period)} />
       <div className="page">
         <div className="page-header">
-          <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
-            <h1>Chantiers — {monthLabelLong(data.period)}</h1>
+          <div className="page-header-row">
+            <h1>Chantiers · {monthLabelLong(data.period)}</h1>
             {periods.length > 0 && (
               <MonthSelect basePath="/chantiers" periods={periods} current={data.period} />
             )}
@@ -72,13 +72,15 @@ export default async function ChantiersPage({
         </div>
 
         <div style={{ display: "flex", gap: 12, marginBottom: 20, flexWrap: "wrap" }}>
-          <span className="tag blue">Total produits : {fmtEurAuto(data.totals.totalProduits)}</span>
+          <span className={`tag ${data.totals.totalProduits >= 0 ? "blue" : "red"}`}>
+            Total produits : {fmtEurAuto(data.totals.totalProduits)}
+          </span>
           <span className={`tag ${data.totals.resultat >= 0 ? "green" : "red"}`}>
             Résultat : {data.totals.resultat >= 0 ? "+" : ""}{fmtEurAuto(data.totals.resultat)}
           </span>
           <span className="tag gray">{activeRows.length} chantiers avec activité</span>
           {!data.prevPeriod && <span className="tag amber">cumul (pas de snapshot M-1)</span>}
-          {!isLatestPeriod && <span className="tag gray">mois passé — lecture seule</span>}
+          {!isLatestPeriod && <span className="tag gray">mois passé · lecture seule</span>}
         </div>
 
         <ChantiersTable

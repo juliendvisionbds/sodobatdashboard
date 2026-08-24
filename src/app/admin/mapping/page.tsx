@@ -33,7 +33,7 @@ function CategoryOptions({ categories }: { categories: CategoryOption[] }) {
             .filter((c) => c.view === view)
             .map((c) => (
               <option key={c.id} value={c.id}>
-                {c.section} — {c.label}
+                {c.section} · {c.label}
               </option>
             ))}
         </optgroup>
@@ -95,7 +95,7 @@ export default async function MappingPage() {
         <div className="page-header">
           <h1>Mapping des comptes</h1>
           <p>
-            Tout compte comptable inconnu de la nomenclature remonte ici — il n&apos;est
+            Tout compte comptable inconnu de la nomenclature remonte ici, il n&apos;est
             jamais classé par défaut. Les règles s&apos;appliquent au moment du calcul :
             toute modification corrige immédiatement les vues, sans réimport.
           </p>
@@ -163,7 +163,7 @@ export default async function MappingPage() {
                         .filter((c) => c.view === view)
                         .map((c) => (
                           <option key={c.id} value={c.id}>
-                            {c.section} — {c.label}
+                            {c.section} · {c.label}
                           </option>
                         ))}
                     </optgroup>

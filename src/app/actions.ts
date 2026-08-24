@@ -282,7 +282,7 @@ export async function resolveAlertAction(formData: FormData) {
 
 /**
  * Annule une décision « traité » : l'alerte est supprimée de l'historique, donc
- * la surveillance reprend — elle sera recréée au prochain import si l'anomalie
+ * la surveillance reprend. Elle sera recréée au prochain import si l'anomalie
  * est toujours présente.
  */
 export async function forgetAlertAction(formData: FormData) {

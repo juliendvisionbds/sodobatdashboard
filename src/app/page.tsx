@@ -97,14 +97,14 @@ export default async function SynthesePage({
       <AppHeader active="synthese" fiscalYearStart={data.fiscalYearStart} />
       <div className="page">
         <div className="page-header">
-          <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
-            <h1>Résultats cumulés — {nbMois} mois</h1>
+          <div className="page-header-row">
+            <h1>Résultats cumulés · {nbMois} mois</h1>
             {periods.length > 0 && (
               <MonthSelect basePath="/" periods={periods} current={data.period} />
             )}
             {!isLatestPeriod && (
               <span className="tag gray">
-                arrêté au {monthLabelLong(data.period)} — chiffres à jour des dernières révisions
+                arrêté au {monthLabelLong(data.period)}, chiffres à jour des dernières révisions
               </span>
             )}
           </div>
@@ -117,7 +117,11 @@ export default async function SynthesePage({
         <div className="kpi-strip">
           <div className="kpi">
             <div className="kpi-label">CA cumulé</div>
-            <div className="kpi-value">
+            <div
+              className="kpi-value"
+              style={data.caTotal.total < 0 ? { color: "var(--red)" } : undefined}
+            >
+              {data.caTotal.total < 0 ? "−" : ""}
               {caSplit.amount}
               <span className="unit">{caSplit.unit}</span>
             </div>
@@ -172,7 +176,7 @@ export default async function SynthesePage({
         <div className="grid-3-2">
           <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
             <div className="card">
-              <div className="card-label">CA mensuel — exercice en cours</div>
+              <div className="card-label">CA mensuel · exercice en cours</div>
               <div>
                 {caByMonth.map(({ m, v }) => (
                   <div className="ca-row" key={m}>
@@ -188,7 +192,9 @@ export default async function SynthesePage({
                         />
                       )}
                     </div>
-                    <div className={`ca-value ${v > 0 ? "pos" : "muted"}`}>
+                    <div
+                      className={`ca-value ${v > 0 ? "pos" : v < 0 ? "neg" : "muted"}`}
+                    >
                       {v !== 0 ? fmtEurAuto(v) : "n.d."}
                     </div>
                   </div>
@@ -227,10 +233,16 @@ export default async function SynthesePage({
                     <div className="rm-label">{monthLabel(m)}</div>
                     <div
                       className={`rm-val ${
-                        i === resByMonth.length - 1 ? "blue" : v > 0 ? "pos" : v < 0 ? "neg" : ""
+                        v < 0
+                          ? "neg"
+                          : i === resByMonth.length - 1
+                          ? "blue"
+                          : v > 0
+                          ? "pos"
+                          : ""
                       }`}
                     >
-                      {v === 0 ? "—" : `${v > 0 ? "+" : "−"}${fmtEurAuto(Math.abs(v))}`}
+                      {v === 0 ? "-" : `${v > 0 ? "+" : "−"}${fmtEurAuto(Math.abs(v))}`}
                     </div>
                     <div className="rm-pct">
                       {ca !== 0 ? fmtPct((v / ca) * 100) : "n.d."}
@@ -243,7 +255,7 @@ export default async function SynthesePage({
 
           <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
             <div className="card">
-              <div className="card-label">Structure des charges — cumulé</div>
+              <div className="card-label">Structure des charges · cumulé</div>
               {chargeRows.map((r, i) => (
                 <div className="charge-row" key={r.category.code}>
                   <div className="charge-left">

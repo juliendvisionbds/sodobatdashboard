@@ -97,7 +97,7 @@ export default function NewRuleForm({
                   .filter((c) => c.view === view)
                   .map((c) => (
                     <option key={c.id} value={c.id}>
-                      {c.section} — {c.label}
+                      {c.section} · {c.label}
                     </option>
                   ))}
               </optgroup>
@@ -127,7 +127,7 @@ export default function NewRuleForm({
               </div>
             ) : (
               <div>
-                Aucune règle active ne couvre « {pattern.trim()} » aujourd&apos;hui — ces
+                Aucune règle active ne couvre « {pattern.trim()} » aujourd&apos;hui, ces
                 comptes remontent en alerte « non mappé ».
               </div>
             )}
@@ -151,7 +151,7 @@ export default function NewRuleForm({
       {state?.ok && (
         <div className="alert pos" style={{ marginTop: 14 }}>
           <div className="alert-ico">✓</div>
-          <div className="alert-desc">{state.ok} — appliquée immédiatement à toutes les vues.</div>
+          <div className="alert-desc">{state.ok}, appliquée immédiatement à toutes les vues.</div>
         </div>
       )}
     </form>

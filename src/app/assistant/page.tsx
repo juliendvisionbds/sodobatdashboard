@@ -18,8 +18,8 @@ export default async function AssistantPage() {
         <div className="page-header">
           <h1>Assistant IA</h1>
           <p>
-            Posez vos questions en langage naturel sur les données de gestion —
-            les chiffres cités proviennent directement des balances importées.
+            Posez vos questions en langage naturel sur les données de gestion.
+            Les chiffres cités proviennent directement des balances importées.
             {lastImport && (
               <> Données à jour : {monthLabelLong(lastImport.period)}.</>
             )}

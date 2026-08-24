@@ -9,7 +9,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Sodobat — Tableaux de gestion | Groupe SDG",
+  title: "Sodobat | Tableaux de gestion | Groupe SDG",
   description: "Tableaux de gestion intelligents du Groupe SDG",
 };
 

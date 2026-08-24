@@ -23,7 +23,7 @@ const TYPE_META: Record<
     label: "Écart de contrôle",
     action: "Vérifier l'export",
     conseil:
-      "Le total du fichier ne correspond pas au recalcul : l'export est probablement corrompu ou tronqué. Redemander le fichier au cabinet et réimporter — ne pas ignorer sans vérification.",
+      "Le total du fichier ne correspond pas au recalcul : l'export est probablement corrompu ou tronqué. Redemander le fichier au cabinet et réimporter, ne pas ignorer sans vérification.",
   },
   mois_sans_donnees: {
     label: "Mois sans données",
@@ -35,7 +35,7 @@ const TYPE_META: Record<
     label: "Montant constant",
     action: "Vérifier puis statuer",
     conseil:
-      "Montant strictement identique plusieurs mois de suite : abonnement ou forfait légitime, ou saisie recopiée par erreur. Si c'est normal, « Marquer comme normal » — l'alerte ne reviendra plus pour ce montant.",
+      "Montant strictement identique plusieurs mois de suite : abonnement ou forfait légitime, ou saisie recopiée par erreur. Si c'est normal, « Marquer comme normal » : l'alerte ne reviendra plus pour ce montant.",
   },
 };
 
@@ -71,7 +71,7 @@ export default async function AlertesPage() {
           <p>
             Générées automatiquement à chaque import validé. Une alerte marquée comme
             traitée ne reviendra pas au prochain import (sauf « écart de contrôle »,
-            toujours re-signalé) — la décision est réversible dans l&apos;historique
+            toujours re-signalé). La décision est réversible dans l&apos;historique
             ci-dessous.
           </p>
         </div>
@@ -155,7 +155,7 @@ export default async function AlertesPage() {
 
         {resolved.length > 0 && (
           <div className="card">
-            <div className="card-label">Historique — traitées ({resolved.length})</div>
+            <div className="card-label">Historique · traitées ({resolved.length})</div>
             {resolved.map((a) => (
               <div
                 key={a.id}
@@ -175,7 +175,7 @@ export default async function AlertesPage() {
                   <div className="charge-code">
                     {TYPE_META[a.type]?.label ?? a.type}
                     {a.amount != null ? ` · ${fmtEur(Number(a.amount))}` : ""} · traitée par{" "}
-                    {a.resolvedBy ?? "—"}
+                    {a.resolvedBy ?? "-"}
                     {a.resolvedAt
                       ? ` le ${new Date(a.resolvedAt).toLocaleDateString("fr-FR")}`
                       : ""}

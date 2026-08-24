@@ -72,7 +72,7 @@ export function fmtEurAuto(n: number): string {
 }
 
 export function fmtPct(n: number | null, decimals = 1): string {
-  if (n == null) return "—";
+  if (n == null) return "-";
   return (
     new Intl.NumberFormat("fr-FR", {
       maximumFractionDigits: decimals,

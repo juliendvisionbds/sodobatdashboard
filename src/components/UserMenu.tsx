@@ -39,7 +39,7 @@ export default function UserMenu({
         className="user-avatar"
         aria-haspopup="menu"
         aria-expanded={open}
-        aria-label={`Menu compte — ${name}`}
+        aria-label={`Menu compte : ${name}`}
         title={`${name} (${role})`}
         onClick={() => setOpen((v) => !v)}
       >
