@@ -74,6 +74,8 @@ export const accountRules = pgTable(
     entityId: integer("entity_id").references(() => entities.id), // null = toutes entités
     pattern: text("pattern").notNull(),
     matchType: text("match_type", { enum: ["exact", "prefix"] }).notNull(),
+    // Une règle seed remplacée est désactivée (pas supprimée) : réversible et tracé.
+    active: boolean("active").notNull().default(true),
     createdAt: timestamp("created_at").notNull().defaultNow(),
     createdBy: text("created_by"), // "seed" ou email utilisateur
   },

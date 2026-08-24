@@ -110,6 +110,105 @@ export async function deleteRuleAction(formData: FormData) {
   revalidatePath("/", "layout");
 }
 
+/** Création libre d'une règle (proactive, sans attendre un compte non mappé). */
+export async function createRuleAction(
+  _prev: { error?: string; ok?: string } | undefined,
+  formData: FormData
+): Promise<{ error?: string; ok?: string }> {
+  const { session, entity } = await requireWriter();
+  const pattern = String(formData.get("pattern") ?? "").trim();
+  const matchType = String(formData.get("matchType") ?? "prefix") as "exact" | "prefix";
+  const categoryId = Number(formData.get("categoryId"));
+
+  if (!/^[0-9A-Za-z]{2,}$/.test(pattern)) {
+    return { error: "Numéro ou préfixe de compte invalide (2 caractères minimum, chiffres/lettres)." };
+  }
+  if (!categoryId) return { error: "Choisissez une catégorie de destination." };
+
+  const duplicate = await db
+    .select({ id: tables.accountRules.id })
+    .from(tables.accountRules)
+    .where(
+      and(
+        eq(tables.accountRules.pattern, pattern),
+        eq(tables.accountRules.matchType, matchType),
+        eq(tables.accountRules.active, true),
+        eq(tables.accountRules.entityId, entity.id)
+      )
+    );
+  if (duplicate.length > 0) {
+    return { error: `Une règle active existe déjà pour « ${pattern} » (${matchType === "exact" ? "exact" : "préfixe"}). Supprimez-la ou remplacez-la.` };
+  }
+
+  await db.insert(tables.accountRules).values({
+    categoryId,
+    entityId: entity.id,
+    pattern,
+    matchType,
+    createdBy: session.email,
+  });
+  revalidatePath("/", "layout");
+  return { ok: `Règle créée : ${pattern}${matchType === "prefix" ? "…" : ""}` };
+}
+
+/** Remplace une règle seed : la désactive (réversible) et crée la règle entité. */
+export async function replaceRuleAction(formData: FormData) {
+  const { session, entity } = await requireWriter();
+  const ruleId = Number(formData.get("ruleId"));
+  const categoryId = Number(formData.get("categoryId"));
+  if (!ruleId || !categoryId) return;
+
+  const [rule] = await db
+    .select()
+    .from(tables.accountRules)
+    .where(eq(tables.accountRules.id, ruleId));
+  if (!rule) return;
+
+  await db
+    .update(tables.accountRules)
+    .set({ active: false })
+    .where(eq(tables.accountRules.id, ruleId));
+  await db.insert(tables.accountRules).values({
+    categoryId,
+    entityId: entity.id,
+    pattern: rule.pattern,
+    matchType: rule.matchType,
+    createdBy: session.email,
+  });
+  revalidatePath("/", "layout");
+}
+
+/** Réactive une règle désactivée (annulation d'un remplacement). */
+export async function reactivateRuleAction(formData: FormData) {
+  const { entity } = await requireWriter();
+  const ruleId = Number(formData.get("ruleId"));
+  if (!ruleId) return;
+
+  const [rule] = await db
+    .select()
+    .from(tables.accountRules)
+    .where(eq(tables.accountRules.id, ruleId));
+  if (!rule) return;
+
+  // supprime la règle de remplacement associée pour éviter deux règles actives
+  // sur le même pattern (la règle entité gagnerait silencieusement sinon)
+  await db
+    .delete(tables.accountRules)
+    .where(
+      and(
+        eq(tables.accountRules.pattern, rule.pattern),
+        eq(tables.accountRules.matchType, rule.matchType),
+        eq(tables.accountRules.entityId, entity.id),
+        eq(tables.accountRules.active, true)
+      )
+    );
+  await db
+    .update(tables.accountRules)
+    .set({ active: true })
+    .where(eq(tables.accountRules.id, ruleId));
+  revalidatePath("/", "layout");
+}
+
 // ── Saisies manuelles (brouillon / figé) ─────────────────────────────────────
 
 export async function saveManualEntryAction(formData: FormData) {

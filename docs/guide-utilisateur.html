@@ -378,10 +378,14 @@
     <div class="card">
       <div class="card-label">Mapping — la nomenclature en libre-service</div>
       <p>
-        Accessible via le menu utilisateur (profils admin et DAF). Cet écran liste les comptes non mappés
-        remontés en alerte et permet de les affecter à une ligne de gestion en deux clics. On peut aussi y
-        consulter, ajouter ou supprimer des règles existantes. Toute modification s'applique aux imports
-        suivants — c'est ainsi que la nomenclature s'affine au fil des mois.
+        Accessible via le menu utilisateur (profils admin et DAF). Cet écran permet trois choses :
+        <strong>affecter les comptes non mappés</strong> remontés en alerte (deux clics),
+        <strong>créer une règle librement</strong> sans attendre qu'un compte pose problème (un compte précis
+        ou tout un préfixe, avec un aperçu en direct de ce que la règle changera), et
+        <strong>remplacer une règle de la nomenclature groupe</strong> pour cette entité — l'ancienne règle
+        est conservée et peut être rétablie à tout moment. Les règles suivent un ordre de priorité clair :
+        règle exacte, puis préfixe le plus long, puis préfixe court. Toute modification s'applique
+        immédiatement à tous les tableaux, sans réimport.
       </p>
     </div>
   </section>
@@ -535,8 +539,10 @@
 
     <div class="card">
       <h3>Peut-on changer la façon dont un compte est classé ?</h3>
-      <p>Oui, à tout moment, dans l'écran Mapping : supprimez la règle existante et créez la nouvelle affectation.
-      Le changement s'applique aux calculs dès l'import suivant. Aucune intervention technique n'est nécessaire.</p>
+      <p>Oui, à tout moment, dans l'écran Mapping : créez une règle plus spécifique (elle est automatiquement
+      prioritaire), ou remplacez la règle existante — si c'est une règle de la nomenclature groupe, elle est
+      désactivée et non supprimée, donc le choix est réversible. Le changement s'applique immédiatement à tous
+      les tableaux, sans réimport. Aucune intervention technique n'est nécessaire.</p>
     </div>
 
     <div class="card">

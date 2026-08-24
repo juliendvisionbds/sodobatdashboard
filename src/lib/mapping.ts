@@ -19,6 +19,7 @@ export type Rule = {
   categoryId: number;
   pattern: string;
   matchType: "exact" | "prefix";
+  entityId: number | null;
 };
 
 export type Mapper = {
@@ -53,11 +54,13 @@ export async function loadMapper(
             categoryId: tables.accountRules.categoryId,
             pattern: tables.accountRules.pattern,
             matchType: tables.accountRules.matchType,
+            entityId: tables.accountRules.entityId,
           })
           .from(tables.accountRules)
           .where(
             and(
               inArray(tables.accountRules.categoryId, [...byId.keys()]),
+              eq(tables.accountRules.active, true),
               or(
                 isNull(tables.accountRules.entityId),
                 eq(tables.accountRules.entityId, entityId)
@@ -65,14 +68,21 @@ export async function loadMapper(
             )
           )) as Rule[]);
 
+  // Précédence : exacte > préfixe le plus long ; à pattern égal, la règle
+  // spécifique à l'entité l'emporte sur la règle globale.
   const exact = new Map<string, number>();
-  const prefixes: { pattern: string; categoryId: number }[] = [];
   for (const r of rules) {
-    if (r.matchType === "exact") exact.set(r.pattern, r.categoryId);
-    else prefixes.push({ pattern: r.pattern, categoryId: r.categoryId });
+    if (r.matchType !== "exact") continue;
+    if (r.entityId != null || !exact.has(r.pattern)) exact.set(r.pattern, r.categoryId);
   }
-  // préfixe le plus long en premier
-  prefixes.sort((a, b) => b.pattern.length - a.pattern.length);
+  const prefixes = rules
+    .filter((r) => r.matchType === "prefix")
+    .map((r) => ({ pattern: r.pattern, categoryId: r.categoryId, entityId: r.entityId }));
+  prefixes.sort(
+    (a, b) =>
+      b.pattern.length - a.pattern.length ||
+      (b.entityId != null ? 1 : 0) - (a.entityId != null ? 1 : 0)
+  );
 
   const cache = new Map<string, Category | null>();
   const resolve = (account: string): Category | null => {

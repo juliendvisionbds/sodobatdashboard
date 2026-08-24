@@ -16,7 +16,7 @@ import { and, eq } from "drizzle-orm";
 
 const DOCS =
   process.argv[2] ??
-  "/Users/juliend/Desktop/vision/Groupe SDG/dashboard financier/docs";
+  "/Users/juliend/Desktop/vision/Groupe SDG/dashboard financier/docs/balances mai";
 
 const fmt = (n: number) =>
   new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 2 }).format(n) + " €";
