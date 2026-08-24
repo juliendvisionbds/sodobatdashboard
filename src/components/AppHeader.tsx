@@ -2,8 +2,7 @@ import Link from "next/link";
 import { getSession, canWrite } from "@/lib/auth";
 import { fiscalYearLabel } from "@/lib/format";
 import UserMenu from "@/components/UserMenu";
-
-const OTHER_ENTITIES = ["Easy Mat", "Easy Home", "VBTP", "CovarBat"];
+import EntityMenu from "@/components/EntityMenu";
 
 export default async function AppHeader({
   active,
@@ -26,14 +25,27 @@ export default async function AppHeader({
     <header className="header">
       <div className="header-inner">
         <div className="brand">
-          <div className="entity-btn" title="Les autres entités arrivent en phase 2">
-            Sodobat
-            <span style={{ fontSize: 10, color: "var(--gray3)" }}>▼</span>
-          </div>
+          <Link href="/" className="home-btn" title="Accueil" aria-label="Accueil">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
+              <path
+                d="M4 11.5 12 4l8 7.5"
+                stroke="currentColor"
+                strokeWidth="1.75"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+              <path
+                d="M6 10v9a1 1 0 0 0 1 1h3v-5a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v5h3a1 1 0 0 0 1-1v-9"
+                stroke="currentColor"
+                strokeWidth="1.75"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </Link>
+          <EntityMenu />
           <div className="brand-sep" />
-          <div className="brand-group" title={`À venir : ${OTHER_ENTITIES.join(", ")}`}>
-            Groupe SDG
-          </div>
+          <div className="brand-group">Groupe SDG</div>
         </div>
         <nav className="nav">
           {tabs.map((t) => (

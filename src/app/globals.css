@@ -57,6 +57,23 @@ body {
 .brand-sep { width: 1px; height: 16px; background: var(--gray4); }
 .brand-group { font-size: 13px; color: var(--gray2); }
 
+.home-btn {
+  display: flex; align-items: center; justify-content: center;
+  width: 34px; height: 34px; flex-shrink: 0;
+  border: 1px solid var(--gray4);
+  border-radius: var(--radius-sm);
+  background: var(--white);
+  box-shadow: var(--shadow-sm);
+  color: var(--gray1);
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+.home-btn:hover {
+  background: var(--blue-lt);
+  border-color: #c9d7ff;
+  color: var(--blue);
+}
+
+.entity-menu { position: relative; }
 .entity-btn {
   display: flex; align-items: center; gap: 7px;
   padding: 5px 10px;
@@ -66,6 +83,40 @@ body {
   box-shadow: var(--shadow-sm);
   font-size: 15px; font-weight: 600; color: var(--black);
   letter-spacing: -0.01em;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.entity-btn:hover,
+.entity-btn[aria-expanded="true"] { background: var(--blue-lt); border-color: #c9d7ff; }
+.entity-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  min-width: 240px;
+  background: var(--white);
+  border: 1px solid var(--gray4);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow);
+  padding: 6px;
+  z-index: 200;
+}
+.entity-dropdown-item {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 8px 10px;
+  border-radius: 5px;
+  font-size: 13px;
+  color: var(--black);
+  white-space: nowrap;
+}
+.entity-dropdown-item.current { font-weight: 600; background: var(--blue-lt); }
+.entity-dropdown-item.current .entity-check { color: var(--blue); font-weight: 700; }
+.entity-dropdown-item.disabled { color: var(--gray3); cursor: default; }
+.entity-soon {
+  font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;
+  padding: 2px 7px; border-radius: 10px;
+  background: var(--gray5); color: var(--gray3);
+  white-space: nowrap;
 }
 
 .nav { display: flex; align-items: stretch; }
