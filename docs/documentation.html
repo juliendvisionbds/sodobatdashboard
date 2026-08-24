@@ -1,0 +1,1183 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Documentation — Tableaux de gestion Groupe SDG</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --blue:     #1B5EF7;
+    --blue-lt:  #EEF3FF;
+    --black:    #111318;
+    --gray1:    #363840;
+    --gray2:    #6B6E7A;
+    --gray3:    #A8AAB4;
+    --gray4:    #E3E5EC;
+    --gray5:    #F2F3F7;
+    --bg:       #F7F8FC;
+    --white:    #FFFFFF;
+    --green:    #0A7A50;
+    --green-lt: #E4F5EE;
+    --red:      #C42B12;
+    --red-lt:   #FBEAE7;
+    --amber:    #9A5800;
+    --amber-lt: #FEF3E2;
+    --shadow-sm: 0 1px 3px rgba(17,19,24,0.06), 0 1px 2px rgba(17,19,24,0.04);
+    --radius:    10px;
+    --radius-sm: 7px;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg); color: var(--black);
+    font-family: 'Inter', -apple-system, sans-serif;
+    font-size: 15px; line-height: 1.65; -webkit-font-smoothing: antialiased;
+  }
+  .page { max-width: 860px; margin: 0 auto; padding: 48px 32px 100px; }
+
+  .hero { margin-bottom: 32px; }
+  .hero .brand {
+    display: inline-flex; align-items: center; gap: 10px;
+    font-size: 13px; color: var(--gray2); margin-bottom: 18px;
+  }
+  .hero .brand .pill {
+    padding: 4px 12px; border: 1px solid var(--gray4); border-radius: 20px;
+    background: var(--white); font-weight: 600; color: var(--black); font-size: 13px;
+    box-shadow: var(--shadow-sm);
+  }
+  .hero h1 { font-size: 32px; font-weight: 700; letter-spacing: -0.03em; line-height: 1.15; margin-bottom: 12px; }
+  .hero p.lead { font-size: 16px; color: var(--gray2); max-width: 660px; }
+
+  /* ── Tabs ── */
+  .tabs {
+    display: flex; gap: 6px; margin-bottom: 40px;
+    background: var(--white); border: 1px solid var(--gray4); border-radius: var(--radius);
+    box-shadow: var(--shadow-sm); padding: 6px;
+    position: sticky; top: 12px; z-index: 10;
+  }
+  .tab-btn {
+    flex: 1; text-align: center; padding: 10px 12px; border: none; cursor: pointer;
+    background: transparent; border-radius: var(--radius-sm); white-space: nowrap;
+    font-family: inherit; font-size: 13.5px; font-weight: 600; color: var(--gray2);
+    transition: background 0.15s, color 0.15s;
+  }
+  .tab-btn:hover { color: var(--black); background: var(--gray5); }
+  .tab-btn.active { background: var(--blue); color: var(--white); }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  section { margin-bottom: 52px; }
+  h2 { font-size: 21px; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 6px; padding-top: 12px; }
+  .h2-sub { font-size: 14px; color: var(--gray2); margin-bottom: 22px; }
+  h3 { font-size: 15px; font-weight: 600; margin-bottom: 8px; }
+  p { margin-bottom: 12px; color: var(--gray1); }
+  p:last-child { margin-bottom: 0; }
+  strong { color: var(--black); font-weight: 600; }
+  code {
+    background: var(--gray5); border: 1px solid var(--gray4); border-radius: 4px;
+    padding: 1px 6px; font-size: 13px; font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+  }
+
+  .card {
+    background: var(--white); border: 1px solid var(--gray4);
+    border-radius: var(--radius); box-shadow: var(--shadow-sm);
+    padding: 24px 28px; margin-bottom: 14px;
+  }
+  .card-label {
+    font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.07em;
+    color: var(--gray3); margin-bottom: 14px; padding-bottom: 12px; border-bottom: 1px solid var(--gray4);
+  }
+
+  .flow { display: flex; align-items: stretch; margin: 8px 0 4px; }
+  .flow-step { flex: 1; text-align: center; padding: 16px 12px; background: var(--white);
+    border: 1px solid var(--gray4); border-radius: var(--radius); box-shadow: var(--shadow-sm); }
+  .flow-step .t { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+  .flow-step .d { font-size: 12px; color: var(--gray2); line-height: 1.45; }
+  .flow-arrow { display: flex; align-items: center; padding: 0 10px; color: var(--gray3); font-size: 18px; }
+
+  .tag { display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 20px;
+    font-size: 11.5px; font-weight: 500; white-space: nowrap; }
+  .tag.blue  { background: var(--blue-lt);  color: var(--blue); }
+  .tag.green { background: var(--green-lt); color: var(--green); }
+  .tag.amber { background: var(--amber-lt); color: var(--amber); }
+  .tag.red   { background: var(--red-lt);   color: var(--red); }
+  .tag.gray  { background: var(--gray5);    color: var(--gray2); }
+
+  .callout {
+    display: flex; gap: 12px; padding: 14px 18px; margin: 14px 0;
+    border-left: 3px solid; border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+    font-size: 13.5px;
+  }
+  .callout.blue  { background: var(--blue-lt);  border-color: var(--blue); }
+  .callout.warn  { background: var(--amber-lt); border-color: var(--amber); }
+  .callout.green { background: var(--green-lt); border-color: var(--green); }
+  .callout .ico { flex-shrink: 0; }
+  .callout p { margin: 0; font-size: 13.5px; }
+
+  .table-wrap { border: 1px solid var(--gray4); border-radius: var(--radius);
+    box-shadow: var(--shadow-sm); overflow: hidden; background: var(--white); margin: 14px 0; }
+  table { width: 100%; border-collapse: collapse; }
+  thead { background: var(--gray5); }
+  thead th {
+    font-size: 10.5px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em;
+    color: var(--gray2); padding: 11px 16px; text-align: left; border-bottom: 1px solid var(--gray4);
+  }
+  tbody tr { border-bottom: 1px solid var(--gray5); }
+  tbody tr:last-child { border-bottom: none; }
+  td { padding: 11px 16px; font-size: 13px; color: var(--gray1); vertical-align: top; }
+  td:first-child { white-space: nowrap; }
+  td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  th.num { text-align: right; }
+
+  ul.clean { list-style: none; margin: 8px 0; }
+  ul.clean li { padding: 7px 0 7px 22px; position: relative; font-size: 14px; color: var(--gray1); }
+  ul.clean li::before { content: "—"; position: absolute; left: 0; color: var(--gray3); }
+
+  .timeline { margin: 10px 0; }
+  .tl-row { display: grid; grid-template-columns: 120px 1fr; gap: 16px; padding: 12px 0; border-bottom: 1px solid var(--gray5); }
+  .tl-row:last-child { border-bottom: none; }
+  .tl-when { font-size: 12px; font-weight: 600; color: var(--blue); padding-top: 2px; }
+  .tl-what { font-size: 13.5px; color: var(--gray1); }
+
+  .footer { margin-top: 60px; padding-top: 24px; border-top: 1px solid var(--gray4);
+    font-size: 12.5px; color: var(--gray3); display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+
+  @media (max-width: 640px) {
+    .flow { flex-direction: column; }
+    .flow-arrow { justify-content: center; padding: 6px 0; transform: rotate(90deg); }
+    .page { padding: 32px 20px 80px; }
+    .tl-row { grid-template-columns: 1fr; gap: 4px; }
+    .tabs { position: static; flex-wrap: wrap; }
+    .tab-btn { flex: 1 1 45%; }
+  }
+  @media print {
+    body { background: var(--white); }
+    .card, .flow-step, .table-wrap { box-shadow: none; }
+    .tabs { display: none; }
+    .tab-panel { display: block; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- ═══════════ HERO ═══════════ -->
+  <div class="hero">
+    <div class="brand">
+      <span class="pill">Documentation</span>
+      <span>Groupe SDG · Tableaux de gestion · Fonctionnement interne</span>
+    </div>
+    <h1>Documentation de fonctionnement</h1>
+    <p class="lead">
+      Le document de référence pour comprendre l'application de bout en bout :
+      ce qu'elle fait, comment les données comptables l'alimentent, comment chaque
+      vue calcule ses chiffres, et comment tout reste fiable et traçable.
+    </p>
+  </div>
+
+  <!-- ═══════════ TABS MENU ═══════════ -->
+  <nav class="tabs" role="tablist">
+    <button class="tab-btn active" data-tab="presentation" role="tab">Vue d'ensemble</button>
+    <button class="tab-btn" data-tab="vues" role="tab">Les vues</button>
+    <button class="tab-btn" data-tab="imports" role="tab">Imports</button>
+    <button class="tab-btn" data-tab="provisions" role="tab">Provisions</button>
+    <button class="tab-btn" data-tab="mapping" role="tab">Mapping &amp; alertes</button>
+    <button class="tab-btn" data-tab="assistant" role="tab">Assistant &amp; accès</button>
+  </nav>
+
+  <!-- ════════════════════════════════════════════════════════════════════ -->
+  <!-- ═══════════ TAB : VUE D'ENSEMBLE ═══════════ -->
+  <!-- ════════════════════════════════════════════════════════════════════ -->
+  <div class="tab-panel active" id="panel-presentation">
+
+  <section id="pres-quoi">
+    <h2>01 · Ce qu'est cette application</h2>
+    <p class="h2-sub">Des tableaux de gestion intelligents, alimentés par la comptabilité.</p>
+
+    <p>
+      L'application remplace les fichiers Excel mensuels de gestion du Groupe SDG
+      (référence : devis n°2026-047 « Tableaux de gestion intelligents »). Elle est
+      alimentée par les exports comptables Cegid — les mêmes balances que celles produites
+      par le cabinet comptable — et en tire trois vues de gestion toujours cohérentes
+      entre elles, plus un assistant IA pour interroger les chiffres en langage naturel.
+    </p>
+    <p>
+      L'entité pilote est <strong>Sodobat</strong> ; les quatre autres entités du groupe
+      (Easy Mat, Easy Home, VBTP, CovarBat) sont prévues en phase 2 et déjà visibles dans
+      l'en-tête de l'application.
+    </p>
+
+    <div class="flow">
+      <div class="flow-step">
+        <div class="t">Comptabilité (Cegid)</div>
+        <div class="d">Le cabinet produit chaque mois deux balances : ventilée et analytique.</div>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">
+        <div class="t">Imports contrôlés</div>
+        <div class="d">Dépôt, prévisualisation, contrôles de cohérence, validation humaine.</div>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">
+        <div class="t">Trois vues de gestion</div>
+        <div class="d">Synthèse, Chantiers, Frais généraux — recalculées à chaque validation.</div>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">
+        <div class="t">Analyse</div>
+        <div class="d">Alertes de cohérence, ratios / CA, comparatif N-1, assistant IA.</div>
+      </div>
+    </div>
+
+    <div class="callout blue">
+      <span class="ico">ℹ</span>
+      <p><strong>Principe fondateur :</strong> l'application ne modifie jamais une donnée
+      comptable. Elle importe des versions successives des balances, choisit toujours la
+      bonne version à lire, et tout ajustement de gestion (provision de travaux en cours,
+      note) est stocké à part, tracé, et clairement identifié comme tel.</p>
+    </div>
+  </section>
+
+  <section id="pres-vues">
+    <h2>02 · Les trois vues en un coup d'œil</h2>
+    <p class="h2-sub">Chaque vue répond à une question différente — détail dans l'onglet « Les vues ».</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Vue</th><th>Question à laquelle elle répond</th><th>Source</th><th>Horizon</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><strong>Synthèse</strong></td>
+            <td>Comment se porte l'entité sur l'exercice ? CA, charges, résultats, mois par mois, avec % / CA et comparatif N-1.</td>
+            <td>Balance ventilée</td>
+            <td>Exercice comptable (nov. → oct.)</td>
+          </tr>
+          <tr>
+            <td><strong>Chantiers</strong></td>
+            <td>Que rapporte chaque chantier ce mois-ci ? Facturé, provisions de travaux en cours, charges directes, résultat.</td>
+            <td>Balance analytique</td>
+            <td>Toute la vie du chantier</td>
+          </tr>
+          <tr>
+            <td><strong>Frais généraux</strong></td>
+            <td>Où part la structure ? Postes de frais généraux du mois et cumulés, rapportés au CA.</td>
+            <td>Balance analytique (centre FX)</td>
+            <td>Exercice comptable</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="pres-acces">
+    <h2>03 · Qui fait quoi</h2>
+    <p class="h2-sub">Trois rôles, une navigation simple.</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Rôle</th><th>Consulter les vues et l'assistant</th><th>Importer, mapper, saisir, résoudre les alertes</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Admin</strong></td><td>Oui</td><td>Oui</td></tr>
+          <tr><td><strong>DAF</strong></td><td>Oui</td><td>Oui</td></tr>
+          <tr><td><strong>Lecteur</strong></td><td>Oui</td><td>Non — lecture seule partout</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>
+      La connexion se fait par email et mot de passe ; la session dure 7 jours. La
+      navigation principale comporte quatre onglets — <strong>Synthèse</strong>,
+      <strong>Chantiers</strong>, <strong>Frais généraux</strong>,
+      <strong>Assistant IA</strong> — et le menu utilisateur donne accès aux écrans
+      <strong>Imports</strong> et <strong>Mapping</strong> pour les profils admin et DAF.
+    </p>
+
+    <div class="callout green">
+      <span class="ico">✓</span>
+      <p><strong>Un rythme mensuel simple :</strong> vers le 24 du mois (date de la TVA),
+      les deux balances du mois précédent sont importées et validées ; les trois vues, les
+      alertes et l'assistant reflètent immédiatement les nouveaux chiffres. Une seconde
+      mise à jour suit les éventuelles corrections comptables.</p>
+    </div>
+  </section>
+
+  </div><!-- /panel-presentation -->
+
+  <!-- ════════════════════════════════════════════════════════════════════ -->
+  <!-- ═══════════ TAB : LES VUES ═══════════ -->
+  <!-- ════════════════════════════════════════════════════════════════════ -->
+  <div class="tab-panel" id="panel-vues">
+
+  <section id="vue-synthese">
+    <h2>01 · Synthèse</h2>
+    <p class="h2-sub">La santé de l'entité sur l'exercice, construite sur la balance ventilée.</p>
+
+    <p>
+      C'est la page d'accueil. Elle présente d'abord quatre indicateurs clés — CA cumulé
+      (avec rappel N-1 si l'historique est importé), résultat d'exploitation, résultat net
+      (tous deux en euros et en % du CA) et le nombre d'alertes ouvertes — puis des
+      graphiques (CA mensuel, résultat net des derniers mois, structure des charges) et
+      enfin le tableau de synthèse détaillé.
+    </p>
+
+    <div class="card">
+      <h3>Le tableau de synthèse</h3>
+      <p>
+        Chaque ligne est une catégorie de la nomenclature (voir l'onglet Mapping &amp; alertes),
+        regroupée en quatre sections : <strong>Produits / CA</strong>,
+        <strong>Charges de personnel</strong>, <strong>Charges d'exploitation</strong> et
+        <strong>Frais généraux &amp; autres charges</strong>. Les colonnes : un montant par mois
+        de l'exercice, le total, le poids en % du CA, et le total N-1. Deux lignes de
+        résultat structurent la lecture : <strong>Résultat d'exploitation</strong>
+        (CA − exploitation − personnel) et <strong>Résultat net</strong> (− frais généraux).
+      </p>
+      <p style="font-size: 13.5px; color: var(--gray2);">
+        L'exercice affiché est celui du dernier import ventilée validé (rappelé dans
+        l'en-tête, ex. « Exercice 2025 / 2026 »). Le comparatif N-1 apparaît dès que la
+        balance de l'exercice précédent a été importée.
+      </p>
+    </div>
+  </section>
+
+  <section id="vue-chantiers">
+    <h2>02 · Chantiers</h2>
+    <p class="h2-sub">Le résultat de chaque affaire, mois par mois, sur la balance analytique.</p>
+
+    <p>
+      Chaque ligne est un chantier (centre analytique), regroupé par pôle — la lettre en
+      suffixe du code chantier (1003B → pôle B). Les colonnes du mois :
+    </p>
+
+    <ul class="clean">
+      <li><strong>Annulation</strong> — extourne de la provision de travaux en cours du mois précédent (négatif).</li>
+      <li><strong>Provision (TEC)</strong> — le manque à facturer du mois, issu de la comptabilité et ajustable à la main (voir l'onglet Provisions).</li>
+      <li><strong>Facturé</strong> — la facturation réelle du mois.</li>
+      <li><strong>Total produits</strong> = Facturé + Provision + Annulation.</li>
+      <li><strong>Achats MP</strong>, <strong>Sous-traitance</strong>, <strong>Autres charges</strong> — les charges directes affectées au chantier.</li>
+      <li><strong>Résultat mois</strong> = Total produits − charges directes.</li>
+      <li><strong>Note</strong> — champ libre pour expliquer un écart ou un point d'attention.</li>
+    </ul>
+
+    <p>
+      La vue se filtre par pôle et par recherche libre, et masque par défaut les chantiers
+      sans activité. Les frais généraux (centre FX) en sont exclus : ils ont leur vue dédiée.
+    </p>
+  </section>
+
+  <section id="vue-fx">
+    <h2>03 · Frais généraux</h2>
+    <p class="h2-sub">Les coûts de structure, du centre analytique FX.</p>
+
+    <p>
+      Quatre indicateurs en tête : total cumulé sur l'exercice (YTD), frais du mois, ratio
+      frais généraux / CA, et nombre de comptes FX non mappés. Le tableau détaille chaque
+      poste (comptes regroupés par catégorie) avec la dépense du mois, le cumul exercice,
+      le poids en % du CA — le CA de référence étant le cumul de la balance ventilée
+      <strong>arrêté au mois affiché</strong>, pour que les ratios restent comparables
+      quand on consulte un mois passé. Les colonnes N-1 / N-2 s'activeront après la
+      reprise de l'historique.
+    </p>
+    <p style="font-size: 13.5px; color: var(--gray2);">
+      Un montant négatif est un produit venant en déduction (indemnités, refacturations).
+    </p>
+  </section>
+
+  <section id="vue-selecteur">
+    <h2>04 · Naviguer dans les mois</h2>
+    <p class="h2-sub">Les vues Chantiers et Frais généraux ne sont pas figées sur le dernier mois.</p>
+
+    <div class="card">
+      <p>
+        Un <strong>sélecteur de mois</strong> se trouve à côté du titre des vues Chantiers
+        et Frais généraux. Il liste tous les mois pour lesquels un snapshot analytique a
+        été validé, du plus récent au plus ancien. Choisir un mois passé recalcule toute
+        la vue pour cette période — y compris la colonne « du mois », qui reprend le delta
+        avec le snapshot précédent de l'époque.
+      </p>
+      <ul class="clean">
+        <li>Avec un seul mois importé, le sélecteur est visible mais grisé : il s'active dès le deuxième snapshot validé.</li>
+        <li>Sur un mois passé, la vue Chantiers passe en <strong>lecture seule</strong> (badge « mois passé — lecture seule ») : provisions et notes ne sont saisissables que sur le dernier mois, on ne réécrit pas une période close.</li>
+        <li>La Synthèse, elle, montre toujours l'exercice complet du dernier import ventilée — chaque mois y a déjà sa colonne.</li>
+      </ul>
+    </div>
+  </section>
+
+  </div><!-- /panel-vues -->
+
+  <!-- ════════════════════════════════════════════════════════════════════ -->
+  <!-- ═══════════ TAB : IMPORTS ═══════════ -->
+  <!-- ════════════════════════════════════════════════════════════════════ -->
+  <div class="tab-panel" id="panel-imports">
+
+  <!-- ═══════════ 01 VUE D'ENSEMBLE ═══════════ -->
+  <section id="vue-ensemble">
+    <h2>01 · Vue d'ensemble</h2>
+    <p class="h2-sub">Deux fichiers par mois, un circuit unique : contrôle, validation, calcul.</p>
+
+    <div class="flow">
+      <div class="flow-step">
+        <div class="t">Exports Cegid</div>
+        <div class="d">Balance ventilée + balance analytique, transmises par le cabinet comptable.</div>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">
+        <div class="t">Prévisualisation</div>
+        <div class="d">Lecture du fichier, contrôles de cohérence, détection des comptes inconnus. Rien n'est intégré.</div>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">
+        <div class="t">Validation</div>
+        <div class="d">Un clic humain intègre les données. C'est le seul moment où les chiffres changent.</div>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">
+        <div class="t">Vues recalculées</div>
+        <div class="d">Synthèse, Chantiers et Frais généraux reflètent immédiatement les nouvelles données.</div>
+      </div>
+    </div>
+
+    <div class="callout blue">
+      <span class="ico">ℹ</span>
+      <p><strong>Principe fondateur :</strong> l'application ne modifie jamais une donnée comptable.
+      Elle stocke des versions successives des balances et choisit, à chaque affichage, la bonne
+      version à lire. Toute la mécanique décrite ici découle de ce principe.</p>
+    </div>
+  </section>
+
+  <!-- ═══════════ 02 LES DEUX BALANCES ═══════════ -->
+  <section id="deux-balances">
+    <h2>02 · Les deux balances n'obéissent pas aux mêmes règles</h2>
+    <p class="h2-sub">C'est le point le plus important de cet onglet.</p>
+
+    <p>
+      Les deux fichiers mensuels ont une nature profondément différente, et le système les
+      traite donc différemment lors des imports successifs :
+    </p>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th></th><th>Balance ventilée</th><th>Balance analytique</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Contenu</strong></td>
+            <td>Tous les comptes, avec <strong>une colonne par mois depuis le début de l'exercice</strong> (novembre). Le fichier de juin contient donc les colonnes novembre → juin.</td>
+            <td>Les comptes éclatés par centre (chantier), en <strong>cumul depuis l'ouverture de chaque chantier</strong>. Aucune notion de mois dans le fichier.</td>
+          </tr>
+          <tr>
+            <td><strong>Nature</strong></td>
+            <td>Photo complète de l'exercice, refaite chaque mois.</td>
+            <td>Instantané (« snapshot ») daté du mois de l'export.</td>
+          </tr>
+          <tr>
+            <td><strong>Au réimport</strong></td>
+            <td><span class="tag amber">Remplacement</span> — le nouvel export remplace l'ancien, pour tout l'exercice.</td>
+            <td><span class="tag green">Accumulation</span> — chaque snapshot mensuel est conservé, ils coexistent.</td>
+          </tr>
+          <tr>
+            <td><strong>Alimente</strong></td>
+            <td>Synthèse</td>
+            <td>Chantiers et Frais généraux</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <h3>Ventilée : le dernier import validé est la seule vérité</h3>
+      <p>
+        Puisque chaque export ventilée contient l'exercice entier, garder plusieurs versions
+        actives n'aurait aucun sens : elles se recouvriraient. La règle est donc simple —
+        <strong>l'application ne lit toujours qu'un seul import ventilée : le dernier validé de
+        l'exercice</strong>.
+      </p>
+      <p>
+        Concrètement, quand la balance de juin est validée alors que celle de mai l'était déjà :
+        l'import de mai passe au statut <span class="tag gray">Remplacé</span>, ses alertes
+        encore ouvertes sont purgées, et le nouvel import régénère les siennes sur des données
+        fraîches. Rien n'est supprimé de l'historique — l'import de mai reste consultable — mais
+        il ne participe plus à aucun calcul.
+      </p>
+      <p>
+        <strong>C'est une force, pas une limite :</strong> le cabinet comptable corrige souvent des
+        écritures d'un mois passé (régularisations, reclassements). Comme le fichier de juin
+        recontient tout l'exercice, ces corrections sur mai, mars ou novembre sont
+        <strong>automatiquement prises en compte</strong> à la validation de juin, sans aucune
+        manipulation. Les chiffres affichés sont toujours ceux de la comptabilité la plus récente.
+      </p>
+    </div>
+
+    <div class="card">
+      <h3>Analytique : des snapshots qui s'empilent, et des deltas</h3>
+      <p>
+        La balance analytique étant un cumul depuis l'ouverture des chantiers, un seul fichier
+        ne dit rien de l'activité <em>du mois</em>. Pour l'obtenir, le système conserve
+        <strong>un snapshot par mois</strong> et calcule la différence entre deux snapshots
+        consécutifs :
+      </p>
+      <div class="callout blue" style="margin: 10px 0;">
+        <span class="ico">∑</span>
+        <p><strong>Activité de juin = snapshot juin − snapshot mai</strong>, centre par centre,
+        compte par compte. C'est ce delta qui alimente la vue Chantiers et la colonne « du mois »
+        des Frais généraux.</p>
+      </div>
+      <p>
+        Le snapshot de mai <strong>reste donc validé</strong> quand celui de juin arrive : les deux
+        coexistent, par construction. Un import analytique ne remplace un précédent que s'il porte
+        sur <strong>le même mois</strong> (cas de la version corrigée). C'est aussi ce qui permet de
+        suivre un chantier sur toute sa durée de vie, au-delà de l'exercice comptable de 12 mois.
+      </p>
+      <p style="font-size: 13.5px; color: var(--gray2);">
+        Cas particulier du tout premier snapshot : sans mois précédent, aucun delta n'est possible —
+        la vue Chantiers affiche alors le cumul depuis l'ouverture des chantiers, et l'indique.
+        L'activité mensuelle apparaît à partir du deuxième snapshot.
+      </p>
+    </div>
+  </section>
+
+  <!-- ═══════════ 03 CYCLE DE VIE ═══════════ -->
+  <section id="cycle-vie">
+    <h2>03 · Le cycle de vie d'un import</h2>
+    <p class="h2-sub">Quatre statuts, un seul chemin vers les chiffres affichés.</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Statut</th><th>Signification</th><th>Participe aux calculs ?</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><span class="tag amber">En attente de validation</span></td>
+            <td>Le fichier a été lu et contrôlé, la prévisualisation est disponible. Les données sont stockées mais inertes.</td>
+            <td>Non</td>
+          </tr>
+          <tr>
+            <td><span class="tag green">Validé</span></td>
+            <td>Un utilisateur habilité (admin ou DAF) a validé après contrôle. Les vues lisent ces données.</td>
+            <td><strong>Oui</strong></td>
+          </tr>
+          <tr>
+            <td><span class="tag gray">Remplacé</span></td>
+            <td>Une version plus récente a été validée (nouvel export du même exercice pour la ventilée, du même mois pour l'analytique). Conservé dans l'historique.</td>
+            <td>Non</td>
+          </tr>
+          <tr>
+            <td><span class="tag red">Rejeté</span></td>
+            <td>L'import a été refusé à l'étape de contrôle (fichier douteux, écart de classe…). Aucune donnée intégrée.</td>
+            <td>Non</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout warn">
+      <span class="ico">⚠</span>
+      <p><strong>La validation est le seul point d'entrée des chiffres.</strong> Un fichier déposé
+      mais non validé n'a strictement aucun effet sur les tableaux. Et avant de valider, l'écran de
+      contrôle annonce explicitement si l'import va remplacer une version existante — il n'y a
+      jamais de remplacement silencieux.</p>
+    </div>
+  </section>
+
+  <!-- ═══════════ 04 UN MOIS TYPE ═══════════ -->
+  <section id="mois-type">
+    <h2>04 · Un mois type, vu du système</h2>
+    <p class="h2-sub">Exemple avec l'arrivée des données de juin, mai étant déjà en base.</p>
+
+    <div class="card">
+      <div class="timeline">
+        <div class="tl-row">
+          <div class="tl-when">Vers le 24 juillet</div>
+          <div class="tl-what">Le cabinet transmet les exports de juin (règle « M+24 », calée sur la date de TVA). La ventilée de juin contient novembre → juin ; l'analytique de juin est le cumul à fin juin.</div>
+        </div>
+        <div class="tl-row">
+          <div class="tl-when">Import ventilée</div>
+          <div class="tl-what">Dépôt du fichier (mois détecté automatiquement) → contrôle → validation. L'import ventilée de mai passe en <span class="tag gray">Remplacé</span>, celui de juin devient la référence unique de l'exercice. Les corrections comptables éventuelles sur les mois passés sont absorbées au passage.</div>
+        </div>
+        <div class="tl-row">
+          <div class="tl-when">Import analytique</div>
+          <div class="tl-what">Dépôt du fichier + saisie du mois du snapshot (juin) → contrôle → validation. Le snapshot de mai reste en place ; la vue Chantiers calcule désormais juin − mai.</div>
+        </div>
+        <div class="tl-row">
+          <div class="tl-when">Après validation</div>
+          <div class="tl-what">Les alertes sont régénérées : comptes non mappés des nouveaux fichiers, montants constants suspects, mois sans données. Les nouveaux comptes jamais vus sont à affecter dans l'écran Mapping — jamais classés par défaut.</div>
+        </div>
+        <div class="tl-row">
+          <div class="tl-when">Semaines suivantes</div>
+          <div class="tl-what">Si le cabinet envoie une version corrigée de juin (seconde mise à jour mensuelle), on réimporte simplement les mêmes types de fichiers : la ventilée corrigée remplace la précédente, l'analytique corrigée remplace le snapshot de juin. Aucun doublon possible.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════ 05 CE QUE ÇA GARANTIT ═══════════ -->
+  <section id="garanties">
+    <h2>05 · Ce que cette mécanique garantit (référence au cahier des charges)</h2>
+    <p class="h2-sub">Chaque choix de conception répond à une exigence contractuelle.</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Exigence du CDC</th><th>Réponse du système</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><strong>§4.3</strong> — « 2 mises à jour mensuelles : une à M+24, une seconde à la suite des corrections comptables »</td>
+            <td>Le remplacement idempotent : réimporter une période écrase proprement la version précédente, après le même contrôle. La seconde mise à jour mensuelle est un geste identique à la première.</td>
+          </tr>
+          <tr>
+            <td><strong>§4.2</strong> — « Conservation et intégration de l'historique »</td>
+            <td>Rien n'est supprimé : les imports remplacés restent dans l'historique avec leur statut, et les snapshots analytiques sont conservés mois par mois — c'est même la matière première du calcul des deltas.</td>
+          </tr>
+          <tr>
+            <td><strong>§4.1</strong> — « Tout compte non mappé doit remonter en alerte, jamais classé par défaut »</td>
+            <td>À chaque import, chaque compte est confronté aux règles de mapping. Sans correspondance : alerte avec numéro, libellé et montant, à traiter dans l'écran Mapping. Le choix est mémorisé pour les mois suivants.</td>
+          </tr>
+          <tr>
+            <td><strong>§3</strong> — « Suivi chantier sur toute la durée de vie, non borné à l'exercice »</td>
+            <td>Les snapshots analytiques cumulent depuis l'ouverture de chaque chantier ; l'historique d'un chantier traverse les exercices comptables.</td>
+          </tr>
+          <tr>
+            <td><strong>Objectif n°1</strong> — « Fiabilité à 100 % entre les sources comptables et les tableaux »</td>
+            <td>Contrôles de classes à chaque import (totaux du fichier vs totaux recalculés), validation humaine obligatoire, et lecture exclusive du dernier état comptable validé.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ═══════════ 06 QUESTIONS PRATIQUES ═══════════ -->
+  <section id="questions">
+    <h2>06 · Questions pratiques</h2>
+    <p class="h2-sub"></p>
+
+    <div class="card">
+      <h3>Les chiffres d'un mois passé ont changé après un import — c'est normal ?</h3>
+      <p>Oui, et c'est voulu. Le nouvel export ventilée contient tout l'exercice : si le cabinet a
+      corrigé des écritures de mars, la colonne de mars change à la validation du nouvel import.
+      Le tableau reflète toujours l'état comptable le plus récent — c'est l'exigence de fiabilité
+      du projet qui s'exprime.</p>
+    </div>
+
+    <div class="card">
+      <h3>Peut-on importer les mois dans le désordre ?</h3>
+      <p>Le système s'appuie sur les périodes, pas sur l'ordre des dépôts : les vues lisent toujours
+      le snapshot le plus récent et calculent le delta avec celui qui le précède <em>chronologiquement</em>.
+      L'ordre chronologique reste néanmoins recommandé : c'est lui qui permet de contrôler chaque
+      delta mensuel au fil de l'eau.</p>
+    </div>
+
+    <div class="card">
+      <h3>Que se passe-t-il si on saute un mois d'analytique ?</h3>
+      <p>Le delta suivant couvrira deux mois d'activité d'un coup (ex. snapshot juillet − snapshot mai
+      = activité juin + juillet), sans erreur de total mais sans détail mensuel. Une alerte « mois sans
+      données » signale le trou. Pour retrouver le détail, il suffit d'importer a posteriori le snapshot
+      du mois manquant.</p>
+    </div>
+
+    <div class="card">
+      <h3>Un fichier a été validé par erreur — comment revenir en arrière ?</h3>
+      <p>On ne « dévalide » pas : on réimporte la bonne version du même mois (ou le bon export de
+      l'exercice pour la ventilée), et elle remplace la version erronée. L'erreur reste tracée dans
+      l'historique avec son statut, la correction aussi — la piste d'audit est complète.</p>
+    </div>
+
+    <div class="card">
+      <h3>Pourquoi la vue Chantiers affiche « cumul depuis l'ouverture » au premier import ?</h3>
+      <p>Parce qu'un delta exige deux snapshots. Au tout premier import analytique, il n'existe pas
+      encore de mois précédent : la vue présente le cumul, en l'annonçant. Dès le deuxième snapshot
+      validé, l'activité mensuelle apparaît.</p>
+    </div>
+  </section>
+
+  </div><!-- /panel-imports -->
+
+  <!-- ════════════════════════════════════════════════════════════════════ -->
+  <!-- ═══════════ TAB : PROVISIONS ═══════════ -->
+  <!-- ════════════════════════════════════════════════════════════════════ -->
+  <div class="tab-panel" id="panel-provisions">
+
+  <!-- ═══════════ 01 C'EST QUOI ═══════════ -->
+  <section id="prov-definition">
+    <h2>01 · C'est quoi, une provision de travaux en cours ?</h2>
+    <p class="h2-sub">Le mécanisme comptable qui fait coller le résultat du mois à la réalité du terrain.</p>
+
+    <p>
+      Dans le BTP, un chantier dure des mois et la facturation (les « situations ») ne suit
+      jamais exactement l'avancement réel des travaux. Fin juin, un chantier peut avoir
+      consommé <strong>50 000 €</strong> de travaux alors que seuls <strong>30 000 €</strong>
+      ont été facturés au client. À la lecture des seules factures, le chantier paraît
+      déficitaire ce mois-là — alors qu'il se porte très bien. C'est un simple décalage de
+      facturation.
+    </p>
+    <p>
+      Pour corriger ce décalage, la comptable enregistre chaque mois une écriture sur le
+      compte <code>713</code> « variation des en-cours » :
+    </p>
+
+    <div class="flow">
+      <div class="flow-step">
+        <div class="t">Fin du mois M</div>
+        <div class="d"><strong>Provision M</strong> (au crédit du 713) : le « manque à facturer » estimé, comptabilisé comme un produit. Ici : +20 000 €.</div>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">
+        <div class="t">Début du mois M+1</div>
+        <div class="d"><strong>Annulation</strong> (au débit du 713) : la provision de M est extournée, c'est-à-dire annulée. Ici : −20 000 €.</div>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">
+        <div class="t">Fin du mois M+1</div>
+        <div class="d"><strong>Nouvelle provision</strong> : une nouvelle estimation du manque à facturer est passée, et le cycle recommence.</div>
+      </div>
+    </div>
+
+    <p style="margin-top: 16px;">
+      Le résultat mensuel d'un chantier devient ainsi :
+      <strong>facturé du mois + provision du mois − provision du mois précédent</strong>.
+      Il reflète l'activité économique réelle, et non le rythme d'émission des factures.
+      C'est exactement la logique du fichier « BDD SIT » utilisé par la DAF pour ses clôtures
+      (journal de situation, écritures extournées le mois suivant).
+    </p>
+
+    <div class="callout blue">
+      <span class="ico">ℹ</span>
+      <p><strong>Attention au vocabulaire :</strong> au sens comptable strict, une « provision »
+      sert à anticiper un risque ou une charge future (comptes 15 et 68). Ici, le terme est
+      employé — comme le fait le Groupe SDG — pour le <strong>manque à facturer des travaux en
+      cours</strong> (compte 713). Les provisions comptables « classiques » (dotations aux
+      amortissements et provisions, créances douteuses) sont, elles, traitées comme des charges
+      normales dans les vues Synthèse et Frais généraux.</p>
+    </div>
+  </section>
+
+  <!-- ═══════════ 02 CALCUL AUTOMATIQUE ═══════════ -->
+  <section id="prov-calcul">
+    <h2>02 · Comment l'application les calcule</h2>
+    <p class="h2-sub">Tout part de la balance analytique — aucune saisie n'est nécessaire par défaut.</p>
+
+    <p>
+      Comme expliqué dans l'onglet Imports, la vue Chantiers travaille sur le
+      <strong>delta entre deux snapshots analytiques</strong> (mois M − mois M-1), centre par
+      centre et compte par compte. Pour les comptes commençant par <code>713</code>, ce delta
+      est décomposé en deux colonnes :
+    </p>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Colonne de la vue Chantiers</th><th>Origine comptable</th><th>Signe</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><strong>Annulation</strong></td>
+            <td>Mouvements au <strong>débit</strong> du 713 sur le mois : l'extourne de la provision du mois précédent.</td>
+            <td>Négatif</td>
+          </tr>
+          <tr>
+            <td><strong>Provision (TEC)</strong></td>
+            <td>Mouvements au <strong>crédit</strong> du 713 sur le mois : la nouvelle provision (manque à facturer estimé).</td>
+            <td>Positif</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>Ces deux colonnes entrent ensuite dans le calcul du résultat du chantier :</p>
+
+    <div class="callout blue">
+      <span class="ico">∑</span>
+      <p><strong>Total produits = Facturé + Provision + Annulation</strong>, puis
+      <strong>Résultat = Total produits − Achats MP − Sous-traitance − Autres charges</strong>.</p>
+    </div>
+
+    <div class="card">
+      <h3>Exemple chiffré</h3>
+      <div class="table-wrap" style="margin: 10px 0;">
+        <table>
+          <thead><tr><th></th><th class="num">Mai</th><th class="num">Juin</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Facturé</strong></td><td class="num">30 000 €</td><td class="num">45 000 €</td></tr>
+            <tr><td><strong>Provision (TEC)</strong> du mois</td><td class="num">+20 000 €</td><td class="num">+8 000 €</td></tr>
+            <tr><td><strong>Annulation</strong> (provision du mois précédent)</td><td class="num">0 €</td><td class="num">−20 000 €</td></tr>
+            <tr><td><strong>Total produits</strong></td><td class="num"><strong>50 000 €</strong></td><td class="num"><strong>33 000 €</strong></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p style="font-size: 13.5px; color: var(--gray2);">
+        En mai, le chantier a produit 50 000 € de travaux dont 20 000 € restaient à facturer.
+        En juin, la facturation a rattrapé le retard (45 000 € facturés, dont les 20 000 € de mai) :
+        l'annulation neutralise la provision de mai pour ne pas compter deux fois le même produit,
+        et la production réelle de juin ressort à 33 000 €.
+      </p>
+    </div>
+  </section>
+
+  <!-- ═══════════ 03 AJUSTEMENT MANUEL ═══════════ -->
+  <section id="prov-manuel">
+    <h2>03 · L'ajustement manuel : brouillon, puis figé</h2>
+    <p class="h2-sub">Quand l'estimation de la DAF est plus fraîche que la comptabilité.</p>
+
+    <p>
+      La provision issue de la balance date du dernier export comptable. Entre deux exports,
+      la DAF connaît souvent un manque à facturer plus à jour (avancement réel du chantier,
+      situation en préparation…). Plutôt que d'attendre la prochaine clôture, elle peut
+      <strong>modifier la provision directement dans la vue Chantiers</strong> — c'est le
+      mécanisme demandé au §4.6 du cahier des charges.
+    </p>
+
+    <div class="flow">
+      <div class="flow-step">
+        <div class="t">Valeur comptable</div>
+        <div class="d">Par défaut, la cellule Provision (TEC) affiche la provision issue de la balance (713).</div>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">
+        <div class="t">Brouillon 🟡</div>
+        <div class="d">L'utilisateur saisit sa propre valeur. Elle reste modifiable à volonté et est marquée comme manuelle.</div>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">
+        <div class="t">Figé 🔒</div>
+        <div class="d">Le bouton « figer » verrouille la valeur pour le mois. Plus aucune modification jusqu'à la période suivante.</div>
+      </div>
+    </div>
+
+    <p style="margin-top: 16px;">Ce qu'il faut savoir sur ce mécanisme :</p>
+    <ul class="clean">
+      <li>La saisie est rattachée à <strong>un chantier et un mois</strong> précis : au changement de période, on repart de la valeur comptable.</li>
+      <li>La saisie n'est possible que sur <strong>le dernier mois importé</strong> : un mois passé consulté via le sélecteur de mois est en lecture seule.</li>
+      <li>Dès qu'une valeur manuelle existe, <strong>c'est elle</strong> qui entre dans le total produits et le résultat du chantier — à la place de la valeur issue de la balance.</li>
+      <li>Chaque saisie est <strong>tracée</strong> : qui a modifié, quand, et avec quel statut (brouillon ou figé).</li>
+      <li>Seuls les utilisateurs habilités (admin, DAF) peuvent saisir ; les lecteurs voient la valeur et son statut.</li>
+      <li>Un <strong>champ note</strong> par chantier permet d'expliquer l'écart avec la comptabilité (§4.5 du CDC) — c'est la bonne pratique à chaque ajustement.</li>
+    </ul>
+
+    <div class="callout green">
+      <span class="ico">✓</span>
+      <p><strong>Les données comptables ne sont jamais touchées.</strong> L'ajustement manuel est
+      une surcouche de gestion, stockée à part. La balance importée reste intacte, et l'écart entre
+      la valeur manuelle et la valeur comptable est toujours identifiable.</p>
+    </div>
+  </section>
+
+  <!-- ═══════════ 04 ROLE VS COMPTA ═══════════ -->
+  <section id="prov-role">
+    <h2>04 · Le rôle des provisions entre la comptabilité et le tableau de bord</h2>
+    <p class="h2-sub">La comptabilité reste la source de vérité ; l'outil ajoute une couche de gestion explicite.</p>
+
+    <div class="card">
+      <div class="timeline">
+        <div class="tl-row">
+          <div class="tl-when">En continu</div>
+          <div class="tl-what">Les provisions affichées par défaut viennent <strong>strictement de la balance</strong> (compte 713). Pas d'estimation cachée, pas de retraitement silencieux : ce que dit la comptabilité, l'outil l'affiche.</div>
+        </div>
+        <div class="tl-row">
+          <div class="tl-when">Entre deux clôtures</div>
+          <div class="tl-what">La DAF peut ajuster la provision en manuel (brouillon → figé) pour refléter un manque à facturer plus récent que le dernier export. L'écart avec la comptabilité est <strong>assumé, visible et expliqué</strong> par une note.</div>
+        </div>
+        <div class="tl-row">
+          <div class="tl-when">À la clôture suivante</div>
+          <div class="tl-what">La comptable passe ses écritures de situation (713), le nouvel export est importé, et les deux mises à jour mensuelles prévues au CDC <strong>resynchronisent</strong> l'outil avec la comptabilité.</div>
+        </div>
+      </div>
+    </div>
+
+    <p>
+      C'est précisément ce que le cahier des charges décrit : le manque à facturer est « saisi,
+      puis annulé, puis ressaisi » chaque mois côté comptable, et l'outil doit permettre de
+      suivre et d'ajuster ce cycle sans jamais remplacer le processus comptable. Le tableau de
+      bord montre ainsi un <strong>résultat mensuel par chantier économiquement juste</strong>,
+      non déformé par le calendrier de facturation, tout en restant auditable jusqu'à la
+      balance d'origine.
+    </p>
+  </section>
+
+  <!-- ═══════════ 05 REFERENCE CDC ═══════════ -->
+  <section id="prov-cdc">
+    <h2>05 · Référence au cahier des charges</h2>
+    <p class="h2-sub">Où chaque exigence trouve sa réponse.</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Exigence du CDC</th><th>Réponse du système</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><strong>§4.6</strong> — « Modification en direct sur l'outil avec un enregistrement brouillon modifiable, puis un enregistrement final figé jusqu'au mois suivant »</td>
+            <td>Édition de la provision directement dans la cellule, statut brouillon 🟡 modifiable, bouton « figer » qui verrouille 🔒 la valeur pour la période.</td>
+          </tr>
+          <tr>
+            <td><strong>§4.5</strong> — « Champ notes permettant d'expliquer les travaux en cours en décalage par rapport aux données comptables »</td>
+            <td>Note libre par chantier et par mois, affichée dans la vue Chantiers, à côté de la provision qu'elle documente.</td>
+          </tr>
+          <tr>
+            <td><strong>Objectif n°1</strong> — « Fiabilité à 100 % entre les sources comptables et les tableaux »</td>
+            <td>Valeur par défaut issue de la balance au centime ; tout écart manuel est explicite (statut visible), tracé (auteur, date) et réversible tant qu'il n'est pas figé.</td>
+          </tr>
+          <tr>
+            <td><strong>§2.1</strong> — BDD SIT : « source d'information pour comprendre son fonctionnement… sans remplacer son processus comptable »</td>
+            <td>L'outil n'importe pas la BDD SIT mais reproduit la même logique d'extourne mensuelle via le compte 713 de la balance — le processus comptable de la DAF reste inchangé.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ═══════════ 06 POINTS DE VIGILANCE ═══════════ -->
+  <section id="prov-vigilance">
+    <h2>06 · Points de vigilance</h2>
+    <p class="h2-sub">Deux comportements à connaître pour bien lire les chiffres.</p>
+
+    <div class="card">
+      <h3>La Synthèse ne reprend pas les ajustements manuels</h3>
+      <p>
+        La vue Synthèse est construite sur la balance ventilée : sa ligne « Travaux en cours »
+        reflète uniquement les écritures comptables du 713. Si une provision manuelle a été saisie
+        dans la vue Chantiers, <strong>les deux vues peuvent différer</strong> le temps que la
+        comptabilité passe ses écritures de clôture. C'est un choix de conception — la Synthèse
+        reste « pure comptabilité » — mais il faut le savoir pour ne pas chercher un écart qui
+        n'est pas une erreur.
+      </p>
+    </div>
+
+    <div class="card">
+      <h3>Un chantier sans mouvement comptable du mois n'affiche pas sa saisie manuelle</h3>
+      <p>
+        Les lignes de la vue Chantiers sont créées à partir des mouvements de la balance du mois.
+        Un chantier totalement dormant (aucun mouvement dans le delta mensuel) n'apparaît pas dans
+        le tableau, même si une provision manuelle a été enregistrée pour lui. Cas rare en
+        pratique — un chantier avec un manque à facturer a généralement des mouvements — mais à
+        garder en tête.
+      </p>
+    </div>
+  </section>
+
+  </div><!-- /panel-provisions -->
+
+  <!-- ════════════════════════════════════════════════════════════════════ -->
+  <!-- ═══════════ TAB : MAPPING & ALERTES ═══════════ -->
+  <!-- ════════════════════════════════════════════════════════════════════ -->
+  <div class="tab-panel" id="panel-mapping">
+
+  <section id="map-nomenclature">
+    <h2>01 · La nomenclature : le squelette commun des vues</h2>
+    <p class="h2-sub">Comment un compte comptable devient une ligne lisible dans un tableau.</p>
+
+    <p>
+      La comptabilité parle en numéros de comptes (604000, 621100…) ; les tableaux de
+      gestion parlent en catégories (« Sous-traitance », « Intérim »…). Le lien entre les
+      deux est la <strong>nomenclature</strong> : un ensemble de catégories, organisées par
+      vue (Synthèse, Chantiers, Frais généraux) et par section, chacune associée à des
+      <strong>règles de mapping</strong>.
+    </p>
+    <p>
+      Une règle dit : « tout compte qui commence par 604 » (règle par préfixe) ou « le
+      compte 604000 exactement » (règle exacte) appartient à telle catégorie. Une base de
+      règles est fournie au départ, puis s'enrichit des affectations faites au fil des mois
+      — chaque choix est mémorisé et s'applique à tous les imports suivants.
+    </p>
+  </section>
+
+  <section id="map-ecran">
+    <h2>02 · L'écran Mapping</h2>
+    <p class="h2-sub">Accessible aux profils admin et DAF, via le menu utilisateur.</p>
+
+    <div class="card">
+      <h3>Ce qu'on y fait</h3>
+      <ul class="clean">
+        <li><strong>Affecter un compte non mappé</strong> : choisir la catégorie de destination (proposées par vue et section) et la portée de la règle — ce compte uniquement, ou tous les comptes commençant pareil. L'affectation s'applique immédiatement à toutes les vues et clôt l'alerte associée.</li>
+        <li><strong>Ignorer un compte</strong> : clôt l'alerte sans créer de règle, pour les comptes volontairement hors gestion.</li>
+        <li><strong>Gérer les règles manuelles</strong> : la liste des règles ajoutées à la main (avec leur auteur) peut être consultée et supprimée ; les règles d'origine restent en place.</li>
+        <li><strong>Consulter la nomenclature</strong> : toutes les catégories et leurs règles, par vue.</li>
+      </ul>
+    </div>
+
+    <div class="callout warn">
+      <span class="ico">⚠</span>
+      <p><strong>Jamais de classement par défaut</strong> (exigence §4.1 du CDC) : un compte
+      inconnu n'est jamais rangé automatiquement dans une catégorie fourre-tout. Il remonte
+      en alerte avec son numéro, son libellé et son montant, et n'entre dans les tableaux
+      qu'une fois affecté par un humain. En attendant, il est listé à part dans les vues
+      concernées.</p>
+    </div>
+  </section>
+
+  <section id="map-alertes">
+    <h2>03 · Les alertes de cohérence</h2>
+    <p class="h2-sub">Générées automatiquement à chaque validation d'import.</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Alerte</th><th>Gravité</th><th>Ce qu'elle signale</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><span class="tag red">Écart de contrôle</span></td>
+            <td>Erreur</td>
+            <td>Les totaux par classe comptable recalculés ne correspondent pas aux totaux du fichier importé — le fichier est suspect, à vérifier avec le cabinet.</td>
+          </tr>
+          <tr>
+            <td><span class="tag amber">Compte non mappé</span></td>
+            <td>Avertissement</td>
+            <td>Un compte du fichier n'est couvert par aucune règle de mapping. À affecter (ou ignorer) dans l'écran Mapping.</td>
+          </tr>
+          <tr>
+            <td><span class="tag amber">Mois sans données</span></td>
+            <td>Avertissement</td>
+            <td>Un mois de l'exercice, antérieur à la période importée, n'a aucune écriture — trou probable dans l'export.</td>
+          </tr>
+          <tr>
+            <td><span class="tag amber">Montant constant</span></td>
+            <td>Avertissement</td>
+            <td>Le même montant non nul se répète au moins 3 mois de suite sur un compte — souvent le signe d'une écriture dupliquée ou d'un abonnement à contrôler.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>
+      Les alertes vivent avec les imports : quand un import est remplacé par une version
+      corrigée, ses alertes encore ouvertes sont purgées et le nouvel import régénère les
+      siennes sur des données fraîches. Une alerte peut aussi être résolue à la main
+      (profils admin et DAF), et le champ note des chantiers sert à documenter les cas
+      expliqués.
+    </p>
+
+    <div class="card">
+      <h3>Où les voir</h3>
+      <ul class="clean">
+        <li><strong>Synthèse</strong> : indicateur « Alertes ouvertes » + encart listant les premières alertes.</li>
+        <li><strong>Écran Mapping</strong> : les comptes non mappés en attente d'affectation.</li>
+        <li><strong>Contrôle d'import</strong> : aperçu des écarts et comptes inconnus avant même la validation.</li>
+        <li><strong>Assistant IA</strong> : demander « quelles sont les alertes ouvertes ? ».</li>
+      </ul>
+    </div>
+  </section>
+
+  </div><!-- /panel-mapping -->
+
+  <!-- ════════════════════════════════════════════════════════════════════ -->
+  <!-- ═══════════ TAB : ASSISTANT & ACCÈS ═══════════ -->
+  <!-- ════════════════════════════════════════════════════════════════════ -->
+  <div class="tab-panel" id="panel-assistant">
+
+  <section id="ia-fonctionnement">
+    <h2>01 · L'assistant IA</h2>
+    <p class="h2-sub">Poser une question en français, obtenir une réponse chiffrée et sourcée.</p>
+
+    <p>
+      L'onglet Assistant IA permet d'interroger les données en langage naturel :
+      « quel était le CA d'avril vs octobre ? », « la masse salariale pèse combien vs le
+      CA ? », « quels chantiers sont déficitaires ? ». L'assistant ne devine rien : pour
+      répondre, il consulte les <strong>mêmes moteurs de calcul que les écrans</strong>,
+      en lecture seule. Ses réponses sont donc toujours alignées au centime avec ce que
+      montrent les vues.
+    </p>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Ce qu'il peut consulter</th><th>Contenu</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Synthèse</strong></td><td>Totaux ou détail complet par catégorie, % / CA, comparatif N-1.</td></tr>
+          <tr><td><strong>Chantiers</strong></td><td>Activité du dernier mois par chantier, filtrable par pôle ou par nom.</td></tr>
+          <tr><td><strong>Frais généraux</strong></td><td>Postes FX du mois et cumulés, ratios / CA.</td></tr>
+          <tr><td><strong>Alertes</strong></td><td>Les alertes de cohérence ouvertes.</td></tr>
+          <tr><td><strong>Imports</strong></td><td>La liste des imports validés (pour savoir ce qui est disponible).</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p style="font-size: 13.5px; color: var(--gray2);">
+      Sous chaque réponse, des badges indiquent quelles sources l'assistant a consultées.
+      Il ne peut rien modifier : ni saisie, ni validation, ni mapping.
+    </p>
+  </section>
+
+  <section id="ia-journal">
+    <h2>02 · Journalisation et coûts</h2>
+    <p class="h2-sub">Chaque question laisse une trace.</p>
+
+    <p>
+      Chaque échange est journalisé : utilisateur, question, modèle utilisé, volume de
+      tokens consommés et durée de la réponse. C'est ce journal qui matérialise le poste
+      « coûts IA » variable de l'abonnement mensuel (réf. devis), et qui permet de suivre
+      l'usage réel de la fonctionnalité.
+    </p>
+  </section>
+
+  <section id="acces-roles">
+    <h2>03 · Comptes, rôles et navigation</h2>
+    <p class="h2-sub">Trois niveaux d'accès, huit utilisateurs prévus au contrat.</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Rôle</th><th>Vues &amp; assistant</th><th>Imports</th><th>Mapping</th><th>Provisions &amp; notes</th><th>Alertes</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><strong>Admin</strong></td>
+            <td>Consultation</td>
+            <td>Dépôt, validation, rejet</td>
+            <td>Affectation, règles</td>
+            <td>Saisie, figeage</td>
+            <td>Résolution</td>
+          </tr>
+          <tr>
+            <td><strong>DAF</strong></td>
+            <td>Consultation</td>
+            <td>Dépôt, validation, rejet</td>
+            <td>Affectation, règles</td>
+            <td>Saisie, figeage</td>
+            <td>Résolution</td>
+          </tr>
+          <tr>
+            <td><strong>Lecteur</strong></td>
+            <td>Consultation</td>
+            <td>—</td>
+            <td>—</td>
+            <td>Lecture seule</td>
+            <td>Lecture seule</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <ul class="clean">
+      <li>Connexion par email et mot de passe ; session de 7 jours ; toute page exige d'être connecté.</li>
+      <li>Les onglets <strong>Synthèse · Chantiers · Frais généraux · Assistant IA</strong> sont visibles par tous ; <strong>Imports</strong> et <strong>Mapping</strong> n'apparaissent dans le menu utilisateur que pour les profils admin et DAF.</li>
+      <li>L'en-tête rappelle l'exercice comptable affiché (ex. « Exercice 2025 / 2026 »).</li>
+    </ul>
+  </section>
+
+  </div><!-- /panel-assistant -->
+
+  <div class="footer">
+    <span>Tableaux de gestion — Groupe SDG · Documentation de fonctionnement</span>
+    <span>Vision BDS · 2026</span>
+  </div>
+
+</div>
+
+<script>
+  (function () {
+    var buttons = document.querySelectorAll(".tab-btn");
+    var panels = document.querySelectorAll(".tab-panel");
+
+    function activate(tab, pushHash) {
+      buttons.forEach(function (b) {
+        b.classList.toggle("active", b.dataset.tab === tab);
+      });
+      panels.forEach(function (p) {
+        p.classList.toggle("active", p.id === "panel-" + tab);
+      });
+      if (pushHash) history.replaceState(null, "", "#" + tab);
+    }
+
+    buttons.forEach(function (b) {
+      b.addEventListener("click", function () {
+        activate(b.dataset.tab, true);
+        window.scrollTo({ top: 0 });
+      });
+    });
+
+    // Ouverture directe d'un onglet via l'URL : documentation.html#provisions
+    var hash = location.hash.replace("#", "");
+    if (hash && document.getElementById("panel-" + hash)) activate(hash, false);
+  })();
+</script>
+</body>
+</html>

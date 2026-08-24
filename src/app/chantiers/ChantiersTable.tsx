@@ -93,7 +93,7 @@ export default function ChantiersTable({
               <th className="left">Réf.</th>
               <th className="left">Chantier</th>
               <th>Annulation</th>
-              <th>Prévision {canEdit ? "🟡" : ""}</th>
+              <th>Provision (TEC) {canEdit ? "🟡" : ""}</th>
               <th>Facturé</th>
               <th>Total produits</th>
               <th>Achats MP</th>

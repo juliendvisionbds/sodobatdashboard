@@ -1,15 +1,24 @@
 import Link from "next/link";
 import AppHeader from "@/components/AppHeader";
-import { getEntityByCode, getFx } from "@/lib/finance";
+import { getEntityByCode, getFx, listAnalytiquePeriods } from "@/lib/finance";
 import { fiscalYearOf } from "@/lib/parsers";
-import { fmtEur, fmtKEur, fmtPct, monthLabelLong } from "@/lib/format";
+import { fmtEur, fmtEurAuto, fmtPct, monthLabelLong, splitAutoEur } from "@/lib/format";
+import MonthSelect from "@/components/MonthSelect";
 
 export const dynamic = "force-dynamic";
 
-export default async function FxPage() {
+export default async function FxPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ mois?: string }>;
+}) {
   const entity = await getEntityByCode("sodobat");
   if (!entity) return null;
-  const data = await getFx(entity);
+
+  const periods = await listAnalytiquePeriods(entity.id);
+  const { mois } = await searchParams;
+  const period = mois && periods.includes(mois) ? mois : undefined;
+  const data = await getFx(entity, { period });
 
   if (!data) {
     return (
@@ -34,13 +43,20 @@ export default async function FxPage() {
   }
 
   const ratioFx = data.caReference ? (data.totalYtd / data.caReference) * 100 : null;
+  const ytdSplit = splitAutoEur(data.totalYtd);
+  const moisSplit = splitAutoEur(data.totalMois);
 
   return (
     <>
       <AppHeader active="fx" fiscalYearStart={fiscalYearOf(data.period)} />
       <div className="page">
         <div className="page-header">
-          <h1>Frais généraux — {monthLabelLong(data.period)}</h1>
+          <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
+            <h1>Frais généraux — {monthLabelLong(data.period)}</h1>
+            {periods.length > 0 && (
+              <MonthSelect basePath="/frais-generaux" periods={periods} current={data.period} />
+            )}
+          </div>
           <p>
             Centre analytique FX · cumul exercice à date
             {data.prevPeriod
@@ -53,16 +69,16 @@ export default async function FxPage() {
           <div className="kpi">
             <div className="kpi-label">Total FX cumulé (YTD)</div>
             <div className="kpi-value">
-              {Math.round(data.totalYtd / 1000).toLocaleString("fr-FR")}
-              <span className="unit">k€</span>
+              {ytdSplit.amount}
+              <span className="unit">{ytdSplit.unit}</span>
             </div>
             <div className="kpi-sub">exercice en cours</div>
           </div>
           <div className="kpi">
             <div className="kpi-label">FX du mois</div>
             <div className="kpi-value">
-              {Math.round(data.totalMois / 1000).toLocaleString("fr-FR")}
-              <span className="unit">k€</span>
+              {moisSplit.amount}
+              <span className="unit">{moisSplit.unit}</span>
             </div>
             <div className="kpi-sub">{monthLabelLong(data.period)}</div>
           </div>
@@ -73,7 +89,7 @@ export default async function FxPage() {
             </div>
             <div className="kpi-sub">
               {data.caReference != null
-                ? `CA de référence : ${fmtKEur(data.caReference)}`
+                ? `CA de référence : ${fmtEurAuto(data.caReference)}`
                 : "importer la balance ventilée pour les ratios"}
             </div>
           </div>

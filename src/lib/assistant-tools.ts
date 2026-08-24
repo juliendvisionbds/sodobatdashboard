@@ -84,7 +84,7 @@ export function buildAssistantTools(entity: Entity) {
     chantiers: tool({
       description:
         "Activité chantier du dernier mois importé : par chantier, facturation, travaux en cours " +
-        "(prévision/annulation), achats, sous-traitance, autres charges et résultat du mois. " +
+        "(provision/annulation), achats, sous-traitance, autres charges et résultat du mois. " +
         "Source : balance analytique (delta entre les deux derniers snapshots). Montants en euros.",
       inputSchema: z.object({
         pole: z
@@ -123,7 +123,7 @@ export function buildAssistantTools(entity: Entity) {
             chantier: r.centreLabel,
             pole: r.pole,
             facture: eur(r.facture),
-            previsionTravauxEnCours: eur(r.previsionManuelle?.value ?? r.prevision),
+            provisionTravauxEnCours: eur(r.previsionManuelle?.value ?? r.prevision),
             annulationProvisionM1: eur(r.annulation),
             totalProduits: eur(r.totalProduits),
             achatsMatieresPremieres: eur(r.achatsMp),

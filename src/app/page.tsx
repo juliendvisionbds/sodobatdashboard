@@ -3,7 +3,7 @@ import { and, desc, eq } from "drizzle-orm";
 import { db, tables } from "@/db";
 import AppHeader from "@/components/AppHeader";
 import { getEntityByCode, getSynthese, SyntheseData } from "@/lib/finance";
-import { fmtEur, fmtKEur, fmtPct, monthLabel, monthLabelLong } from "@/lib/format";
+import { fmtEur, fmtEurAuto, fmtPct, monthLabel, monthLabelLong, splitAutoEur } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
@@ -72,6 +72,11 @@ export default async function SynthesePage() {
     .reduce((s, r) => s + r.total, 0);
   const personnel = data.totalChargesPersonnel.total;
 
+  const caSplit = splitAutoEur(data.caTotal.total);
+  const expSplit = splitAutoEur(data.resultatExploitation.total);
+  const netSplit = splitAutoEur(data.resultatNet.total);
+  const fgPctCa = (data.totalFx.total / (data.caTotal.total || 1)) * 100;
+
   return (
     <>
       <AppHeader active="synthese" fiscalYearStart={data.fiscalYearStart} />
@@ -88,12 +93,12 @@ export default async function SynthesePage() {
           <div className="kpi">
             <div className="kpi-label">CA cumulé</div>
             <div className="kpi-value">
-              {Math.round(data.caTotal.total / 1000).toLocaleString("fr-FR")}
-              <span className="unit">k€</span>
+              {caSplit.amount}
+              <span className="unit">{caSplit.unit}</span>
             </div>
             <div className="kpi-sub">
               {data.hasPrevYear && data.prevCaTotal
-                ? `N-1 : ${fmtKEur(data.prevCaTotal)}`
+                ? `N-1 : ${fmtEurAuto(data.prevCaTotal)}`
                 : "historique N-1 non importé"}
             </div>
           </div>
@@ -104,8 +109,8 @@ export default async function SynthesePage() {
               style={{ color: data.resultatExploitation.total >= 0 ? "var(--green)" : "var(--red)" }}
             >
               {data.resultatExploitation.total >= 0 ? "+" : "−"}
-              {Math.round(Math.abs(data.resultatExploitation.total) / 1000).toLocaleString("fr-FR")}
-              <span className="unit">k€</span>
+              {expSplit.amount}
+              <span className="unit">{expSplit.unit}</span>
             </div>
             <div className={`kpi-sub ${(pctExpl ?? 0) >= 0 ? "pos" : "neg"}`}>
               {fmtPct(pctExpl)} du CA
@@ -118,11 +123,14 @@ export default async function SynthesePage() {
               style={{ color: data.resultatNet.total >= 0 ? "var(--green)" : "var(--red)" }}
             >
               {data.resultatNet.total >= 0 ? "+" : "−"}
-              {Math.round(Math.abs(data.resultatNet.total) / 1000).toLocaleString("fr-FR")}
-              <span className="unit">k€</span>
+              {netSplit.amount}
+              <span className="unit">{netSplit.unit}</span>
             </div>
             <div className={`kpi-sub ${data.resultatNet.total >= 0 ? "pos" : "neg"}`}>
-              FG : {fmtKEur(data.totalFx.total)} ({fmtPct((data.totalFx.total / (data.caTotal.total || 1)) * 100)} CA) · {fmtPct(pctNet)} du CA
+              {fmtPct(pctNet)} du CA
+            </div>
+            <div className="kpi-sub-2">
+              Frais généraux : {fmtEurAuto(data.totalFx.total)} · {fmtPct(fgPctCa)} du CA
             </div>
           </div>
           <div className="kpi">
@@ -156,7 +164,7 @@ export default async function SynthesePage() {
                       )}
                     </div>
                     <div className={`ca-value ${v > 0 ? "pos" : "muted"}`}>
-                      {v !== 0 ? fmtKEur(v) : "n.d."}
+                      {v !== 0 ? fmtEurAuto(v) : "n.d."}
                     </div>
                   </div>
                 ))}
@@ -167,21 +175,21 @@ export default async function SynthesePage() {
                   <div className="ind-val">
                     {fmtPct(data.caTotal.total ? (st / data.caTotal.total) * 100 : null)}
                   </div>
-                  <div className="ind-sub">{fmtKEur(st)}</div>
+                  <div className="ind-sub">{fmtEurAuto(st)}</div>
                 </div>
                 <div className="ind">
                   <div className="ind-label">Personnel / CA</div>
                   <div className="ind-val">
                     {fmtPct(data.caTotal.total ? (personnel / data.caTotal.total) * 100 : null)}
                   </div>
-                  <div className="ind-sub">{fmtKEur(personnel)}</div>
+                  <div className="ind-sub">{fmtEurAuto(personnel)}</div>
                 </div>
                 <div className="ind">
                   <div className="ind-label">Exploit. / CA</div>
                   <div className="ind-val" style={{ color: (pctExpl ?? 0) >= 0 ? "var(--green)" : "var(--red)" }}>
                     {fmtPct(pctExpl)}
                   </div>
-                  <div className="ind-sub">{fmtKEur(data.resultatExploitation.total)}</div>
+                  <div className="ind-sub">{fmtEurAuto(data.resultatExploitation.total)}</div>
                 </div>
               </div>
             </div>
@@ -197,7 +205,7 @@ export default async function SynthesePage() {
                         i === resByMonth.length - 1 ? "blue" : v > 0 ? "pos" : v < 0 ? "neg" : ""
                       }`}
                     >
-                      {v === 0 ? "—" : `${v > 0 ? "+" : "−"}${Math.round(Math.abs(v) / 1000)} k€`}
+                      {v === 0 ? "—" : `${v > 0 ? "+" : "−"}${fmtEurAuto(Math.abs(v))}`}
                     </div>
                     <div className="rm-pct">
                       {ca !== 0 ? fmtPct((v / ca) * 100) : "n.d."}
@@ -221,7 +229,7 @@ export default async function SynthesePage() {
                     </div>
                   </div>
                   <div className="charge-right">
-                    <div className="charge-amt">{fmtKEur(r.total)}</div>
+                    <div className="charge-amt">{fmtEurAuto(r.total)}</div>
                     <div className="charge-pct">{fmtPct(r.pctCa)}</div>
                   </div>
                 </div>

@@ -22,7 +22,7 @@ export async function getEntityByCode(code: string): Promise<Entity | null> {
 export async function latestValidatedImport(
   entityId: number,
   type: "ventilee" | "analytique",
-  opts?: { fiscalYearStart?: number; beforePeriod?: string }
+  opts?: { fiscalYearStart?: number; beforePeriod?: string; atPeriod?: string }
 ) {
   const conds = [
     eq(tables.imports.entityId, entityId),
@@ -33,6 +33,7 @@ export async function latestValidatedImport(
     conds.push(eq(tables.imports.fiscalYearStart, opts.fiscalYearStart));
   if (opts?.beforePeriod)
     conds.push(lt(tables.imports.period, opts.beforePeriod));
+  if (opts?.atPeriod) conds.push(eq(tables.imports.period, opts.atPeriod));
   const rows = await db
     .select()
     .from(tables.imports)
@@ -40,6 +41,22 @@ export async function latestValidatedImport(
     .orderBy(desc(tables.imports.period), desc(tables.imports.id))
     .limit(1);
   return rows[0] ?? null;
+}
+
+/** Périodes (mois de snapshot) des imports analytiques validés, plus récentes en premier. */
+export async function listAnalytiquePeriods(entityId: number): Promise<string[]> {
+  const rows = await db
+    .select({ period: tables.imports.period })
+    .from(tables.imports)
+    .where(
+      and(
+        eq(tables.imports.entityId, entityId),
+        eq(tables.imports.type, "analytique"),
+        eq(tables.imports.status, "validated")
+      )
+    )
+    .orderBy(desc(tables.imports.period));
+  return [...new Set(rows.map((r) => r.period))];
 }
 
 // ── Vue Synthèse ─────────────────────────────────────────────────────────────
@@ -251,8 +268,13 @@ export type ChantiersData = {
   importId: number;
 };
 
-export async function getChantiers(entity: Entity): Promise<ChantiersData | null> {
-  const imp = await latestValidatedImport(entity.id, "analytique");
+export async function getChantiers(
+  entity: Entity,
+  opts?: { period?: string }
+): Promise<ChantiersData | null> {
+  const imp = await latestValidatedImport(entity.id, "analytique", {
+    atPeriod: opts?.period,
+  });
   if (!imp) return null;
   const prevImp = await latestValidatedImport(entity.id, "analytique", {
     beforePeriod: imp.period,
@@ -415,8 +437,13 @@ export type FxData = {
   importId: number;
 };
 
-export async function getFx(entity: Entity): Promise<FxData | null> {
-  const imp = await latestValidatedImport(entity.id, "analytique");
+export async function getFx(
+  entity: Entity,
+  opts?: { period?: string }
+): Promise<FxData | null> {
+  const imp = await latestValidatedImport(entity.id, "analytique", {
+    atPeriod: opts?.period,
+  });
   if (!imp) return null;
   const prevImp = await latestValidatedImport(entity.id, "analytique", {
     beforePeriod: imp.period,
@@ -461,8 +488,11 @@ export async function getFx(entity: Entity): Promise<FxData | null> {
     byCat.set(cat.id, rec);
   }
 
-  // CA de référence pour les ratios : ventilée, produits (70/71/75), cumul exercice
-  const ventilee = await latestValidatedImport(entity.id, "ventilee");
+  // CA de référence pour les ratios : ventilée du même exercice, produits (70/71/75),
+  // cumulés jusqu'au mois affiché (pour que %/CA reste cohérent sur un mois passé)
+  const ventilee = await latestValidatedImport(entity.id, "ventilee", {
+    fiscalYearStart: imp.fiscalYearStart,
+  });
   let caReference: number | null = null;
   if (ventilee) {
     const lines = await db
@@ -471,7 +501,7 @@ export async function getFx(entity: Entity): Promise<FxData | null> {
       .where(eq(tables.generalBalanceLines.importId, ventilee.id));
     caReference = round2(
       -lines
-        .filter((l) => /^7(0|1|5)/.test(l.account))
+        .filter((l) => /^7(0|1|5)/.test(l.account) && l.month <= imp.period)
         .reduce((s, l) => s + num(l.amount), 0)
     );
   }
