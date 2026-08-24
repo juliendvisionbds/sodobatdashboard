@@ -5,6 +5,7 @@ import AppHeader from "@/components/AppHeader";
 import { ImportSummary } from "@/lib/import-service";
 import { fmtEur, monthLabel, monthLabelLong } from "@/lib/format";
 import { rejectImportAction, validateImportAction } from "@/app/actions";
+import { requireWriterOrRedirect } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -13,6 +14,7 @@ export default async function ImportPreviewPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  await requireWriterOrRedirect();
   const { id } = await params;
   const [imp] = await db
     .select()

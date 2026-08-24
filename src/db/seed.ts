@@ -15,7 +15,7 @@ async function main() {
     .values(seedEntities)
     .onConflictDoNothing({ target: tables.entities.code });
 
-  // Utilisateurs (8 accès)
+  // Utilisateurs (un par rôle)
   const hash = await bcrypt.hash(DEFAULT_PASSWORD, 10);
   await db
     .insert(tables.users)

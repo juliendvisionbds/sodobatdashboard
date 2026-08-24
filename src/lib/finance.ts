@@ -43,20 +43,46 @@ export async function latestValidatedImport(
   return rows[0] ?? null;
 }
 
-/** Périodes (mois de snapshot) des imports analytiques validés, plus récentes en premier. */
-export async function listAnalytiquePeriods(entityId: number): Promise<string[]> {
+/** Périodes des imports validés d'un type, plus récentes en premier. */
+async function listValidatedPeriods(
+  entityId: number,
+  type: "ventilee" | "analytique"
+): Promise<string[]> {
   const rows = await db
     .select({ period: tables.imports.period })
     .from(tables.imports)
     .where(
       and(
         eq(tables.imports.entityId, entityId),
-        eq(tables.imports.type, "analytique"),
+        eq(tables.imports.type, type),
         eq(tables.imports.status, "validated")
       )
     )
     .orderBy(desc(tables.imports.period));
   return [...new Set(rows.map((r) => r.period))];
+}
+
+/** Périodes (mois de snapshot) des imports analytiques validés, plus récentes en premier. */
+export async function listAnalytiquePeriods(entityId: number): Promise<string[]> {
+  return listValidatedPeriods(entityId, "analytique");
+}
+
+/**
+ * Arrêtés mensuels disponibles pour la Synthèse : les mois couverts par la
+ * dernière ventilée validée (chaque fichier contient tout l'exercice, les
+ * imports précédents sont « remplacés »), plus récents en premier.
+ */
+export async function listVentileePeriods(entityId: number): Promise<string[]> {
+  const imp = await latestValidatedImport(entityId, "ventilee");
+  if (!imp) return [];
+  const rows = await db
+    .selectDistinct({ month: tables.generalBalanceLines.month })
+    .from(tables.generalBalanceLines)
+    .where(eq(tables.generalBalanceLines.importId, imp.id));
+  return rows
+    .map((r) => r.month)
+    .sort()
+    .reverse();
 }
 
 // ── Vue Synthèse ─────────────────────────────────────────────────────────────
@@ -100,18 +126,24 @@ const SECTION_FX = "FRAIS GÉNÉRAUX & AUTRES CHARGES";
 
 export async function getSynthese(
   entity: Entity,
-  fiscalYearStart?: number
+  opts?: { fiscalYearStart?: number; period?: string }
 ): Promise<SyntheseData | null> {
   const imp = await latestValidatedImport(entity.id, "ventilee", {
-    fiscalYearStart,
+    fiscalYearStart: opts?.fiscalYearStart,
   });
   if (!imp) return null;
 
   const mapper = await loadMapper("synthese", entity.id, entity.code);
-  const lines = await db
+  let lines = await db
     .select()
     .from(tables.generalBalanceLines)
     .where(eq(tables.generalBalanceLines.importId, imp.id));
+
+  // Arrêté mensuel : on tronque le dernier import au mois demandé (les révisions
+  // du cabinet sur les mois passés restent donc prises en compte).
+  if (opts?.period && opts.period < imp.period) {
+    lines = lines.filter((l) => l.month <= opts.period!);
+  }
 
   const months = fiscalMonths(imp.fiscalYearStart);
   const monthsWithData = [...new Set(lines.map((l) => l.month))].sort();
@@ -213,7 +245,7 @@ export async function getSynthese(
     fiscalYearStart: imp.fiscalYearStart,
     months,
     monthsWithData,
-    period: imp.period,
+    period: monthsWithData[monthsWithData.length - 1] ?? imp.period,
     sections,
     caTotal: { monthly: caTotalMonthly, total: caTotal },
     totalChargesExploitation: {

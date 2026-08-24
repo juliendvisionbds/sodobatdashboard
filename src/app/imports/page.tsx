@@ -3,6 +3,7 @@ import { db, tables } from "@/db";
 import AppHeader from "@/components/AppHeader";
 import UploadForm from "./UploadForm";
 import { getEntityByCode } from "@/lib/finance";
+import { requireWriterOrRedirect } from "@/lib/auth";
 import { monthLabelLong } from "@/lib/format";
 import Link from "next/link";
 
@@ -16,6 +17,7 @@ const STATUS_LABEL: Record<string, { label: string; cls: string }> = {
 };
 
 export default async function ImportsPage() {
+  await requireWriterOrRedirect();
   const entity = await getEntityByCode("sodobat");
   if (!entity) return null;
 
@@ -40,6 +42,8 @@ export default async function ImportsPage() {
 
   // Règle CDC §4.3 : les données du mois M sont attendues à M+24 jours.
   // Dernier mois exigible = le mois précédant (aujourd'hui − 24 jours).
+  // Composant serveur en force-dynamic : l'heure est lue à chaque requête, c'est voulu.
+  // eslint-disable-next-line react-hooks/purity
   const ref = new Date(Date.now() - 24 * 24 * 3600 * 1000);
   const exigible = new Date(ref.getFullYear(), ref.getMonth() - 1, 1);
   const expectedPeriod = `${exigible.getFullYear()}-${String(exigible.getMonth() + 1).padStart(2, "0")}-01`;

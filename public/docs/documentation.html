@@ -332,6 +332,12 @@
         résultat structurent la lecture : <strong>Résultat d'exploitation</strong>
         (CA − exploitation − personnel) et <strong>Résultat net</strong> (− frais généraux).
       </p>
+      <p>
+        Le tableau se filtre par <strong>section</strong> (menu déroulant) et par
+        <strong>recherche libre</strong> sur les libellés. Quand un filtre est actif, les
+        sous-totaux affichés restent ceux de la section complète (une note le rappelle) et
+        les lignes de résultat global sont masquées pour éviter toute lecture trompeuse.
+      </p>
       <p style="font-size: 13.5px; color: var(--gray2);">
         L'exercice affiché est celui du dernier import ventilée validé (rappelé dans
         l'en-tête, ex. « Exercice 2025 / 2026 »). Le comparatif N-1 apparaît dès que la
@@ -378,28 +384,45 @@
       quand on consulte un mois passé. Les colonnes N-1 / N-2 s'activeront après la
       reprise de l'historique.
     </p>
+    <p>
+      Le tableau regroupe trois sections — <strong>Masse salariale sédentaire</strong>,
+      <strong>Frais généraux</strong> et <strong>Crédit-bail / LLD</strong> — chacune avec
+      son sous-total ; la dernière ligne, « TOTAL GÉNÉRAL (toutes sections) », est la somme
+      des trois. Il se filtre par section et par recherche libre (libellé ou numéro de
+      compte).
+    </p>
     <p style="font-size: 13.5px; color: var(--gray2);">
-      Un montant négatif est un produit venant en déduction (indemnités, refacturations).
+      Un montant négatif est un produit venant en déduction (indemnités, refacturations) :
+      certaines lignes sont volontairement « nettes », comme les assurances (primes moins
+      indemnités reçues) ou les intérêts (nets des produits financiers).
     </p>
   </section>
 
   <section id="vue-selecteur">
     <h2>04 · Naviguer dans les mois</h2>
-    <p class="h2-sub">Les vues Chantiers et Frais généraux ne sont pas figées sur le dernier mois.</p>
+    <p class="h2-sub">Aucune vue n'est figée sur le dernier mois.</p>
 
     <div class="card">
       <p>
-        Un <strong>sélecteur de mois</strong> se trouve à côté du titre des vues Chantiers
-        et Frais généraux. Il liste tous les mois pour lesquels un snapshot analytique a
-        été validé, du plus récent au plus ancien. Choisir un mois passé recalcule toute
-        la vue pour cette période — y compris la colonne « du mois », qui reprend le delta
-        avec le snapshot précédent de l'époque.
+        Un <strong>sélecteur de mois</strong> se trouve à côté du titre des trois vues.
+        Sur Chantiers et Frais généraux, il liste tous les mois pour lesquels un snapshot
+        analytique a été validé, du plus récent au plus ancien. Choisir un mois passé
+        recalcule toute la vue pour cette période — y compris la colonne « du mois », qui
+        reprend le delta avec le snapshot précédent de l'époque.
       </p>
       <ul class="clean">
         <li>Avec un seul mois importé, le sélecteur est visible mais grisé : il s'active dès le deuxième snapshot validé.</li>
         <li>Sur un mois passé, la vue Chantiers passe en <strong>lecture seule</strong> (badge « mois passé — lecture seule ») : provisions et notes ne sont saisissables que sur le dernier mois, on ne réécrit pas une période close.</li>
-        <li>La Synthèse, elle, montre toujours l'exercice complet du dernier import ventilée — chaque mois y a déjà sa colonne.</li>
       </ul>
+      <p>
+        La <strong>Synthèse</strong> a son propre sélecteur d'<strong>arrêté mensuel</strong>,
+        avec une nuance importante : comme chaque balance ventilée contient tout l'exercice
+        et remplace la précédente, revenir à un mois passé ne rouvre pas l'ancien fichier —
+        la vue est recalculée depuis le <strong>dernier fichier importé, tronqué au mois
+        choisi</strong>. Autrement dit : les chiffres de mai <em>tels qu'on les connaît
+        aujourd'hui</em>, révisions du cabinet incluses (un badge le rappelle :
+        « arrêté au … — chiffres à jour des dernières révisions »).
+      </p>
     </div>
   </section>
 
@@ -983,9 +1006,17 @@
       <ul class="clean">
         <li><strong>Affecter un compte non mappé</strong> : choisir la catégorie de destination (proposées par vue et section) et la portée de la règle — ce compte uniquement, ou tous les comptes commençant pareil. L'affectation s'applique immédiatement à toutes les vues et clôt l'alerte associée.</li>
         <li><strong>Ignorer un compte</strong> : clôt l'alerte sans créer de règle, pour les comptes volontairement hors gestion.</li>
-        <li><strong>Gérer les règles manuelles</strong> : la liste des règles ajoutées à la main (avec leur auteur) peut être consultée et supprimée ; les règles d'origine restent en place.</li>
+        <li><strong>Créer une règle librement</strong> : sans attendre qu'un compte remonte en alerte, via le formulaire « Nouvelle règle » — avec un aperçu en direct qui indique quelle règle existante couvre déjà le compte saisi et si la nouvelle sera prioritaire.</li>
+        <li><strong>Remplacer une règle de la nomenclature groupe</strong> : l'ancienne règle est <em>désactivée</em> (jamais supprimée) et une règle propre à l'entité prend le relais ; le bouton « Rétablir l'origine » annule le remplacement à tout moment.</li>
+        <li><strong>Gérer les règles manuelles</strong> : la liste complète des règles (origine groupe ou ajout manuel, avec leur auteur) est consultable ; les règles manuelles peuvent être supprimées.</li>
         <li><strong>Consulter la nomenclature</strong> : toutes les catégories et leurs règles, par vue.</li>
       </ul>
+      <p style="font-size: 13.5px; color: var(--gray2);">
+        Ordre de priorité des règles : <strong>règle exacte</strong> &gt; <strong>préfixe le
+        plus long</strong> &gt; préfixe court ; à pattern égal, la règle propre à l'entité
+        gagne sur la règle commune du groupe. Une règle plus spécifique surcharge donc les
+        autres sans avoir à les supprimer.
+      </p>
     </div>
 
     <div class="callout warn">
@@ -1033,14 +1064,36 @@
     <p>
       Les alertes vivent avec les imports : quand un import est remplacé par une version
       corrigée, ses alertes encore ouvertes sont purgées et le nouvel import régénère les
-      siennes sur des données fraîches. Une alerte peut aussi être résolue à la main
+      siennes sur des données fraîches. Une alerte peut aussi être traitée à la main
       (profils admin et DAF), et le champ note des chantiers sert à documenter les cas
       expliqués.
     </p>
 
     <div class="card">
+      <h3>Traiter une alerte — et pourquoi la décision persiste</h3>
+      <p>
+        La page <strong>Alertes</strong> (menu utilisateur, ou lien « Gérer » sur la Synthèse)
+        centralise le traitement : chaque alerte ouverte propose une action contextuelle —
+        « Affecter dans Mapping » pour un compte non mappé, « Marquer comme normal » pour un
+        montant constant, « Marquer comme traitée » pour les autres.
+      </p>
+      <p>
+        Comme les alertes sont régénérées à chaque import, une décision doit survivre au mois
+        suivant : le moteur ne recrée jamais une alerte déjà traitée dont la « signature » est
+        identique. Concrètement : un compte ignoré reste ignoré ; un montant constant marqué
+        comme normal ne re-signale que si le montant fixe <em>change</em> ; un mois sans données
+        traité ne revient pas pour ce même mois. Seul l'<strong>écart de contrôle</strong>
+        (intégrité du fichier) est toujours re-signalé — il ne doit jamais être ignoré durablement.
+        L'historique en bas de page liste les alertes traitées (par qui, quand) et le bouton
+        « Réactiver la surveillance » annule la décision : l'alerte sera recréée au prochain
+        import si l'anomalie persiste.
+      </p>
+    </div>
+
+    <div class="card">
       <h3>Où les voir</h3>
       <ul class="clean">
+        <li><strong>Page Alertes</strong> : toutes les alertes ouvertes avec actions, plus l'historique des traitées.</li>
         <li><strong>Synthèse</strong> : indicateur « Alertes ouvertes » + encart listant les premières alertes.</li>
         <li><strong>Écran Mapping</strong> : les comptes non mappés en attente d'affectation.</li>
         <li><strong>Contrôle d'import</strong> : aperçu des écarts et comptes inconnus avant même la validation.</li>
@@ -1102,7 +1155,7 @@
 
   <section id="acces-roles">
     <h2>03 · Comptes, rôles et navigation</h2>
-    <p class="h2-sub">Trois niveaux d'accès, huit utilisateurs prévus au contrat.</p>
+    <p class="h2-sub">Trois niveaux d'accès — un compte par rôle.</p>
 
     <div class="table-wrap">
       <table>
@@ -1138,7 +1191,7 @@
 
     <ul class="clean">
       <li>Connexion par email et mot de passe ; session de 7 jours ; toute page exige d'être connecté.</li>
-      <li>Les onglets <strong>Synthèse · Chantiers · Frais généraux · Assistant IA</strong> sont visibles par tous ; <strong>Imports</strong> et <strong>Mapping</strong> n'apparaissent dans le menu utilisateur que pour les profils admin et DAF.</li>
+      <li>Les onglets <strong>Synthèse · Chantiers · Frais généraux · Assistant IA</strong> sont visibles par tous ; <strong>Imports</strong> et <strong>Mapping</strong> n'apparaissent dans le menu utilisateur que pour les profils admin et DAF — et sont aussi protégés côté serveur : un lecteur qui en tape l'adresse directement est renvoyé à la Synthèse.</li>
       <li>L'en-tête rappelle l'exercice comptable affiché (ex. « Exercice 2025 / 2026 »).</li>
     </ul>
   </section>

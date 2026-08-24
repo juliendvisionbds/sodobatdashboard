@@ -78,6 +78,35 @@ export default function UserMenu({
               <div className="user-dropdown-sep" />
             </>
           )}
+          <Link
+            href="/alertes"
+            role="menuitem"
+            className="user-dropdown-item"
+            onClick={() => setOpen(false)}
+          >
+            Alertes
+          </Link>
+          <a
+            href="/docs/guide-utilisateur.html"
+            target="_blank"
+            rel="noopener"
+            role="menuitem"
+            className="user-dropdown-item"
+            onClick={() => setOpen(false)}
+          >
+            Guide utilisateur
+          </a>
+          <a
+            href="/docs/documentation.html"
+            target="_blank"
+            rel="noopener"
+            role="menuitem"
+            className="user-dropdown-item"
+            onClick={() => setOpen(false)}
+          >
+            Documentation détaillée
+          </a>
+          <div className="user-dropdown-sep" />
           <form action={logoutAction}>
             <button type="submit" role="menuitem" className="user-dropdown-item danger">
               Se déconnecter

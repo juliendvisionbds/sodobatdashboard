@@ -28,7 +28,7 @@ function LoginForm() {
         autoComplete="username"
         className="field-input"
         style={{ marginBottom: 14 }}
-        placeholder="prenom.nom@groupesdg.fr"
+        placeholder="votre@email.com"
       />
       <label className="field-label" htmlFor="password">Mot de passe</label>
       <input

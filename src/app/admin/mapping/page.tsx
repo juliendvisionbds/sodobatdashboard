@@ -2,6 +2,7 @@ import { and, asc, eq } from "drizzle-orm";
 import { db, tables } from "@/db";
 import AppHeader from "@/components/AppHeader";
 import { getEntityByCode } from "@/lib/finance";
+import { requireWriterOrRedirect } from "@/lib/auth";
 import { fmtEur } from "@/lib/format";
 import {
   assignAccountAction,
@@ -42,6 +43,7 @@ function CategoryOptions({ categories }: { categories: CategoryOption[] }) {
 }
 
 export default async function MappingPage() {
+  await requireWriterOrRedirect();
   const entity = await getEntityByCode("sodobat");
   if (!entity) return null;
 

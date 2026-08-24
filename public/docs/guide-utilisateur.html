@@ -325,9 +325,15 @@
         <li><strong>CA mensuel</strong> : la facturation mois par mois, en barres.</li>
         <li><strong>Structure des charges</strong> : le poids de chaque poste (sous-traitance, masse salariale, achats…).</li>
         <li><strong>Résultat mensuel</strong> : le résultat de chaque mois de l'exercice.</li>
-        <li><strong>Tableau détaillé</strong> : toutes les lignes de gestion (produits, charges d'exploitation, personnel, frais généraux) avec les montants mensuels et cumulés.</li>
+        <li><strong>Tableau détaillé</strong> : toutes les lignes de gestion (produits, charges d'exploitation, personnel, frais généraux) avec les montants mensuels et cumulés — filtrable par section et par recherche libre.</li>
         <li><strong>Alertes actives</strong> : ce qui demande votre attention (voir section 05).</li>
       </ul>
+      <p>
+        Un <strong>sélecteur de mois</strong> à côté du titre permet d'afficher la synthèse
+        « arrêtée à » n'importe quel mois de l'exercice. Les chiffres affichés sont alors
+        recalculés depuis le dernier fichier importé : un mois passé reflète les dernières
+        corrections du cabinet, pas la version de l'époque.
+      </p>
     </div>
 
     <div class="card">
@@ -355,6 +361,12 @@
         en % du CA, et la comparaison avec N-1 et N-2. En haut de page : le total FX cumulé, le FX du mois
         et le ratio FX / CA.
       </p>
+      <p>
+        Le tableau se filtre par section et par recherche libre (libellé ou numéro de compte), et un
+        sélecteur de mois permet de consulter les mois passés. Un montant <strong>négatif</strong> est un
+        produit venant en déduction (indemnité d'assurance, refacturation, avoir) : certaines lignes sont
+        volontairement « nettes ».
+      </p>
     </div>
 
     <div class="card">
@@ -372,6 +384,17 @@
         Chaque dépôt ouvre une page de <strong>contrôle avant intégration</strong> : nombre de lignes lues,
         mois couverts (ou nombre de chantiers), contrôles de cohérence, comptes non mappés. Rien n'entre
         dans les tableaux tant que vous n'avez pas cliqué « Valider l'intégration ».
+      </p>
+    </div>
+
+    <div class="card">
+      <div class="card-label">Assistant IA — poser une question en français</div>
+      <p>
+        Accessible à tous les profils. Posez votre question en langage naturel (« Quel est le CA du mois ? »,
+        « Quels chantiers perdent de l'argent ? », « Où en est la masse salariale ? ») : l'assistant répond
+        en s'appuyant <strong>exclusivement</strong> sur les chiffres calculés par l'application — les mêmes
+        que ceux des écrans, au centime. Il ne calcule rien lui-même et n'invente jamais un chiffre : si une
+        donnée n'est pas disponible, il le dit.
       </p>
     </div>
 
@@ -458,7 +481,7 @@
           <tr>
             <td><span class="tag amber">Montant constant</span></td>
             <td>Un poste affiche exactement le même montant plusieurs mois de suite (ex. des honoraires figés) : possible écriture oubliée ou abonnement à vérifier.</td>
-            <td>Vérifier que c'est normal (montant contractuel fixe), puis marquer l'alerte comme traitée.</td>
+            <td>Vérifier que c'est normal (montant contractuel fixe), puis « Marquer comme normal » : l'alerte ne reviendra plus tant que ce montant reste identique.</td>
           </tr>
           <tr>
             <td><span class="tag amber">Mois manquant</span></td>
@@ -468,6 +491,14 @@
         </tbody>
       </table>
     </div>
+
+    <p>Toutes les alertes se gèrent depuis la page <strong>Alertes</strong> (menu utilisateur en haut à droite,
+    ou lien « Gérer » sur la carte de la Synthèse). Pour chaque alerte ouverte : un bouton d'action contextuel
+    (affecter dans Mapping, marquer comme traitée / comme normal). Une alerte traitée <strong>ne revient pas</strong>
+    aux imports suivants — la décision est mémorisée. Elle reste visible dans l'historique en bas de page, avec
+    qui l'a traitée et quand, et un bouton « Réactiver la surveillance » permet d'annuler la décision à tout
+    moment. Seule exception : l'écart de contrôle, trop grave pour être ignoré durablement, est re-signalé à
+    chaque import concerné.</p>
 
     <div class="callout warn">
       <span class="ico">⚠</span>
@@ -504,8 +535,9 @@
 
     <p style="font-size:13.5px; color:var(--gray2);">
       Les profils Lecteur (dirigeants, associés) voient exactement les mêmes chiffres que la DAF, en temps réel,
-      sans pouvoir les modifier. La session reste ouverte 7 jours ; la déconnexion se fait via le menu
-      utilisateur en haut à droite.
+      sans pouvoir les modifier — l'Assistant IA leur est aussi ouvert. Les écrans Imports et Mapping sont
+      réservés aux profils admin et DAF, y compris en tapant l'adresse directement. La session reste ouverte
+      7 jours ; la déconnexion se fait via le menu utilisateur en haut à droite.
     </p>
   </section>
 
@@ -548,8 +580,7 @@
     <div class="card">
       <h3>Et les autres entités du groupe ?</h3>
       <p>La phase 1 couvre Sodobat. Easy Mat, Easy Home, VBTP et CovarBat suivront : la nomenclature commune
-      est déjà en place, chaque entité viendra s'y brancher avec ses propres règles là où sa comptabilité diffère.
-      L'assistant IA de consultation des données est également prévu pour une itération ultérieure.</p>
+      est déjà en place, chaque entité viendra s'y brancher avec ses propres règles là où sa comptabilité diffère.</p>
     </div>
   </section>
 

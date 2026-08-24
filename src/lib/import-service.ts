@@ -270,6 +270,33 @@ export async function rejectImport(importId: number) {
 
 // ── Alertes de cohérence ─────────────────────────────────────────────────────
 
+/**
+ * Clé de déduplication d'une alerte traitée : une alerte marquée « resolved »
+ * ne renaît pas à l'import suivant tant que sa clé ne change pas.
+ *  - compte_non_mappe → le compte (un compte explicitement ignoré reste ignoré ;
+ *    il reste de toute façon listé à part dans les vues, rien n'est silencieux)
+ *  - montant_constant → compte + montant (si le montant fixe change, nouvelle alerte)
+ *  - mois_sans_donnees → le mois concerné
+ *  - ecart_controle → jamais dédupliquée (erreur d'intégrité, toujours re-signalée)
+ */
+function alertDedupKey(a: {
+  type: string;
+  account?: string | null;
+  amount?: string | null;
+  period?: string | null;
+}): string | null {
+  switch (a.type) {
+    case "compte_non_mappe":
+      return `compte_non_mappe|${a.account}`;
+    case "montant_constant":
+      return `montant_constant|${a.account}|${a.amount}`;
+    case "mois_sans_donnees":
+      return `mois_sans_donnees|${a.period}`;
+    default:
+      return null;
+  }
+}
+
 async function generateAlerts(importId: number) {
   const [imp] = await db
     .select()
@@ -371,8 +398,43 @@ async function generateAlerts(importId: number) {
     }
   }
 
-  if (alerts.length > 0) {
-    await db.insert(tables.alerts).values(alerts);
+  // Dédup : ne pas recréer une alerte déjà traitée (une décision « c'est normal »
+  // persiste d'un mois sur l'autre), ni dupliquer une alerte encore ouverte
+  // levée par un import précédent (ex. snapshots analytiques successifs).
+  const existing = await db
+    .select({
+      id: tables.alerts.id,
+      status: tables.alerts.status,
+      type: tables.alerts.type,
+      account: tables.alerts.account,
+      amount: tables.alerts.amount,
+      period: tables.alerts.period,
+    })
+    .from(tables.alerts)
+    .where(eq(tables.alerts.entityId, imp.entityId));
+  const existingByKey = new Map(
+    existing
+      .map((a) => [alertDedupKey(a), a] as const)
+      .filter((e): e is [string, (typeof existing)[number]] => e[0] != null)
+  );
+
+  const toInsert: typeof alerts = [];
+  for (const a of alerts) {
+    const key = alertDedupKey(a);
+    const match = key ? existingByKey.get(key) : undefined;
+    if (!match) {
+      toInsert.push(a);
+    } else if (match.status === "open" && a.type === "compte_non_mappe") {
+      // l'alerte reste ouverte : on rafraîchit le montant cumulé et la période
+      await db
+        .update(tables.alerts)
+        .set({ description: a.description, amount: a.amount, period: a.period })
+        .where(eq(tables.alerts.id, match.id));
+    }
+  }
+
+  if (toInsert.length > 0) {
+    await db.insert(tables.alerts).values(toInsert);
   }
 }
 

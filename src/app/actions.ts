@@ -279,3 +279,18 @@ export async function resolveAlertAction(formData: FormData) {
     .where(eq(tables.alerts.id, id));
   revalidatePath("/", "layout");
 }
+
+/**
+ * Annule une décision « traité » : l'alerte est supprimée de l'historique, donc
+ * la surveillance reprend — elle sera recréée au prochain import si l'anomalie
+ * est toujours présente.
+ */
+export async function forgetAlertAction(formData: FormData) {
+  await requireWriter();
+  const id = Number(formData.get("alertId"));
+  if (!id) return;
+  await db
+    .delete(tables.alerts)
+    .where(and(eq(tables.alerts.id, id), eq(tables.alerts.status, "resolved")));
+  revalidatePath("/", "layout");
+}

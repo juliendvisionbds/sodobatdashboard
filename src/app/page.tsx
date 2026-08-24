@@ -2,15 +2,30 @@ import Link from "next/link";
 import { and, desc, eq } from "drizzle-orm";
 import { db, tables } from "@/db";
 import AppHeader from "@/components/AppHeader";
-import { getEntityByCode, getSynthese, SyntheseData } from "@/lib/finance";
-import { fmtEur, fmtEurAuto, fmtPct, monthLabel, monthLabelLong, splitAutoEur } from "@/lib/format";
+import {
+  getEntityByCode,
+  getSynthese,
+  listVentileePeriods,
+} from "@/lib/finance";
+import { fmtEurAuto, fmtPct, monthLabel, monthLabelLong, splitAutoEur } from "@/lib/format";
+import MonthSelect from "@/components/MonthSelect";
+import SyntheseTable from "./SyntheseTable";
 
 export const dynamic = "force-dynamic";
 
-export default async function SynthesePage() {
+export default async function SynthesePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ mois?: string }>;
+}) {
   const entity = await getEntityByCode("sodobat");
   if (!entity) return null;
-  const data = await getSynthese(entity);
+
+  const periods = await listVentileePeriods(entity.id);
+  const { mois } = await searchParams;
+  const period = mois && periods.includes(mois) ? mois : undefined;
+  const data = await getSynthese(entity, { period });
+  const isLatestPeriod = !data || data.period === periods[0];
 
   if (!data) {
     return (
@@ -82,7 +97,17 @@ export default async function SynthesePage() {
       <AppHeader active="synthese" fiscalYearStart={data.fiscalYearStart} />
       <div className="page">
         <div className="page-header">
-          <h1>Résultats cumulés — {nbMois} mois</h1>
+          <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
+            <h1>Résultats cumulés — {nbMois} mois</h1>
+            {periods.length > 0 && (
+              <MonthSelect basePath="/" periods={periods} current={data.period} />
+            )}
+            {!isLatestPeriod && (
+              <span className="tag gray">
+                arrêté au {monthLabelLong(data.period)} — chiffres à jour des dernières révisions
+              </span>
+            )}
+          </div>
           <p>
             Données issues de la balance Cegid · {monthLabelLong(shown[0])} →{" "}
             {monthLabelLong(shown[nbMois - 1])}
@@ -237,7 +262,15 @@ export default async function SynthesePage() {
             </div>
 
             <div className="card">
-              <div className="card-label">Alertes cohérence</div>
+              <div
+                className="card-label"
+                style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}
+              >
+                <span>Alertes cohérence</span>
+                <Link href="/alertes" style={{ fontSize: 11, fontWeight: 500, color: "var(--blue)" }}>
+                  Gérer →
+                </Link>
+              </div>
               {openAlerts.length === 0 && (
                 <div className="alert pos">
                   <div className="alert-ico">✓</div>
@@ -266,121 +299,3 @@ export default async function SynthesePage() {
   );
 }
 
-function SyntheseTable({ data }: { data: SyntheseData }) {
-  const months = data.monthsWithData;
-  const fmtCell = (v: number) =>
-    v === 0 ? <span className="muted">—</span> : fmtEur(v);
-
-  const totalLine = (
-    label: string,
-    rec: { monthly: Record<string, number>; total: number },
-    opts?: { invert?: boolean }
-  ) => (
-    <tr className="total-row" key={label}>
-      <td className="code-cell">—</td>
-      <td className="label-cell">{label}</td>
-      {months.map((m) => {
-        const v = rec.monthly[m] ?? 0;
-        return (
-          <td key={m} className={v > 0 !== !!opts?.invert ? "" : v !== 0 ? "neg" : "muted"}>
-            {fmtCell(v)}
-          </td>
-        );
-      })}
-      <td>{fmtEur(rec.total)}</td>
-      <td>{fmtPct(data.caTotal.total ? (rec.total / data.caTotal.total) * 100 : null)}</td>
-      <td className="muted">—</td>
-    </tr>
-  );
-
-  return (
-    <div style={{ marginTop: 32 }}>
-      <div className="card-label" style={{ border: "none", padding: 0, marginBottom: 12 }}>
-        Tableau de synthèse — détail par catégorie
-      </div>
-      <div className="table-wrap">
-        <table className="ct">
-          <thead>
-            <tr>
-              <th className="left">Section</th>
-              <th className="left">Libellé</th>
-              {months.map((m) => (
-                <th key={m}>{monthLabel(m)}</th>
-              ))}
-              <th>Total exercice</th>
-              <th>% / CA</th>
-              <th>N-1</th>
-            </tr>
-          </thead>
-          <tbody>
-            {data.sections.map((section) => (
-              <SectionRows key={section.name} section={section} data={data} />
-            ))}
-            {totalLine("RÉSULTAT D'EXPLOITATION", data.resultatExploitation)}
-            {totalLine("RÉSULTAT NET", data.resultatNet)}
-          </tbody>
-        </table>
-      </div>
-      <p style={{ marginTop: 10, fontSize: 11, color: "var(--gray3)" }}>
-        Chiffres recalculés à la volée depuis les lignes de balance importées (aucun
-        agrégat stocké). Résultat net = CA − charges d&apos;exploitation − personnel −
-        frais généraux &amp; autres charges.
-      </p>
-    </div>
-  );
-}
-
-function SectionRows({
-  section,
-  data,
-}: {
-  section: SyntheseData["sections"][number];
-  data: SyntheseData;
-}) {
-  const months = data.monthsWithData;
-  const isProduits = section.name === "PRODUITS / CA";
-  const visibleRows = section.rows.filter((r) => r.total !== 0 || (r.prevTotal ?? 0) !== 0);
-
-  return (
-    <>
-      <tr className="section-row">
-        <td colSpan={months.length + 5}>{section.name}</td>
-      </tr>
-      {visibleRows.map((r) => (
-        <tr key={r.category.code}>
-          <td className="code-cell">{r.category.section}</td>
-          <td className="label-cell" title={r.category.notes ?? undefined}>
-            {r.category.label}
-          </td>
-          {months.map((m) => {
-            const v = r.monthly[m] ?? 0;
-            return (
-              <td key={m} className={v === 0 ? "muted" : v < 0 ? "neg" : ""}>
-                {v === 0 ? "—" : fmtEur(v)}
-              </td>
-            );
-          })}
-          <td style={{ fontWeight: 500 }}>{fmtEur(r.total)}</td>
-          <td className="muted">{fmtPct(r.pctCa)}</td>
-          <td className="muted">{r.prevTotal != null ? fmtEur(r.prevTotal) : "—"}</td>
-        </tr>
-      ))}
-      <tr className="subtotal-row">
-        <td className="code-cell">—</td>
-        <td className="label-cell">
-          {isProduits ? "CA TOTAL" : `TOTAL ${section.name}`}
-        </td>
-        {months.map((m) => (
-          <td key={m}>{fmtEur(section.subtotal.monthly[m] ?? 0)}</td>
-        ))}
-        <td>{fmtEur(section.subtotal.total)}</td>
-        <td>
-          {fmtPct(
-            data.caTotal.total ? (section.subtotal.total / data.caTotal.total) * 100 : null
-          )}
-        </td>
-        <td className="muted">—</td>
-      </tr>
-    </>
-  );
-}

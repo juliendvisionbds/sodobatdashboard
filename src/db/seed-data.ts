@@ -528,20 +528,15 @@ export const seedEntities = [
   { code: "covarbat", name: "CovarBat", active: false },
 ];
 
-// 8 accès prévus au devis. Mot de passe par défaut à changer à la mise en production.
+// Un compte par rôle. Mot de passe par défaut à changer à la mise en production.
 export const seedUsers: {
   email: string;
   name: string;
   role: "admin" | "daf" | "lecteur";
 }[] = [
-  { email: "admin@visionbds.fr", name: "Vision BDS — Admin", role: "admin" },
-  { email: "fanny.laurent@groupesdg.fr", name: "Fanny Laurent (DAF)", role: "daf" },
-  { email: "philippe.donat@groupesdg.fr", name: "Philippe Donat", role: "lecteur" },
-  { email: "frederic.donat@groupesdg.fr", name: "Frédéric Donat", role: "lecteur" },
-  { email: "utilisateur5@groupesdg.fr", name: "Utilisateur 5", role: "lecteur" },
-  { email: "utilisateur6@groupesdg.fr", name: "Utilisateur 6", role: "lecteur" },
-  { email: "utilisateur7@groupesdg.fr", name: "Utilisateur 7", role: "lecteur" },
-  { email: "utilisateur8@groupesdg.fr", name: "Utilisateur 8", role: "lecteur" },
+  { email: "admin@visionbds.com", name: "Admin", role: "admin" },
+  { email: "daf@visionbds.com", name: "DAF", role: "daf" },
+  { email: "lecteur@visionbds.com", name: "Lecteur", role: "lecteur" },
 ];
 
 export const DEFAULT_PASSWORD = "sodobat2026!";

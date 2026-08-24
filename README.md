@@ -18,7 +18,7 @@ npm run db:seed   # nomenclature, règles de mapping, utilisateurs
 npm run dev
 ```
 
-Connexion par défaut (seed) : `admin@visionbds.fr` / `sodobat2026!` (à changer).
+Connexion par défaut (seed) : `admin@visionbds.com` / `sodobat2026!` (à changer). Trois comptes : `admin@`, `daf@`, `lecteur@visionbds.com` — un par rôle.
 
 ## Production (serveurs Vision BDS puis Groupe SDG)
 

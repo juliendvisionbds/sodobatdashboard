@@ -1,4 +1,5 @@
 import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import { SignJWT, jwtVerify } from "jose";
 import bcrypt from "bcryptjs";
 import { eq } from "drizzle-orm";
@@ -74,4 +75,11 @@ export async function requireSession(): Promise<Session> {
 /** admin et daf peuvent écrire (imports, mapping, saisies) ; lecteur non */
 export function canWrite(s: Session) {
   return s.role === "admin" || s.role === "daf";
+}
+
+/** Garde de page : redirige les lecteurs vers l'accueil (imports, mapping). */
+export async function requireWriterOrRedirect(): Promise<Session> {
+  const s = await getSession();
+  if (!s || !canWrite(s)) redirect("/");
+  return s;
 }
