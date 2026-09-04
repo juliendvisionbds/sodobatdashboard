@@ -9,7 +9,12 @@ import {
   TOTAL_COLUMN,
   type FxColumn,
 } from "./nomenclature/columns";
-import { CHANTIER_CODES, FX_CODES, SYNTHESE_CODES } from "./nomenclature/codes";
+import {
+  CHANTIER_CODES,
+  COMPTES_TOUJOURS_FX,
+  FX_CODES,
+  SYNTHESE_CODES,
+} from "./nomenclature/codes";
 import { OBJECTIFS, statutObjectif, type ObjectifStatut } from "./objectifs";
 
 export { TOTAL_COLUMN, CHANTIER_CODES, FX_CODES, SYNTHESE_CODES };
@@ -439,6 +444,8 @@ function foldSnapshot(
   let soldeMappe = 0;
   for (const l of lines) {
     if (kindOf(l.centreCode) !== "chantier") continue;
+    // Dotations et VNC : traitées en frais généraux quel que soit le centre.
+    if (COMPTES_TOUJOURS_FX.has(l.account)) continue;
     const solde = num(l.solde);
     soldeTotal += solde;
     const cat = mapper.resolve(l.account);
@@ -787,7 +794,9 @@ async function structureSoldes(
     .where(eq(tables.analyticLines.importId, importId));
   const out = new Map<string, { label: string; solde: number }>();
   for (const l of rows) {
-    if (kindOf(l.centreCode) !== "structure") continue;
+    // Les dotations et la VNC remontent en FX même depuis un centre chantier.
+    if (kindOf(l.centreCode) !== "structure" && !COMPTES_TOUJOURS_FX.has(l.account))
+      continue;
     const prev = out.get(l.account);
     out.set(l.account, {
       label: prev?.label ?? l.label,

@@ -908,17 +908,6 @@ export const chantier: NomenclatureLine[] = [
       "Code S — l'entretien du matériel roulant imputé à un chantier va en charges d'exploitation du chantier (règle analytique de la maquette FX)",
   },
   {
-    code: "cha_dotations",
-    view: "chantier",
-    section: CHA.exploitation,
-    label: "Dotations aux amortissements affectées",
-    kind: "poste",
-    accounts: ["68112000"],
-    cumulative: true,
-    notes:
-      "Code ZY — présent sur les centres chantier de la balance réelle ; cumul depuis l'ouverture, valeur mensuelle par différence",
-  },
-  {
     code: "cha_autres_charges",
     view: "chantier",
     section: CHA.exploitation,
@@ -945,7 +934,6 @@ export const chantier: NomenclatureLine[] = [
         { code: "cha_carburant", sign: 1 },
         { code: "cha_edf_eau", sign: 1 },
         { code: "cha_entretien", sign: 1 },
-        { code: "cha_dotations", sign: 1 },
         { code: "cha_autres_charges", sign: 1 },
       ],
     },

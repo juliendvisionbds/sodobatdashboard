@@ -21,7 +21,11 @@ import {
   latestValidatedImport,
 } from "../src/lib/finance";
 import { classifyCentre, parseBalanceFile } from "../src/lib/parsers";
-import { CHANTIER_CODES, SYNTHESE_CODES } from "../src/lib/nomenclature/codes";
+import {
+  CHANTIER_CODES,
+  COMPTES_TOUJOURS_FX,
+  SYNTHESE_CODES,
+} from "../src/lib/nomenclature/codes";
 import { requireLocalDatabase } from "./guard-local";
 
 const DIR = "/Users/juliend/Desktop/vision/Groupe SDG/dashboard financier/docs/balances juin";
@@ -244,7 +248,11 @@ async function main() {
   const fx = await getFx(entity);
   if (!fx) throw new Error("fx vide");
   const fxFileTotal = anaParsed.lines
-    .filter((l) => classifyCentre(l.centreCode) === "structure")
+    .filter(
+      (l) =>
+        classifyCentre(l.centreCode) === "structure" ||
+        COMPTES_TOUJOURS_FX.has(l.account)
+    )
     .reduce((s, l) => s + l.solde, 0);
   const fxComputed =
     fx.controle.soldeMappe + fx.unmapped.reduce((s, u) => s + u.ytd, 0);

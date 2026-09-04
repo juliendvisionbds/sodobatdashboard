@@ -30,6 +30,16 @@ export const CHANTIER_CODES = {
   statut: "cha_statut",
 } as const;
 
+/**
+ * Comptes qui vont toujours en frais généraux, même imputés à un chantier.
+ *
+ * Les dotations et la VNC ne sont pas des charges de chantier : la DAF les
+ * bascule systématiquement en FX dans ses feuilles de travail (code 16 et 22),
+ * et la maquette ne les cite que dans l'onglet Frais généraux. Ils échappent
+ * donc à la règle de routage par centre analytique.
+ */
+export const COMPTES_TOUJOURS_FX = new Set(["68112000", "65700000", "67500000"]);
+
 export const FX_CODES = {
   caReference: "fx_ca_reference",
   totalHonoraires: "fx_total_honoraires",

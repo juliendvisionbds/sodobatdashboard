@@ -23,6 +23,7 @@ import { db, tables } from "./index";
 import { nomenclature } from "../lib/nomenclature/sodobat";
 import { accountsOfView, validateNomenclature } from "../lib/nomenclature/validate";
 import { classifyCentre } from "../lib/parsers";
+import { COMPTES_TOUJOURS_FX } from "../lib/nomenclature/codes";
 import type { View } from "../lib/nomenclature/types";
 
 const VIEWS: View[] = ["synthese", "chantier", "fx"];
@@ -65,7 +66,11 @@ async function accountsInUse(): Promise<Record<View, Map<string, string>>> {
       .from(tables.analyticLines)
       .where(inArray(tables.analyticLines.importId, analytiqueIds));
     for (const r of rows) {
-      const view: View = classifyCentre(r.centreCode) === "structure" ? "fx" : "chantier";
+      // Dotations et VNC : rattachées aux frais généraux quel que soit le centre.
+      const view: View =
+        classifyCentre(r.centreCode) === "structure" || COMPTES_TOUJOURS_FX.has(r.account)
+          ? "fx"
+          : "chantier";
       out[view].set(r.account, r.label);
     }
   }

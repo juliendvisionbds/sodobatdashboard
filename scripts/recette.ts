@@ -13,7 +13,11 @@ import { createImportPreview, validateImport } from "../src/lib/import-service";
 import { getChantiers, getEntityByCode, getFx, getSynthese } from "../src/lib/finance";
 import { classifyCentre, parseBalanceFile } from "../src/lib/parsers";
 import { and, eq } from "drizzle-orm";
-import { CHANTIER_CODES, SYNTHESE_CODES } from "../src/lib/nomenclature/codes";
+import {
+  CHANTIER_CODES,
+  COMPTES_TOUJOURS_FX,
+  SYNTHESE_CODES,
+} from "../src/lib/nomenclature/codes";
 import { requireLocalDatabase } from "./guard-local";
 
 const DOCS =
@@ -131,7 +135,11 @@ async function main() {
   const analytiqueParsed = parseBalanceFile(analytiqueBuf);
   if (analytiqueParsed.type !== "analytique") throw new Error("détection analytique KO");
   const nonFxSolde = analytiqueParsed.lines
-    .filter((l) => classifyCentre(l.centreCode) === "chantier")
+    .filter(
+      (l) =>
+        classifyCentre(l.centreCode) === "chantier" &&
+        !COMPTES_TOUJOURS_FX.has(l.account)
+    )
     .reduce((s, l) => s + l.solde, 0);
   // Contrôle de couverture : chaque euro imputé à un chantier est rattaché à un
   // poste de la maquette (les saisies manuelles, elles, ne viennent pas du fichier).
@@ -150,7 +158,11 @@ async function main() {
   const fx = await getFx(entity, { period });
   if (!fx) throw new Error("fx vide");
   const fxFileTotal = analytiqueParsed.lines
-    .filter((l) => classifyCentre(l.centreCode) === "structure")
+    .filter(
+      (l) =>
+        classifyCentre(l.centreCode) === "structure" ||
+        COMPTES_TOUJOURS_FX.has(l.account)
+    )
     .reduce((s, l) => s + l.solde, 0);
   const fxComputed =
     fx.controle.soldeMappe + fx.unmapped.reduce((s, u) => s + u.ytd, 0);
