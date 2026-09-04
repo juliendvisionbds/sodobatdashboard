@@ -50,14 +50,43 @@ Deux invariants font échouer la recette : un compte non mappé, et un écart de
 
 Connexion par défaut (seed) : `admin@visionbds.com` / `sodobat2026!` (à changer). Trois comptes : `admin@`, `daf@`, `lecteur@visionbds.com` — un par rôle.
 
-## Production (serveurs Vision BDS puis Groupe SDG)
+## Production — Vercel + Supabase
+
+L'application est déployée sur Vercel, la base est un Postgres Supabase. Vercel
+attend les variables `DATABASE_URL` (chaîne du **session pooler** Supabase, port
+5432), `AUTH_SECRET` et `OPENAI_API_KEY`.
+
+⚠️ **Sur Vercel, rien ne migre la base automatiquement.** Le build ne lance ni
+`drizzle-kit push` ni le seed : après tout changement de schéma ou de
+nomenclature, il faut les appliquer soi-même, depuis un poste, avant ou juste
+après le déploiement.
+
+```bash
+printf 'DATABASE_URL=<chaîne session pooler>\n' > .env.prod.local   # ignoré par git
+DOTENV_CONFIG_PATH=.env.prod.local npm run db:nomenclature -- --dry-run  # lecture seule
+DOTENV_CONFIG_PATH=.env.prod.local npx drizzle-kit push --force          # si le schéma a bougé
+DOTENV_CONFIG_PATH=.env.prod.local npm run db:nomenclature               # si la nomenclature a bougé
+rm .env.prod.local
+```
+
+Le `--dry-run` est à passer systématiquement en premier : il liste les comptes
+présents dans les imports de production qu'aucun poste ne couvrirait. Il ne faut
+appliquer que si cette liste est vide.
+
+Les scripts `recette` et `import-juin` **refusent** de tourner dès que
+`DATABASE_URL` est défini : ils écrivent des données de test et détruiraient les
+imports réels. C'est volontaire (`scripts/guard-local.ts`).
+
+### Déploiement Docker (alternative, non utilisée)
 
 ```bash
 cp .env.example .env   # définir AUTH_SECRET et POSTGRES_PASSWORD
 docker compose up -d --build
 ```
 
-Le conteneur pousse le schéma et seed automatiquement au démarrage (idempotent).
+Dans ce mode seulement, le conteneur pousse le schéma et installe la nomenclature
+au démarrage — cette dernière n'étant réécrite que si elle a changé dans le code,
+pour ne pas effacer les règles créées depuis l'écran Mapping.
 
 ## Sources de données
 
