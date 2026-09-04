@@ -1,30 +1,48 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
-import { ChantierRow, ChantiersData } from "@/lib/finance";
-import { fmtEur } from "@/lib/format";
+import type { Category } from "@/lib/mapping";
+import type { ChantierRow, ChantiersData } from "@/lib/finance";
+import { CHANTIER_CODES } from "@/lib/nomenclature/codes";
+import { fmtEur, fmtPct } from "@/lib/format";
 import { saveManualEntryAction } from "@/app/actions";
 
+// Un chantier par ligne, les postes de la maquette en colonnes (disposition du
+// tableau de gestion Excel). La colonne « Provision (TEC) » et la note restent
+// saisissables sur le dernier mois importé ; les autres colonnes sont calculées.
+
 // Classe et texte appliqués directement sur le <td> (et non sur un <span>
-// interne) : les règles CSS td.neg / td.pos / .total-row td.neg ciblent le
-// <td> lui-même, sinon les négatifs ne ressortent jamais en rouge.
-function amountClass(v: number, posGreen = false) {
-  if (v === 0) return "muted";
+// interne) : les règles CSS td.neg / td.pos ciblent le <td> lui-même, sinon les
+// négatifs ne ressortent jamais en rouge.
+function amountClass(v: number | null, posGreen = false) {
+  if (v == null || v === 0) return "muted";
   return v < 0 ? "neg" : posGreen ? "pos" : "";
 }
 
-function amountText(v: number, posGreen = false) {
-  if (v === 0) return "-";
+function amountText(v: number | null, posGreen = false) {
+  if (v == null || v === 0) return "-";
   return `${v > 0 && posGreen ? "+" : ""}${fmtEur(v)}`;
 }
 
+function cellText(line: Category, v: number | null) {
+  if (line.kind === "ratio") return v == null ? "-" : fmtPct(v);
+  if (line.formula && "op" in line.formula && line.formula.op === "div")
+    return v == null ? "-" : v.toFixed(2);
+  return amountText(v, line.section.startsWith("PRODUITS"));
+}
+
+/** Les lignes de saisie de la maquette ont leur propre colonne dédiée. */
+const MANUAL_COLUMNS: string[] = [CHANTIER_CODES.note, CHANTIER_CODES.statut];
+
 export default function ChantiersTable({
+  lines,
   rows,
   totals,
   poles,
   period,
   canEdit,
 }: {
+  lines: Category[];
   rows: ChantierRow[];
   totals: ChantiersData["totals"];
   poles: string[];
@@ -35,52 +53,65 @@ export default function ChantiersTable({
   const [search, setSearch] = useState("");
   const [hideInactive, setHideInactive] = useState(true);
 
-  const filtered = useMemo(() => {
-    return rows.filter((r) => {
-      if (pole && r.pole !== pole) return false;
-      if (
-        search &&
-        !`${r.centreCode} ${r.centreLabel}`.toLowerCase().includes(search.toLowerCase())
-      )
-        return false;
-      if (
-        hideInactive &&
-        r.totalProduits === 0 &&
-        r.achatsMp === 0 &&
-        r.sousTraitance === 0 &&
-        r.autresCharges === 0 &&
-        !r.previsionManuelle
-      )
-        return false;
-      return true;
-    });
-  }, [rows, pole, search, hideInactive]);
+  // Colonnes calculées : tout sauf la provision (éditable) et les lignes de
+  // gestion, rendues séparément en fin de tableau.
+  const valueLines = useMemo(
+    () =>
+      lines.filter(
+        (l) => l.code !== CHANTIER_CODES.provision && !MANUAL_COLUMNS.includes(l.code)
+      ),
+    [lines]
+  );
+  const provisionLine = lines.find((l) => l.code === CHANTIER_CODES.provision);
+
+  const filtered = useMemo(
+    () =>
+      rows.filter((r) => {
+        if (pole && r.pole !== pole) return false;
+        if (
+          search &&
+          !`${r.centreCode} ${r.centreLabel}`.toLowerCase().includes(search.toLowerCase())
+        )
+          return false;
+        // Un chantier non mouvementé est masqué, jamais supprimé : il réapparaît
+        // dès qu'une écriture lui est imputée.
+        if (hideInactive && !r.mouvemente && !r.previsionManuelle) return false;
+        return true;
+      }),
+    [rows, pole, search, hideInactive]
+  );
 
   const byPole = useMemo(() => {
     const map = new Map<string, ChantierRow[]>();
     for (const r of filtered) {
-      const key = r.pole ? `Pôle ${r.pole}` : "Autres centres";
+      const key = r.pole ?? "—";
       map.set(key, [...(map.get(key) ?? []), r]);
     }
-    return [...map.entries()];
+    return [...map.entries()].sort(([a], [b]) => a.localeCompare(b));
   }, [filtered]);
 
+  // Réf. + Chantier + provision + colonnes calculées + note + statut
+  const colCount = 2 + (provisionLine ? 1 : 0) + valueLines.length + 2;
+  const hidden = rows.length - filtered.length;
+
   return (
-    <>
+    <div style={{ marginTop: 24 }}>
       <div className="table-controls">
         <select className="tctl-select" value={pole} onChange={(e) => setPole(e.target.value)}>
           <option value="">Tous les pôles</option>
           {poles.map((p) => (
-            <option key={p} value={p}>Pôle {p}</option>
+            <option key={p} value={p}>
+              Pôle {p}
+            </option>
           ))}
         </select>
         <input
           className="tctl-input"
-          placeholder="Rechercher un chantier…"
+          placeholder="Rechercher un chantier (numéro, nom)…"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
-        <label style={{ fontSize: 12, color: "var(--gray2)", display: "flex", alignItems: "center", gap: 6 }}>
+        <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12 }}>
           <input
             type="checkbox"
             checked={hideInactive}
@@ -88,9 +119,6 @@ export default function ChantiersTable({
           />
           Masquer les chantiers sans activité
         </label>
-        <div className="tctl-stats">
-          {filtered.length} chantier{filtered.length > 1 ? "s" : ""} affiché{filtered.length > 1 ? "s" : ""}
-        </div>
       </div>
 
       <div className="table-wrap">
@@ -99,152 +127,164 @@ export default function ChantiersTable({
             <tr>
               <th className="left">Réf.</th>
               <th className="left">Chantier</th>
-              <th>Annulation</th>
-              <th>Provision (TEC) {canEdit ? "🟡" : ""}</th>
-              <th>Facturé</th>
-              <th>Total produits</th>
-              <th>Achats MP</th>
-              <th>Sous-trait.</th>
-              <th>Autres charges</th>
-              <th>Résultat mois</th>
+              {provisionLine && (
+                <th title={provisionLine.notes ?? undefined}>
+                  Provision (TEC){canEdit ? " 🟡" : ""}
+                </th>
+              )}
+              {valueLines.map((l) => (
+                <th key={l.code} title={l.notes ?? undefined}>
+                  {l.label}
+                </th>
+              ))}
               <th className="left">Note</th>
+              <th>Statut</th>
             </tr>
           </thead>
           <tbody>
-            {byPole.map(([poleName, poleRows]) => (
-              <PoleGroup
-                key={poleName}
-                name={poleName}
-                rows={poleRows}
-                period={period}
-                canEdit={canEdit}
-              />
+            {filtered.length === 0 && (
+              <tr>
+                <td colSpan={colCount} className="muted" style={{ textAlign: "center", padding: 20 }}>
+                  Aucun chantier ne correspond au filtre.
+                </td>
+              </tr>
+            )}
+            {byPole.map(([p, list]) => (
+              <>
+                <tr className="section-row" key={`pole-${p}`}>
+                  <td colSpan={colCount}>{p === "—" ? "Sans pôle" : `Pôle ${p}`}</td>
+                </tr>
+                {list.map((r) => (
+                  <ChantierTr
+                    key={r.centreCode}
+                    row={r}
+                    valueLines={valueLines}
+                    hasProvision={!!provisionLine}
+                    period={period}
+                    canEdit={canEdit}
+                  />
+                ))}
+              </>
             ))}
             <tr className="total-row">
-              <td className="left">Total</td>
-              <td className="label-cell">{filtered.length} chantiers</td>
-              <td className={amountClass(totals.annulation)}>{amountText(totals.annulation)}</td>
-              <td className={amountClass(totals.prevision)}>{amountText(totals.prevision)}</td>
-              <td className={amountClass(totals.facture, true)}>{amountText(totals.facture, true)}</td>
-              <td className={amountClass(totals.totalProduits)}>{amountText(totals.totalProduits)}</td>
-              <td className={amountClass(totals.achatsMp)}>{amountText(totals.achatsMp)}</td>
-              <td className={amountClass(totals.sousTraitance)}>{amountText(totals.sousTraitance)}</td>
-              <td className={amountClass(totals.autresCharges)}>{amountText(totals.autresCharges)}</td>
-              <td className={amountClass(totals.resultat, true)}>{amountText(totals.resultat, true)}</td>
-              <td />
+              <td className="left" colSpan={2}>
+                Total général · {filtered.length} chantier{filtered.length > 1 ? "s" : ""} affiché
+                {filtered.length > 1 ? "s" : ""}
+              </td>
+              {provisionLine && (
+                <td className={amountClass(totals[provisionLine.code])}>
+                  {amountText(totals[provisionLine.code])}
+                </td>
+              )}
+              {valueLines.map((l) => (
+                <td key={l.code} className={amountClass(totals[l.code])}>
+                  {cellText(l, totals[l.code] ?? null)}
+                </td>
+              ))}
+              <td colSpan={2} className="muted" />
             </tr>
           </tbody>
         </table>
       </div>
-    </>
-  );
-}
 
-function PoleGroup({
-  name,
-  rows,
-  period,
-  canEdit,
-}: {
-  name: string;
-  rows: ChantierRow[];
-  period: string;
-  canEdit: boolean;
-}) {
-  return (
-    <>
-      <tr className="section-row">
-        <td colSpan={11}>{name}</td>
-      </tr>
-      {rows.map((r) => (
-        <ChantierTr key={r.centreCode} row={r} period={period} canEdit={canEdit} />
-      ))}
-    </>
+      <p style={{ marginTop: 10, fontSize: 11, color: "var(--gray3)" }}>
+        Montants du mois = écart entre les deux derniers snapshots analytiques de
+        l&apos;exercice. Les cumuls de fin de tableau couvrent en revanche toute la durée de
+        vie du chantier. Les centres de structure (FX, dépôt) sont exclus : voir Frais
+        généraux.
+        {hidden > 0 && ` ${hidden} chantier(s) sans activité masqué(s) — les données sont conservées.`}
+        {" Le total général porte sur les chantiers affichés."}
+      </p>
+    </div>
   );
 }
 
 function ChantierTr({
   row,
+  valueLines,
+  hasProvision,
   period,
   canEdit,
 }: {
   row: ChantierRow;
+  valueLines: Category[];
+  hasProvision: boolean;
   period: string;
   canEdit: boolean;
 }) {
   const [isPending, startTransition] = useTransition();
   const manual = row.previsionManuelle;
-  const previsionValue = manual?.value ?? row.prevision;
+  const previsionValue = manual?.value ?? row.values[CHANTIER_CODES.provision] ?? 0;
   const isFinal = manual?.status === "final";
 
-  const save = (valueNum: string, status: "draft" | "final") => {
+  const send = (fields: Record<string, string>) => {
     const fd = new FormData();
     fd.set("period", period);
     fd.set("centreCode", row.centreCode);
-    fd.set("field", "tec_provision");
-    fd.set("valueNum", valueNum);
-    fd.set("status", status);
+    for (const [k, v] of Object.entries(fields)) fd.set(k, v);
     startTransition(() => {
       void saveManualEntryAction(fd);
     });
   };
 
-  const saveNote = (text: string) => {
-    const fd = new FormData();
-    fd.set("period", period);
-    fd.set("centreCode", row.centreCode);
-    fd.set("field", "note");
-    fd.set("valueText", text);
-    fd.set("status", "draft");
-    startTransition(() => {
-      void saveManualEntryAction(fd);
-    });
-  };
+  const saveProvision = (valueNum: string, status: "draft" | "final") =>
+    send({ field: "tec_provision", valueNum, status });
+  const saveNote = (text: string) =>
+    send({ field: "note", valueText: text, status: "draft" });
+  const saveStatut = (status: "draft" | "final") =>
+    send({ field: "statut", valueText: status, status });
 
   return (
     <tr style={isPending ? { opacity: 0.5 } : undefined}>
       <td className="code-cell">{row.centreCode}</td>
       <td className="label-cell">{row.centreLabel}</td>
-      <td className={amountClass(row.annulation)}>{amountText(row.annulation)}</td>
-      <td className={canEdit && !isFinal ? undefined : amountClass(previsionValue)}>
-        {canEdit && !isFinal ? (
-          <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-            <input
-              className={`inline-num${manual ? " draft" : ""}`}
-              defaultValue={previsionValue || ""}
-              placeholder="0"
-              title={manual ? "Saisie manuelle (brouillon)" : "Provision issue de la balance, modifiable"}
-              onBlur={(e) => {
-                const v = e.target.value.trim();
-                if (v !== "" && parseFloat(v.replace(",", ".")) !== previsionValue) {
-                  save(v, "draft");
+      {hasProvision && (
+        <td className={canEdit && !isFinal ? undefined : amountClass(previsionValue)}>
+          {canEdit && !isFinal ? (
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+              <input
+                className={`inline-num${manual ? " draft" : ""}`}
+                defaultValue={previsionValue || ""}
+                placeholder="0"
+                title={
+                  manual
+                    ? "Saisie manuelle (brouillon)"
+                    : "Provision issue de la balance, modifiable"
                 }
-              }}
-            />
-            {manual && (
-              <button
-                className="tag amber"
-                style={{ border: "none", cursor: "pointer" }}
-                title="Figer cette valeur jusqu'au mois suivant"
-                onClick={() => save(String(manual.value), "final")}
-              >
-                figer
-              </button>
-            )}
-          </span>
-        ) : (
-          <span title={isFinal ? "Valeur figée" : undefined}>
-            {amountText(previsionValue)}
-            {isFinal && " 🔒"}
-          </span>
-        )}
-      </td>
-      <td className={amountClass(row.facture, true)}>{amountText(row.facture, true)}</td>
-      <td className={amountClass(row.totalProduits)}>{amountText(row.totalProduits)}</td>
-      <td className={amountClass(row.achatsMp)}>{amountText(row.achatsMp)}</td>
-      <td className={amountClass(row.sousTraitance)}>{amountText(row.sousTraitance)}</td>
-      <td className={amountClass(row.autresCharges)}>{amountText(row.autresCharges)}</td>
-      <td className={amountClass(row.resultat, true)}>{amountText(row.resultat, true)}</td>
+                onBlur={(e) => {
+                  const v = e.target.value.trim();
+                  if (v !== "" && parseFloat(v.replace(",", ".")) !== previsionValue) {
+                    saveProvision(v, "draft");
+                  }
+                }}
+              />
+              {manual && (
+                <button
+                  className="tag amber"
+                  style={{ border: "none", cursor: "pointer" }}
+                  title="Figer cette valeur jusqu'au mois suivant"
+                  onClick={() => saveProvision(String(manual.value), "final")}
+                >
+                  figer
+                </button>
+              )}
+            </span>
+          ) : (
+            <span title={isFinal ? "Valeur figée" : undefined}>
+              {amountText(previsionValue)}
+              {isFinal && " 🔒"}
+            </span>
+          )}
+        </td>
+      )}
+      {valueLines.map((l) => {
+        const v = row.values[l.code] ?? null;
+        return (
+          <td key={l.code} className={amountClass(v, l.section.startsWith("PRODUITS"))}>
+            {cellText(l, v)}
+          </td>
+        );
+      })}
       <td className="left" style={{ maxWidth: 160 }}>
         {canEdit ? (
           <input
@@ -258,6 +298,24 @@ function ChantierTr({
           />
         ) : (
           <span style={{ fontSize: 11, color: "var(--gray2)" }}>{row.note}</span>
+        )}
+      </td>
+      <td>
+        {canEdit ? (
+          <button
+            className={`tag ${row.statut === "final" ? "" : "amber"}`}
+            style={{ border: "none", cursor: "pointer" }}
+            title={
+              row.statut === "final"
+                ? "Enregistrement figé — cliquer pour repasser en brouillon"
+                : "Brouillon — cliquer pour figer"
+            }
+            onClick={() => saveStatut(row.statut === "final" ? "draft" : "final")}
+          >
+            {row.statut === "final" ? "figé 🔒" : "brouillon"}
+          </button>
+        ) : (
+          <span className="tag">{row.statut === "final" ? "figé" : "brouillon"}</span>
         )}
       </td>
     </tr>

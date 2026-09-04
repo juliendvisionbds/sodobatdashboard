@@ -20,7 +20,8 @@ import {
   getSynthese,
   latestValidatedImport,
 } from "../src/lib/finance";
-import { parseBalanceFile } from "../src/lib/parsers";
+import { classifyCentre, parseBalanceFile } from "../src/lib/parsers";
+import { CHANTIER_CODES, SYNTHESE_CODES } from "../src/lib/nomenclature/codes";
 
 const DIR = "/Users/juliend/Desktop/vision/Groupe SDG/dashboard financier/docs/balances juin";
 
@@ -118,17 +119,32 @@ async function main() {
   check("la synthèse pointe bien sur juin", synthese.period === "2026-06-01", synthese.period);
 
   const fileResultat = parsed.fileGrandTotal != null ? -parsed.fileGrandTotal : null;
+  const resultatBg = synthese.byCode[SYNTHESE_CODES.resultatBg]?.total ?? 0;
   check(
-    "résultat net = total général du fichier (au centime)",
-    fileResultat != null && Math.abs(synthese.resultatNet.total - fileResultat) < 0.02,
-    `calculé ${fmt(synthese.resultatNet.total)} vs fichier ${fmt(fileResultat ?? 0)}`
+    "résultat BG comptable = total général du fichier (au centime)",
+    fileResultat != null && Math.abs(resultatBg - fileResultat) < 0.02,
+    `calculé ${fmt(resultatBg)} vs fichier ${fmt(fileResultat ?? 0)}`
+  );
+
+  // Le résultat du TG exclut les dotations et la VNC : l'écart avec le résultat
+  // comptable doit être exactement égal à ces retraitements.
+  const ctrl = synthese.byCode[SYNTHESE_CODES.ctrl]?.total ?? 0;
+  const dap = synthese.byCode["syn_retraitement_dap"]?.total ?? 0;
+  const vnc = synthese.byCode["syn_retraitement_vnc"]?.total ?? 0;
+  check(
+    "écart de contrôle intégralement expliqué par les retraitements DAP et VNC",
+    Math.abs(ctrl - (dap + vnc)) < 0.02,
+    `Ctrl ${fmt(ctrl)} = DAP ${fmt(dap)} + VNC ${fmt(vnc)}`
   );
 
   const cls = (p: string) =>
     parsed.accounts.filter((x) => x.account.startsWith(p)).reduce((s, x) => s + x.total, 0);
-  const fileCa = -(cls("70") + cls("713") + cls("757") + cls("758"));
+  // Tous les produits sauf la quote-part SEP (75550000), portée par les FX.
+  const fileCa = -(
+    cls("70") + cls("71") + cls("74") + cls("75") + cls("76") + cls("79") - cls("7555")
+  );
   check(
-    "CA total = classes 70+713+757+758 du fichier",
+    "CA total = définition CA de la maquette, calculée sur le fichier",
     Math.abs(synthese.caTotal.total - fileCa) < 0.02,
     `calculé ${fmt(synthese.caTotal.total)} vs fichier ${fmt(fileCa)}`
   );
@@ -157,10 +173,12 @@ async function main() {
       console.log(`    · ${m} : total avant ${fmt(before)} → après ${fmt(after)} (écart ${fmt(after - before)})`);
     }
   }
-  check(
-    `mois déjà connus (${overlapMonths.length}) identiques entre l'import de mai et celui de juin`,
-    revisedMonths === 0,
-    revisedMonths ? `${revisedMonths} mois révisé(s) par le cabinet — voir détail ci-dessus` : undefined
+  // Une révision des mois passés est normale (le cabinet corrige après coup) :
+  // le script la met en évidence, il ne la traite pas comme une anomalie.
+  console.log(
+    revisedMonths === 0
+      ? `  · aucun des ${overlapMonths.length} mois déjà connus n'a été révisé`
+      : `  · ${revisedMonths}/${overlapMonths.length} mois révisé(s) par le cabinet entre mai et juin (détail ci-dessus)`
   );
   // détail par compte si révisions
   if (revisedMonths > 0) {
@@ -217,16 +235,19 @@ async function main() {
     chantiers.period === "2026-06-01" && chantiers.prevPeriod === "2026-05-01",
     `period ${chantiers.period}, prev ${chantiers.prevPeriod}`
   );
-  console.log(`    ${chantiers.rows.length} centres affichés · résultat du mois ${fmt(chantiers.totals.resultat)}`);
+  console.log(
+    `    ${chantiers.rows.length} centres affichés · résultat du mois ${fmt(chantiers.totals[CHANTIER_CODES.resultat] ?? 0)}`
+  );
 
   const fx = await getFx(entity);
   if (!fx) throw new Error("fx vide");
   const fxFileTotal = anaParsed.lines
-    .filter((l) => l.centreCode === "FX")
+    .filter((l) => classifyCentre(l.centreCode) === "structure")
     .reduce((s, l) => s + l.solde, 0);
-  const fxComputed = fx.totalYtd + fx.unmapped.reduce((s, u) => s + u.ytd, 0);
+  const fxComputed =
+    fx.controle.soldeMappe + fx.unmapped.reduce((s, u) => s + u.ytd, 0);
   check(
-    "total FX (mappé + non mappé) = somme des soldes du centre FX du fichier",
+    "total FX (mappé + non mappé) = somme des soldes des centres de structure",
     Math.abs(fxComputed - fxFileTotal) < 0.02,
     `calculé ${fmt(fxComputed)} vs fichier ${fmt(fxFileTotal)}`
   );

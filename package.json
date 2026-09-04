@@ -9,8 +9,10 @@
     "lint": "eslint",
     "db:push": "drizzle-kit push --force",
     "db:seed": "node --import=tsx src/db/seed.ts",
+    "db:nomenclature": "node --import=tsx src/db/seed-nomenclature.ts",
     "recette": "node --import=tsx scripts/recette.ts",
     "recette:assistant": "node --import=tsx scripts/recette-assistant.ts",
+    "recette:tg": "node --import=tsx scripts/recette-tg.ts",
     "recette:mapping": "node --import=tsx scripts/test-rules-lifecycle.ts",
     "test:assistant": "node --env-file=.env.local --import=tsx scripts/test-assistant-live.ts"
   },

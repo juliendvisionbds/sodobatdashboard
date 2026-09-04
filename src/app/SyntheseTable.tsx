@@ -1,8 +1,14 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { SyntheseData } from "@/lib/finance";
+import type { SyntheseData, SyntheseRow } from "@/lib/finance";
+import { TOTAL_COLUMN } from "@/lib/nomenclature/columns";
 import { fmtEur, fmtPct, monthLabel } from "@/lib/format";
+
+// La maquette impose 18 colonnes sur chaque ligne, sans exception :
+// Intitulé · les 12 mois de l'exercice · Total exercice · % / CA · N-1 Total ·
+// % N-1 · Écart N–N-1. Les mois sans données restent affichés (vides) pour que
+// le tableau conserve la même structure d'un mois à l'autre.
 
 function pctBadge(pct: number | null) {
   return pct == null ? (
@@ -12,10 +18,26 @@ function pctBadge(pct: number | null) {
   );
 }
 
+function money(v: number | null) {
+  if (v == null) return <span className="muted">-</span>;
+  if (v === 0) return <span className="muted">-</span>;
+  return fmtEur(v);
+}
+
+const negClass = (v: number | null) => (v != null && v < 0 ? "neg" : "");
+
+/** Une ligne de total, sous-total ou résultat est mise en avant. */
+const rowClass = (kind: string) => {
+  if (kind === "total" || kind === "computed") return "total-row";
+  if (kind === "subtotal") return "subtotal-row";
+  return "";
+};
+
 export default function SyntheseTable({ data }: { data: SyntheseData }) {
   const [section, setSection] = useState("");
   const [search, setSearch] = useState("");
-  const months = data.monthsWithData;
+  const [hideEmpty, setHideEmpty] = useState(false);
+  const months = data.months;
   const filtering = section !== "" || search.trim() !== "";
 
   const visibleSections = useMemo(() => {
@@ -25,42 +47,22 @@ export default function SyntheseTable({ data }: { data: SyntheseData }) {
       .map((s) => ({
         ...s,
         rows: s.rows.filter((r) => {
-          if (r.total === 0 && (r.prevTotal ?? 0) === 0) return false;
+          // Les lignes calculées structurent le tableau : jamais masquées.
+          const isStructural = r.category.kind !== "poste";
+          if (hideEmpty && !isStructural && !r.total && !r.prevTotal) return false;
           if (!q) return true;
           return `${r.category.label} ${r.category.section}`.toLowerCase().includes(q);
         }),
       }))
       .filter((s) => s.rows.length > 0);
-  }, [data.sections, section, search]);
+  }, [data.sections, section, search, hideEmpty]);
 
-  const fmtCell = (v: number) => (v === 0 ? <span className="muted">-</span> : fmtEur(v));
-
-  const totalLine = (
-    label: string,
-    rec: { monthly: Record<string, number>; total: number }
-  ) => (
-    <tr className="total-row" key={label}>
-      <td className="label-cell">{label}</td>
-      {months.map((m) => {
-        const v = rec.monthly[m] ?? 0;
-        return (
-          <td key={m} className={v > 0 ? "" : v !== 0 ? "neg" : "muted"}>
-            {fmtCell(v)}
-          </td>
-        );
-      })}
-      <td className={rec.total < 0 ? "neg" : ""}>{fmtEur(rec.total)}</td>
-      <td className={rec.total < 0 ? "neg" : ""}>
-        {fmtPct(data.caTotal.total ? (rec.total / data.caTotal.total) * 100 : null)}
-      </td>
-      <td className="muted">-</td>
-    </tr>
-  );
+  const colCount = months.length + 6;
 
   return (
     <div style={{ marginTop: 32 }}>
       <div className="card-label" style={{ border: "none", padding: 0, marginBottom: 12 }}>
-        Tableau de synthèse · détail par catégorie
+        Tableau de synthèse · exercice {data.fiscalYearStart}/{data.fiscalYearStart + 1}
       </div>
       <div className="table-controls">
         <select
@@ -81,109 +83,102 @@ export default function SyntheseTable({ data }: { data: SyntheseData }) {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
-        {filtering && (
-          <span style={{ fontSize: 11, color: "var(--gray3)", alignSelf: "center" }}>
-            Filtre actif : les sous-totaux affichés restent ceux de la section complète.
-          </span>
-        )}
+        <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12 }}>
+          <input
+            type="checkbox"
+            checked={hideEmpty}
+            onChange={(e) => setHideEmpty(e.target.checked)}
+          />
+          Masquer les lignes vides
+        </label>
       </div>
       <div className="table-wrap">
         <table className="ct">
           <thead>
             <tr>
-              <th className="left">Libellé</th>
+              <th className="left">Intitulé</th>
               {months.map((m) => (
-                <th key={m}>{monthLabel(m)}</th>
+                <th key={m} className={data.monthsWithData.includes(m) ? "" : "muted"}>
+                  {monthLabel(m)}
+                </th>
               ))}
               <th>Total exercice</th>
               <th className="pct-col">% / CA</th>
-              <th>N-1</th>
+              <th>N-1 Total</th>
+              <th className="pct-col">% N-1</th>
+              <th>Écart N–N-1</th>
             </tr>
           </thead>
           <tbody>
             {visibleSections.length === 0 && (
               <tr>
-                <td colSpan={months.length + 4} className="muted" style={{ textAlign: "center", padding: 20 }}>
+                <td colSpan={colCount} className="muted" style={{ textAlign: "center", padding: 20 }}>
                   Aucune ligne ne correspond au filtre.
                 </td>
               </tr>
             )}
             {visibleSections.map((s) => (
-              <SectionRows key={s.name} section={s} data={data} />
+              <SectionRows key={s.name} name={s.name} rows={s.rows} months={months} colCount={colCount} />
             ))}
-            {!filtering && totalLine("RÉSULTAT D'EXPLOITATION", data.resultatExploitation)}
-            {!filtering && totalLine("RÉSULTAT NET", data.resultatNet)}
           </tbody>
         </table>
       </div>
       <p style={{ marginTop: 10, fontSize: 11, color: "var(--gray3)" }}>
         Chiffres recalculés à la volée depuis les lignes de balance importées (aucun
-        agrégat stocké). Résultat net = CA − charges d&apos;exploitation − personnel −
-        frais généraux &amp; autres charges.
+        agrégat stocké). Le total N-1 est arrêté au même rang de mois que l&apos;exercice
+        en cours, pour une comparaison à périmètre égal.
+        {filtering && " Filtre actif : les totaux restent ceux de la section complète."}
       </p>
     </div>
   );
 }
 
 function SectionRows({
-  section,
-  data,
+  name,
+  rows,
+  months,
+  colCount,
 }: {
-  section: SyntheseData["sections"][number];
-  data: SyntheseData;
+  name: string;
+  rows: SyntheseRow[];
+  months: string[];
+  colCount: number;
 }) {
-  const months = data.monthsWithData;
-  const isProduits = section.name === "PRODUITS / CA";
-
   return (
     <>
       <tr className="section-row">
-        <td colSpan={months.length + 4}>{section.name}</td>
+        <td colSpan={colCount}>{name}</td>
       </tr>
-      {section.rows.map((r) => (
-        <tr key={r.category.code}>
-          <td className="label-cell" title={r.category.notes ?? undefined}>
-            {r.category.label}
-          </td>
-          {months.map((m) => {
-            const v = r.monthly[m] ?? 0;
-            return (
-              <td key={m} className={v === 0 ? "muted" : v < 0 ? "neg" : ""}>
-                {v === 0 ? "-" : fmtEur(v)}
-              </td>
-            );
-          })}
-          <td className={r.total < 0 ? "neg" : ""} style={{ fontWeight: 500 }}>
-            {fmtEur(r.total)}
-          </td>
-          <td className="pct-col">{pctBadge(r.pctCa)}</td>
-          <td className={r.prevTotal != null && r.prevTotal < 0 ? "neg" : "muted"}>
-            {r.prevTotal != null ? fmtEur(r.prevTotal) : "-"}
-          </td>
-        </tr>
-      ))}
-      <tr className="subtotal-row">
-        <td className="label-cell">
-          {isProduits ? "CA TOTAL" : `TOTAL ${section.name}`}
-        </td>
-        {months.map((m) => {
-          const v = section.subtotal.monthly[m] ?? 0;
-          return (
-            <td key={m} className={v < 0 ? "neg" : ""}>
-              {fmtEur(v)}
+      {rows.map((r) => {
+        const isRatio = r.category.kind === "ratio";
+        const cell = (v: number | null) => (isRatio ? pctBadge(v) : money(v));
+        return (
+          <tr key={r.category.code} className={rowClass(r.category.kind)}>
+            <td className="label-cell" title={r.category.notes ?? undefined}>
+              {r.category.label}
             </td>
-          );
-        })}
-        <td className={section.subtotal.total < 0 ? "neg" : ""}>
-          {fmtEur(section.subtotal.total)}
-        </td>
-        <td className="pct-col">
-          {pctBadge(
-            data.caTotal.total ? (section.subtotal.total / data.caTotal.total) * 100 : null
-          )}
-        </td>
-        <td className="muted">-</td>
-      </tr>
+            {months.map((m) => {
+              const v = r.cells[m] ?? null;
+              return (
+                <td key={m} className={v ? negClass(v) : "muted"}>
+                  {cell(v)}
+                </td>
+              );
+            })}
+            <td className={negClass(r.total)} style={{ fontWeight: 500 }}>
+              {cell(r.cells[TOTAL_COLUMN] ?? r.total)}
+            </td>
+            <td className="pct-col">{pctBadge(r.pctCa)}</td>
+            <td className={r.prevTotal != null ? negClass(r.prevTotal) : "muted"}>
+              {cell(r.prevTotal)}
+            </td>
+            <td className="pct-col">{pctBadge(r.pctPrev)}</td>
+            <td className={r.ecart != null ? negClass(r.ecart) : "muted"}>
+              {cell(r.ecart)}
+            </td>
+          </tr>
+        );
+      })}
     </>
   );
 }

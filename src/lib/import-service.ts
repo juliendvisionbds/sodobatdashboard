@@ -9,7 +9,7 @@ import {
   poleOf,
 } from "./parsers";
 import { loadMapper } from "./mapping";
-import { Entity } from "./finance";
+import { Entity, loadCentreKinds } from "./finance";
 
 const round2 = (n: number) => Math.round(n * 100) / 100;
 const num = (v: string | number | null | undefined) =>
@@ -161,11 +161,13 @@ async function computeUnmapped(
       if (mapper.resolve(a.account) == null) add(a.account, a.label, a.total, "synthese");
     }
   } else {
-    // le mapping chantier s'applique aux centres chantiers, le mapping fx au centre FX
+    // le mapping chantier s'applique aux centres chantiers, le mapping fx aux
+    // centres de structure (FX, DEPOT, QUADRA…)
     const chantier = await loadMapper("chantier", entity.id, entity.code);
     const fx = await loadMapper("fx", entity.id, entity.code);
+    const kindOf = await loadCentreKinds(entity.id);
     for (const l of parsed.lines) {
-      if (l.centreCode === "FX") {
+      if (kindOf(l.centreCode) === "structure") {
         if (fx.resolve(l.account) == null) add(l.account, l.label, l.solde, "fx");
       } else {
         if (chantier.resolve(l.account) == null) add(l.account, l.label, l.solde, "chantier");
@@ -251,10 +253,15 @@ export async function validateImport(importId: number) {
     const centres = new Map<string, string>();
     for (const l of lines) centres.set(l.centreCode, l.centreLabel);
     for (const [code, name] of centres) {
+      // Le libellé et le pôle suivent la dernière balance ; la classification
+      // manuelle (kind) posée par un admin n'est jamais écrasée.
       await db
         .insert(tables.centres)
         .values({ entityId: imp.entityId, code, name, pole: poleOf(code) })
-        .onConflictDoNothing();
+        .onConflictDoUpdate({
+          target: [tables.centres.entityId, tables.centres.code],
+          set: { name, pole: poleOf(code) },
+        });
     }
   }
 

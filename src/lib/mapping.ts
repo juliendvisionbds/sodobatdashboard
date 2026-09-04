@@ -1,6 +1,8 @@
 import { and, eq, inArray, isNull, or } from "drizzle-orm";
 import { db, tables } from "@/db";
 
+import type { Formula, LineKind } from "@/lib/nomenclature/types";
+
 export type View = "synthese" | "chantier" | "fx";
 
 export type Category = {
@@ -13,6 +15,11 @@ export type Category = {
   sortOrder: number;
   entityScope: string;
   notes: string | null;
+  kind: LineKind;
+  formula: Formula | null;
+  cumulative: boolean;
+  active: boolean;
+  hidden: boolean;
 };
 
 export type Rule = {
@@ -23,7 +30,10 @@ export type Rule = {
 };
 
 export type Mapper = {
+  /** postes alimentés par les comptes, dans l'ordre de la maquette */
   categories: Category[];
+  /** toutes les lignes de la vue (postes + totaux + ratios), dans l'ordre */
+  lines: Category[];
   /** catégorie d'un compte, ou null si non mappé (exact > préfixe le plus long) */
   resolve: (account: string) => Category | null;
 };
@@ -40,14 +50,19 @@ export async function loadMapper(
 
   const inScope = cats.filter(
     (c) =>
-      c.entityScope === "all" ||
-      c.entityScope.split(",").map((s) => s.trim()).includes(entityCode)
+      c.active &&
+      (c.entityScope === "all" ||
+        c.entityScope.split(",").map((s) => s.trim()).includes(entityCode))
   );
   inScope.sort((a, b) => a.sortOrder - b.sortOrder);
-  const byId = new Map(inScope.map((c) => [c.id, c]));
+
+  // Seuls les postes sont résolvables : les totaux, ratios et lignes saisies
+  // n'ont pas de compte et ne doivent jamais capter une écriture.
+  const postes = inScope.filter((c) => c.kind === "poste");
+  const byId = new Map(postes.map((c) => [c.id, c]));
 
   const rules =
-    inScope.length === 0
+    postes.length === 0
       ? []
       : ((await db
           .select({
@@ -103,5 +118,5 @@ export async function loadMapper(
     return result;
   };
 
-  return { categories: inScope, resolve };
+  return { categories: postes, lines: inScope, resolve };
 }

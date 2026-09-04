@@ -30,7 +30,8 @@ export const users = pgTable("users", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
-// Chantiers (centres analytiques). Le pôle est la lettre suffixe du code (1003B → B).
+// Centres analytiques : chantiers (code commençant par un chiffre) et centres de
+// structure (FX, DEPOT, QUADRA...). Le pôle est la lettre suffixe du code (1003B → B).
 export const centres = pgTable(
   "centres",
   {
@@ -40,14 +41,19 @@ export const centres = pgTable(
       .references(() => entities.id),
     code: text("code").notNull(), // "1003B", "FX", "DEPOT", "53"...
     name: text("name").notNull(),
-    pole: text("pole"), // "A".."F" ou null (FX, DEPOT, divers)
+    pole: text("pole"), // "A".."F", "MF" ou null (structure, chantier sans suffixe)
+    // Surcharge manuelle de la classification déduite du code (classifyCentre) :
+    // null = déduite, sinon force le routage chantier / frais généraux.
+    kind: text("kind", { enum: ["chantier", "structure"] }),
   },
   (t) => [uniqueIndex("centres_entity_code").on(t.entityId, t.code)]
 );
 
-// ── Nomenclature uniformisée (squelette) ─────────────────────────────────────
+// ── Nomenclature (maquette structurelle Sodobat) ─────────────────────────────
 
-// Une catégorie = une ligne du squelette, rattachée à une vue et une section.
+// Une catégorie = une ligne de la maquette, rattachée à une vue et une section.
+// Seules les lignes kind = "poste" portent des règles de mapping ; les autres
+// sont calculées à partir de `formula`, qui référence d'autres codes.
 export const categories = pgTable("categories", {
   id: serial("id").primaryKey(),
   view: text("view", { enum: ["synthese", "chantier", "fx"] }).notNull(),
@@ -60,6 +66,22 @@ export const categories = pgTable("categories", {
   sign: integer("sign").notNull().default(1),
   entityScope: text("entity_scope").notNull().default("all"), // "all" ou codes séparés par virgule
   notes: text("notes"),
+  // Nature de la ligne : "poste" = alimentée par les comptes, les autres sont calculées.
+  kind: text("kind", {
+    enum: ["poste", "subtotal", "total", "ratio", "computed", "manual", "separator"],
+  })
+    .notNull()
+    .default("poste"),
+  // Descripteur de calcul (Formula, cf. src/lib/nomenclature/types.ts). null pour un poste.
+  formula: jsonb("formula"),
+  // Comptes qui redescendent en cumul depuis le début d'exercice (DOT, VNC) :
+  // la valeur mensuelle s'obtient par différence M − M-1.
+  cumulative: boolean("cumulative").notNull().default(false),
+  // Retrait logique d'une ligne sans casser les FK des règles / alertes.
+  active: boolean("active").notNull().default(true),
+  // Ligne de rattachement : elle capte des comptes et alimente les totaux, mais
+  // n'apparaît pas dans la maquette (détail renvoyé vers une autre vue).
+  hidden: boolean("hidden").notNull().default(false),
 });
 
 // Règle de mapping compte comptable → catégorie.
@@ -158,7 +180,8 @@ export const analyticLines = pgTable(
 
 // ── Saisies manuelles & alertes ──────────────────────────────────────────────
 
-// Travaux en cours / manque à facturer (brouillon → figé) et notes.
+// Saisies manuelles (brouillon → figé) : travaux en cours, annulation M-1,
+// objectifs dirigeant, ventilation d'un compte partagé, notes, statut chantier.
 export const manualEntries = pgTable(
   "manual_entries",
   {
@@ -169,8 +192,19 @@ export const manualEntries = pgTable(
     period: date("period").notNull(),
     centreCode: text("centre_code"), // null = niveau entité
     field: text("field", {
-      enum: ["tec_provision", "note"],
+      enum: [
+        "tec_provision",
+        "note",
+        "annulation_m1",
+        "objectif_annuel",
+        "gen",
+        "ventilation",
+        "statut",
+      ],
     }).notNull(),
+    // Discriminant secondaire : indicateur visé (objectif_annuel / gen) ou
+    // part ventilée (ventilation → "NJW"). null quand le champ suffit.
+    subKey: text("sub_key"),
     valueNum: numeric("value_num", { precision: 14, scale: 2 }),
     valueText: text("value_text"),
     status: text("status", { enum: ["draft", "final"] })
@@ -184,7 +218,8 @@ export const manualEntries = pgTable(
       t.entityId,
       t.period,
       t.centreCode,
-      t.field
+      t.field,
+      t.subKey
     ),
   ]
 );

@@ -1,7 +1,18 @@
 import { and, desc, eq, lt } from "drizzle-orm";
 import { db, tables } from "@/db";
-import { fiscalMonths, poleOf } from "./parsers";
-import { Category, loadMapper } from "./mapping";
+import { CentreKind, classifyCentre, fiscalMonths, poleOf } from "./parsers";
+import { Category, loadMapper, type View } from "./mapping";
+import { evaluate, type Vector } from "./nomenclature/evaluate";
+import {
+  FX_COLUMNS,
+  MOIS_COLUMN,
+  TOTAL_COLUMN,
+  type FxColumn,
+} from "./nomenclature/columns";
+import { CHANTIER_CODES, FX_CODES, SYNTHESE_CODES } from "./nomenclature/codes";
+import { OBJECTIFS, statutObjectif, type ObjectifStatut } from "./objectifs";
+
+export { TOTAL_COLUMN, CHANTIER_CODES, FX_CODES, SYNTHESE_CODES };
 
 const num = (v: string | number | null | undefined) =>
   v == null ? 0 : typeof v === "number" ? v : parseFloat(v);
@@ -15,6 +26,26 @@ export async function getEntityByCode(code: string): Promise<Entity | null> {
     .from(tables.entities)
     .where(eq(tables.entities.code, code));
   return rows[0] ?? null;
+}
+
+// ── Classification des centres analytiques ───────────────────────────────────
+
+/**
+ * Chantier ou structure, pour chaque centre de l'entité : la surcharge manuelle
+ * (centres.kind) l'emporte sur la déduction faite à partir du code.
+ * Un centre absent du référentiel est classé par son code.
+ */
+export async function loadCentreKinds(
+  entityId: number
+): Promise<(centreCode: string) => CentreKind> {
+  const rows = await db
+    .select({ code: tables.centres.code, kind: tables.centres.kind })
+    .from(tables.centres)
+    .where(eq(tables.centres.entityId, entityId));
+  const overrides = new Map<string, CentreKind>();
+  for (const r of rows) if (r.kind) overrides.set(r.code, r.kind as CentreKind);
+  return (centreCode: string) =>
+    overrides.get(centreCode) ?? classifyCentre(centreCode);
 }
 
 // ── Imports validés ──────────────────────────────────────────────────────────
@@ -87,18 +118,24 @@ export async function listVentileePeriods(entityId: number): Promise<string[]> {
 
 // ── Vue Synthèse ─────────────────────────────────────────────────────────────
 
+
 export type SyntheseRow = {
   category: Category;
-  monthly: Record<string, number>;
-  total: number;
+  /** valeur par mois de l'exercice, plus TOTAL_COLUMN */
+  cells: Record<string, number | null>;
+  total: number | null;
   pctCa: number | null;
-  prevTotal: number | null; // N-1
+  /** N-1 tronqué à la même fenêtre YTD que N */
+  prevTotal: number | null;
+  /** N-1 sur l'exercice complet */
+  prevTotalFull: number | null;
+  pctPrev: number | null;
+  ecart: number | null;
 };
 
 export type SyntheseSection = {
   name: string;
   rows: SyntheseRow[];
-  subtotal: { monthly: Record<string, number>; total: number };
 };
 
 export type SyntheseData = {
@@ -107,6 +144,8 @@ export type SyntheseData = {
   monthsWithData: string[];
   period: string; // dernier mois importé
   sections: SyntheseSection[];
+  /** valeurs indexées par code de ligne, pour les KPI et l'assistant */
+  byCode: Record<string, { cells: Record<string, number | null>; total: number | null }>;
   caTotal: { monthly: Record<string, number>; total: number };
   totalChargesExploitation: { monthly: Record<string, number>; total: number };
   totalChargesPersonnel: { monthly: Record<string, number>; total: number };
@@ -119,10 +158,34 @@ export type SyntheseData = {
   importId: number;
 };
 
-const SECTION_PRODUITS = "PRODUITS / CA";
-const SECTION_PERSONNEL = "CHARGES DE PERSONNEL";
-const SECTION_EXPLOITATION = "CHARGES D'EXPLOITATION";
-const SECTION_FX = "FRAIS GÉNÉRAUX & AUTRES CHARGES";
+/**
+ * Agrège les lignes de balance ventilée par catégorie × mois.
+ * Les montants restent bruts (charges +, produits −) ; le signe d'affichage est
+ * appliqué au moment de construire les vecteurs.
+ */
+function aggregateByCategory(
+  lines: { account: string; label: string; month: string; amount: string | number | null }[],
+  mapper: Awaited<ReturnType<typeof loadMapper>>
+) {
+  const byCat = new Map<string, Record<string, number>>();
+  const unmapped = new Map<string, { label: string; total: number }>();
+  for (const l of lines) {
+    const amount = num(l.amount);
+    const cat = mapper.resolve(l.account);
+    if (!cat) {
+      const prev = unmapped.get(l.account);
+      unmapped.set(l.account, {
+        label: l.label,
+        total: round2((prev?.total ?? 0) + amount),
+      });
+      continue;
+    }
+    const rec = byCat.get(cat.code) ?? {};
+    rec[l.month] = round2((rec[l.month] ?? 0) + amount);
+    byCat.set(cat.code, rec);
+  }
+  return { byCat, unmapped };
+}
 
 export async function getSynthese(
   entity: Entity,
@@ -147,98 +210,117 @@ export async function getSynthese(
 
   const months = fiscalMonths(imp.fiscalYearStart);
   const monthsWithData = [...new Set(lines.map((l) => l.month))].sort();
+  const columns = [...months, TOTAL_COLUMN];
 
-  // agrégation par catégorie × mois (montants bruts : charges +, produits −)
-  const rawByCat = new Map<number, Record<string, number>>();
-  const unmappedMap = new Map<string, { label: string; total: number }>();
-  for (const l of lines) {
-    const cat = mapper.resolve(l.account);
-    const amount = num(l.amount);
-    if (!cat) {
-      const prev = unmappedMap.get(l.account);
-      unmappedMap.set(l.account, {
-        label: l.label,
-        total: round2((prev?.total ?? 0) + amount),
-      });
-      continue;
+  const { byCat, unmapped } = aggregateByCategory(lines, mapper);
+
+  // Vecteurs des postes : signe d'affichage appliqué, colonne total incluse.
+  const leaves = new Map<string, Vector>();
+  for (const cat of mapper.categories) {
+    const raw = byCat.get(cat.code) ?? {};
+    const vec: Vector = {};
+    let total = 0;
+    for (const m of months) {
+      const v = round2(cat.sign * (raw[m] ?? 0));
+      vec[m] = v;
+      total += v;
     }
-    const rec = rawByCat.get(cat.id) ?? {};
-    rec[l.month] = round2((rec[l.month] ?? 0) + amount);
-    rawByCat.set(cat.id, rec);
+    vec[TOTAL_COLUMN] = round2(total);
+    leaves.set(cat.code, vec);
   }
 
-  // N-1 : totaux par catégorie de l'exercice précédent, si importé
+  // ── N-1 ────────────────────────────────────────────────────────────────────
+  // Comparaison à périmètre égal : le cumul N-1 est tronqué au même rang de mois
+  // que N (7 mois de N contre 7 mois de N-1), en plus du total annuel complet.
   const prevImp = await latestValidatedImport(entity.id, "ventilee", {
     fiscalYearStart: imp.fiscalYearStart - 1,
   });
-  const prevByCat = new Map<number, number>();
-  let prevCaRaw = 0;
+  const prevYtd = new Map<string, number>();
+  const prevFull = new Map<string, number>();
   if (prevImp) {
     const prevLines = await db
       .select()
       .from(tables.generalBalanceLines)
       .where(eq(tables.generalBalanceLines.importId, prevImp.id));
-    for (const l of prevLines) {
-      const cat = mapper.resolve(l.account);
-      const amount = num(l.amount);
-      if (cat) prevByCat.set(cat.id, round2((prevByCat.get(cat.id) ?? 0) + amount));
-      if (cat && cat.section === SECTION_PRODUITS) prevCaRaw += amount;
+    const prevMonths = fiscalMonths(prevImp.fiscalYearStart);
+    // Même nombre de mois écoulés que sur l'exercice en cours.
+    const rank = monthsWithData.length;
+    const ytdCutoff = prevMonths[Math.min(rank, prevMonths.length) - 1];
+    const { byCat: prevByCat } = aggregateByCategory(prevLines, mapper);
+    for (const cat of mapper.categories) {
+      const raw = prevByCat.get(cat.code) ?? {};
+      let ytd = 0;
+      let full = 0;
+      for (const [m, v] of Object.entries(raw)) {
+        full += v;
+        if (ytdCutoff && m <= ytdCutoff) ytd += v;
+      }
+      prevYtd.set(cat.code, round2(cat.sign * ytd));
+      prevFull.set(cat.code, round2(cat.sign * full));
     }
   }
 
-  const zero = () => Object.fromEntries(months.map((m) => [m, 0]));
-  const acc = (target: Record<string, number>, src: Record<string, number>, sign = 1) => {
-    for (const [m, v] of Object.entries(src)) target[m] = round2((target[m] ?? 0) + sign * v);
+  const evalOn = (values: Map<string, number>) => {
+    const l = new Map<string, Vector>();
+    for (const cat of mapper.categories) l.set(cat.code, { v: values.get(cat.code) ?? 0 });
+    return evaluate(mapper.lines, ["v"], l);
   };
-  const total = (rec: Record<string, number>) =>
-    round2(Object.values(rec).reduce((s, v) => s + v, 0));
+  const prevYtdEval = prevImp ? evalOn(prevYtd) : null;
+  const prevFullEval = prevImp ? evalOn(prevFull) : null;
 
-  // sous-totaux par section (en "coût net" : produits inversés)
-  const sectionNames = [...new Set(mapper.categories.map((c) => c.section))];
+  // ── Évaluation ─────────────────────────────────────────────────────────────
+  const provided = new Map<string, Vector>();
+  const resultatBg = bgResult(lines, months);
+  provided.set(SYNTHESE_CODES.resultatBg, resultatBg);
+
+  const values = evaluate(mapper.lines, columns, leaves, { provided });
+
+  const caTotalVec = values.get(SYNTHESE_CODES.caTotal) ?? {};
+  const caTotal = caTotalVec[TOTAL_COLUMN] ?? 0;
+  const prevCaTotal = prevYtdEval?.get(SYNTHESE_CODES.caTotal)?.v ?? null;
+
+  // ── Lignes de la maquette, groupées par section ────────────────────────────
   const sections: SyntheseSection[] = [];
-  const netBySection = new Map<string, Record<string, number>>();
+  for (const line of mapper.lines) {
+    if (line.hidden) continue;
+    const vec = values.get(line.code) ?? {};
+    const total = vec[TOTAL_COLUMN] ?? null;
+    const prevTotal = prevYtdEval?.get(line.code)?.v ?? null;
+    const prevTotalFull = prevFullEval?.get(line.code)?.v ?? null;
+    const isRatio = line.kind === "ratio";
 
-  for (const name of sectionNames) {
-    const cats = mapper.categories.filter((c) => c.section === name);
-    const sectionSign = name === SECTION_PRODUITS ? -1 : 1;
-    const subtotal = zero();
-    const rows: SyntheseRow[] = [];
-    for (const cat of cats) {
-      const raw = rawByCat.get(cat.id) ?? {};
-      const monthly = zero();
-      acc(monthly, raw, cat.sign);
-      acc(subtotal, raw, sectionSign);
-      rows.push({
-        category: cat,
-        monthly,
-        total: total(monthly),
-        pctCa: null, // rempli après calcul du CA
-        prevTotal: prevImp ? round2((prevByCat.get(cat.id) ?? 0) * cat.sign) : null,
-      });
-    }
-    netBySection.set(name, subtotal);
-    sections.push({ name, rows, subtotal: { monthly: subtotal, total: total(subtotal) } });
+    const row: SyntheseRow = {
+      category: line,
+      cells: vec,
+      total,
+      // Un ratio est déjà un pourcentage : on ne le rapporte pas au CA.
+      pctCa: isRatio ? null : caTotal !== 0 && total != null ? round2((total / caTotal) * 100) : null,
+      prevTotal,
+      prevTotalFull,
+      pctPrev:
+        isRatio || prevCaTotal == null || prevCaTotal === 0 || prevTotal == null
+          ? null
+          : round2((prevTotal / prevCaTotal) * 100),
+      ecart: total != null && prevTotal != null ? round2(total - prevTotal) : null,
+    };
+
+    const last = sections[sections.length - 1];
+    if (last && last.name === line.section) last.rows.push(row);
+    else sections.push({ name: line.section, rows: [row] });
   }
 
-  const caTotalMonthly = netBySection.get(SECTION_PRODUITS) ?? zero();
-  const exploitationMonthly = netBySection.get(SECTION_EXPLOITATION) ?? zero();
-  const personnelMonthly = netBySection.get(SECTION_PERSONNEL) ?? zero();
-  const fxMonthly = netBySection.get(SECTION_FX) ?? zero();
+  // ── Compatibilité : agrégats exposés à plat pour les KPI et l'assistant ────
+  const monthlyOf = (code: string) => {
+    const vec = values.get(code) ?? {};
+    const out: Record<string, number> = {};
+    for (const m of months) out[m] = vec[m] ?? 0;
+    return { monthly: out, total: vec[TOTAL_COLUMN] ?? 0 };
+  };
 
-  const resultatExploitationMonthly = zero();
-  acc(resultatExploitationMonthly, caTotalMonthly);
-  acc(resultatExploitationMonthly, exploitationMonthly, -1);
-  acc(resultatExploitationMonthly, personnelMonthly, -1);
-
-  const resultatNetMonthly = zero();
-  acc(resultatNetMonthly, resultatExploitationMonthly);
-  acc(resultatNetMonthly, fxMonthly, -1);
-
-  const caTotal = total(caTotalMonthly);
-  for (const s of sections) {
-    for (const r of s.rows) {
-      r.pctCa = caTotal !== 0 ? round2((r.total / caTotal) * 100) : null;
-    }
+  const byCode: SyntheseData["byCode"] = {};
+  for (const line of mapper.lines) {
+    const vec = values.get(line.code) ?? {};
+    byCode[line.code] = { cells: vec, total: vec[TOTAL_COLUMN] ?? null };
   }
 
   return {
@@ -247,58 +329,192 @@ export async function getSynthese(
     monthsWithData,
     period: monthsWithData[monthsWithData.length - 1] ?? imp.period,
     sections,
-    caTotal: { monthly: caTotalMonthly, total: caTotal },
-    totalChargesExploitation: {
-      monthly: exploitationMonthly,
-      total: total(exploitationMonthly),
-    },
-    totalChargesPersonnel: {
-      monthly: personnelMonthly,
-      total: total(personnelMonthly),
-    },
-    resultatExploitation: {
-      monthly: resultatExploitationMonthly,
-      total: total(resultatExploitationMonthly),
-    },
-    totalFx: { monthly: fxMonthly, total: total(fxMonthly) },
-    resultatNet: { monthly: resultatNetMonthly, total: total(resultatNetMonthly) },
-    unmapped: [...unmappedMap.entries()].map(([account, v]) => ({
+    byCode,
+    caTotal: monthlyOf(SYNTHESE_CODES.caTotal),
+    totalChargesExploitation: monthlyOf(SYNTHESE_CODES.exploitation),
+    totalChargesPersonnel: monthlyOf(SYNTHESE_CODES.personnel),
+    resultatExploitation: monthlyOf(SYNTHESE_CODES.resultatExploitation),
+    totalFx: monthlyOf(SYNTHESE_CODES.fx),
+    resultatNet: monthlyOf(SYNTHESE_CODES.resultatNet),
+    unmapped: [...unmapped.entries()].map(([account, v]) => ({
       account,
       label: v.label,
       total: v.total,
     })),
     hasPrevYear: !!prevImp,
-    prevCaTotal: prevImp ? round2(-prevCaRaw) : null,
+    prevCaTotal,
     importId: imp.id,
   };
 }
 
+/**
+ * Résultat de la balance générale : produits (classe 7) − charges (classes 6, 69),
+ * calculé directement sur les lignes brutes, hors nomenclature. C'est le point de
+ * contrôle croisé de la ligne « Ctrl » de la maquette.
+ */
+function bgResult(
+  lines: { account: string; month: string; amount: string | number | null }[],
+  months: string[]
+): Vector {
+  const vec: Vector = Object.fromEntries(months.map((m) => [m, 0]));
+  let total = 0;
+  for (const l of lines) {
+    if (!/^[67]/.test(l.account)) continue;
+    // Charges au débit (+) et produits au crédit (−) : le résultat est l'opposé
+    // de la somme des soldes.
+    const v = -num(l.amount);
+    vec[l.month] = round2(((vec[l.month] as number) ?? 0) + v);
+    total += v;
+  }
+  vec[TOTAL_COLUMN] = round2(total);
+  return vec;
+}
+
 // ── Vue Chantiers ────────────────────────────────────────────────────────────
+//
+// Un chantier = une ligne, les postes de la maquette = les colonnes (disposition
+// du tableau de gestion Excel de Sodobat).
+//
+// La balance analytique est un cumul depuis l'ouverture de l'exercice : le mois
+// s'obtient par différence entre deux snapshots consécutifs du même exercice.
+// Les quatre lignes « cumuls sur la durée de vie du chantier » ne sont, elles,
+// pas bornées à l'exercice : elles additionnent le dernier snapshot de chaque
+// exercice antérieur au cumul de l'exercice en cours.
+
+export type ChantierValues = Record<string, number | null>;
 
 export type ChantierRow = {
   centreCode: string;
   centreLabel: string;
   pole: string | null;
-  annulation: number; // reprise TEC M-1 (négatif)
-  prevision: number; // TEC provision M
+  /** valeur de chaque ligne de la nomenclature, par code */
+  values: ChantierValues;
+  /** provision saisie manuellement, qui se substitue au compte 71331000 */
   previsionManuelle: { value: number; status: "draft" | "final" } | null;
-  facture: number; // facturation réelle du mois
-  totalProduits: number;
-  achatsMp: number;
-  sousTraitance: number;
-  autresCharges: number; // dont intérim et personnel affecté
-  resultat: number;
   note: string | null;
+  statut: "draft" | "final";
+  /** le chantier a-t-il bougé sur la période ? */
+  mouvemente: boolean;
 };
 
 export type ChantiersData = {
   period: string;
-  prevPeriod: string | null; // snapshot précédent (delta) ; null = cumul depuis le début
+  prevPeriod: string | null;
+  fiscalYearStart: number;
+  /** colonnes du tableau : les lignes de la maquette chantier, dans l'ordre */
+  lines: Category[];
   rows: ChantierRow[];
-  totals: Omit<ChantierRow, "centreCode" | "centreLabel" | "pole" | "note" | "previsionManuelle">;
+  totals: ChantierValues;
   poles: string[];
+  /** contrôle de couverture : soldes bruts des centres chantier, mappés ou non */
+  controle: { soldeChantier: number; soldeMappe: number };
+  unmapped: { account: string; label: string; solde: number }[];
   importId: number;
 };
+
+type FoldResult = {
+  byCentre: Map<string, Map<string, number>>;
+  /** contrôle de couverture : aucun solde ne doit être perdu en route */
+  soldeTotal: number;
+  soldeMappe: number;
+  unmapped: Map<string, { account: string; label: string; solde: number }>;
+};
+
+/** Cumuls d'un snapshot, par centre chantier × catégorie (signe d'affichage appliqué). */
+function foldSnapshot(
+  lines: {
+    centreCode: string;
+    account: string;
+    label: string;
+    debit: string | number | null;
+    credit: string | number | null;
+    solde: string | number | null;
+  }[],
+  mapper: Awaited<ReturnType<typeof loadMapper>>,
+  kindOf: (code: string) => CentreKind
+): FoldResult {
+  const byCentre = new Map<string, Map<string, number>>();
+  const unmapped = new Map<string, { account: string; label: string; solde: number }>();
+  let soldeTotal = 0;
+  let soldeMappe = 0;
+  for (const l of lines) {
+    if (kindOf(l.centreCode) !== "chantier") continue;
+    const solde = num(l.solde);
+    soldeTotal += solde;
+    const cat = mapper.resolve(l.account);
+    if (!cat) {
+      const prev = unmapped.get(l.account);
+      unmapped.set(l.account, {
+        account: l.account,
+        label: l.label,
+        solde: round2((prev?.solde ?? 0) + solde),
+      });
+      continue;
+    }
+    soldeMappe += solde;
+    const byCat = byCentre.get(l.centreCode) ?? new Map<string, number>();
+    byCentre.set(l.centreCode, byCat);
+
+    byCat.set(cat.code, round2((byCat.get(cat.code) ?? 0) + cat.sign * solde));
+  }
+  return {
+    byCentre,
+    soldeTotal: round2(soldeTotal),
+    soldeMappe: round2(soldeMappe),
+    unmapped,
+  };
+}
+
+/** Cumul « durée de vie » : exercices clos + snapshot de l'exercice en cours. */
+async function lifetimeSnapshot(
+  entity: Entity,
+  upToImportId: number | null,
+  fiscalYearStart: number,
+  mapper: Awaited<ReturnType<typeof loadMapper>>,
+  kindOf: (code: string) => CentreKind
+): Promise<Map<string, Map<string, number>>> {
+  const acc = new Map<string, Map<string, number>>();
+  const add = (src: Map<string, Map<string, number>>) => {
+    for (const [centre, byCat] of src) {
+      const target = acc.get(centre) ?? new Map<string, number>();
+      acc.set(centre, target);
+      for (const [code, v] of byCat) target.set(code, round2((target.get(code) ?? 0) + v));
+    }
+  };
+
+  // Exercices antérieurs : dernier snapshot de chacun (le cumul y est complet).
+  const priorYears = await db
+    .selectDistinct({ fiscalYearStart: tables.imports.fiscalYearStart })
+    .from(tables.imports)
+    .where(
+      and(
+        eq(tables.imports.entityId, entity.id),
+        eq(tables.imports.type, "analytique"),
+        eq(tables.imports.status, "validated"),
+        lt(tables.imports.fiscalYearStart, fiscalYearStart)
+      )
+    );
+  for (const y of priorYears) {
+    const last = await latestValidatedImport(entity.id, "analytique", {
+      fiscalYearStart: y.fiscalYearStart,
+    });
+    if (!last) continue;
+    const rows = await db
+      .select()
+      .from(tables.analyticLines)
+      .where(eq(tables.analyticLines.importId, last.id));
+    add(foldSnapshot(rows, mapper, kindOf).byCentre);
+  }
+
+  if (upToImportId != null) {
+    const rows = await db
+      .select()
+      .from(tables.analyticLines)
+      .where(eq(tables.analyticLines.importId, upToImportId));
+    add(foldSnapshot(rows, mapper, kindOf).byCentre);
+  }
+  return acc;
+}
 
 export async function getChantiers(
   entity: Entity,
@@ -308,79 +524,37 @@ export async function getChantiers(
     atPeriod: opts?.period,
   });
   if (!imp) return null;
+  // Le comparatif M-1 reste dans le même exercice : sinon le snapshot de
+  // novembre serait différencié contre le cumul d'octobre de l'exercice
+  // précédent, qui ne s'est pas remis à zéro dans la même série.
   const prevImp = await latestValidatedImport(entity.id, "analytique", {
     beforePeriod: imp.period,
+    fiscalYearStart: imp.fiscalYearStart,
   });
 
-  const current = await db
+  const mapper = await loadMapper("chantier", entity.id, entity.code);
+  const kindOf = await loadCentreKinds(entity.id);
+
+  const currentLines = await db
     .select()
     .from(tables.analyticLines)
     .where(eq(tables.analyticLines.importId, imp.id));
-  const previous = prevImp
+  const previousLines = prevImp
     ? await db
         .select()
         .from(tables.analyticLines)
         .where(eq(tables.analyticLines.importId, prevImp.id))
     : [];
 
-  // delta M = snapshot M − snapshot M-1, par centre × compte
-  const key = (c: string, a: string) => `${c}|${a}`;
-  const prevMap = new Map<string, { debit: number; credit: number; solde: number }>();
-  for (const l of previous) {
-    prevMap.set(key(l.centreCode, l.account), {
-      debit: num(l.debit),
-      credit: num(l.credit),
-      solde: num(l.solde),
-    });
-  }
+  const currentFold = foldSnapshot(currentLines, mapper, kindOf);
+  const previousFold = foldSnapshot(previousLines, mapper, kindOf);
+  const currentCumul = currentFold.byCentre;
+  const prevCumul = previousFold.byCentre;
 
-  const mapper = await loadMapper("chantier", entity.id, entity.code);
+  const labels = new Map<string, string>();
+  for (const l of currentLines) if (!labels.has(l.centreCode)) labels.set(l.centreCode, l.centreLabel);
 
-  const rowsMap = new Map<string, ChantierRow>();
-  const blank = (code: string, label: string): ChantierRow => ({
-    centreCode: code,
-    centreLabel: label,
-    pole: poleOf(code),
-    annulation: 0,
-    prevision: 0,
-    previsionManuelle: null,
-    facture: 0,
-    totalProduits: 0,
-    achatsMp: 0,
-    sousTraitance: 0,
-    autresCharges: 0,
-    resultat: 0,
-    note: null,
-  });
-
-  for (const l of current) {
-    if (l.centreCode === "FX") continue; // frais généraux : vue dédiée
-    const prev = prevMap.get(key(l.centreCode, l.account));
-    const dDebit = round2(num(l.debit) - (prev?.debit ?? 0));
-    const dCredit = round2(num(l.credit) - (prev?.credit ?? 0));
-    const dSolde = round2(num(l.solde) - (prev?.solde ?? 0));
-    if (dDebit === 0 && dCredit === 0 && dSolde === 0) continue;
-
-    const row = rowsMap.get(l.centreCode) ?? blank(l.centreCode, l.centreLabel);
-    rowsMap.set(l.centreCode, row);
-
-    if (l.account.startsWith("713")) {
-      // travaux en cours : débit = annulation de la provision M-1, crédit = provision M
-      row.annulation = round2(row.annulation - dDebit);
-      row.prevision = round2(row.prevision + dCredit);
-    } else if (l.account.startsWith("7")) {
-      row.facture = round2(row.facture - dSolde); // solde créditeur → positif
-    } else {
-      const cat = mapper.resolve(l.account);
-      const code = cat?.code ?? "cha_autres_charges";
-      if (code === "cha_achats_mp") row.achatsMp = round2(row.achatsMp + dSolde);
-      else if (code === "cha_sous_traitance")
-        row.sousTraitance = round2(row.sousTraitance + dSolde);
-      else row.autresCharges = round2(row.autresCharges + dSolde);
-    }
-  }
-
-  // saisies manuelles du mois (provision brouillon/figé + notes)
+  // ── Saisies manuelles du mois ──────────────────────────────────────────────
   const manual = await db
     .select()
     .from(tables.manualEntries)
@@ -390,84 +564,281 @@ export async function getChantiers(
         eq(tables.manualEntries.period, imp.period)
       )
     );
+  const provisions = new Map<string, { value: number; status: "draft" | "final" }>();
+  const annulations = new Map<string, number>();
+  const notes = new Map<string, string>();
+  const statuts = new Map<string, "draft" | "final">();
   for (const m of manual) {
     if (!m.centreCode) continue;
-    const row = rowsMap.get(m.centreCode);
-    if (!row) continue;
-    if (m.field === "tec_provision" && m.valueNum != null) {
-      row.previsionManuelle = {
+    if (m.field === "tec_provision" && m.valueNum != null)
+      provisions.set(m.centreCode, {
         value: num(m.valueNum),
         status: m.status as "draft" | "final",
-      };
-    }
-    if (m.field === "note") row.note = m.valueText;
+      });
+    if (m.field === "annulation_m1" && m.valueNum != null)
+      annulations.set(m.centreCode, num(m.valueNum));
+    if (m.field === "note" && m.valueText) notes.set(m.centreCode, m.valueText);
+    if (m.field === "statut") statuts.set(m.centreCode, m.status as "draft" | "final");
   }
 
-  for (const row of rowsMap.values()) {
-    const prevision = row.previsionManuelle?.value ?? row.prevision;
-    row.totalProduits = round2(row.facture + prevision + row.annulation);
-    row.resultat = round2(
-      row.totalProduits - row.achatsMp - row.sousTraitance - row.autresCharges
+
+
+  // ── Colonnes = centres retenus ─────────────────────────────────────────────
+  const centres = [...new Set([...currentCumul.keys(), ...prevCumul.keys()])].sort(
+    (a, b) => (poleOf(a) ?? "ZZ").localeCompare(poleOf(b) ?? "ZZ") || a.localeCompare(b)
+  );
+  const TOTAL = TOTAL_COLUMN;
+  const columns = [...centres, TOTAL];
+
+  // ── Valeurs du mois : delta de cumul, poste par poste ──────────────────────
+  const monthlyLeaves = new Map<string, Vector>();
+  for (const cat of mapper.categories) {
+    const vec: Vector = {};
+    let total = 0;
+    for (const centre of centres) {
+      const now = currentCumul.get(centre)?.get(cat.code) ?? 0;
+      const before = prevCumul.get(centre)?.get(cat.code) ?? 0;
+      // Les travaux en cours ne sont pas un flux mais une position : le solde du
+      // snapshot est la provision ouverte à la date d'arrêté, pas sa variation.
+      const v =
+        cat.code === CHANTIER_CODES.provision ? round2(now) : round2(now - before);
+      vec[centre] = v;
+      total += v;
+    }
+    vec[TOTAL] = round2(total);
+    monthlyLeaves.set(cat.code, vec);
+  }
+
+  // La provision saisie se substitue au compte 71331000 pour le centre concerné.
+  if (provisions.size) {
+    const vec = { ...(monthlyLeaves.get(CHANTIER_CODES.provision) ?? {}) };
+    for (const [centre, p] of provisions) if (centre in vec) vec[centre] = p.value;
+    vec[TOTAL] = round2(
+      centres.reduce((s, c) => s + ((vec[c] as number) ?? 0), 0)
     );
+    monthlyLeaves.set(CHANTIER_CODES.provision, vec);
   }
 
-  const rows = [...rowsMap.values()].sort((a, b) =>
-    (a.pole ?? "Z").localeCompare(b.pole ?? "Z") || a.centreCode.localeCompare(b.centreCode)
+  // Annulation M-1 : reprise de la provision ouverte au snapshot précédent.
+  // La saisie de la DAF prime (mécanisme brouillon → figé de la maquette).
+  const annulationVec: Vector = {};
+  let annulationTotal = 0;
+  for (const centre of centres) {
+    const repriseM1 = round2(-(prevCumul.get(centre)?.get(CHANTIER_CODES.provision) ?? 0));
+    const v = annulations.has(centre) ? annulations.get(centre)! : repriseM1;
+    annulationVec[centre] = v;
+    annulationTotal += v;
+  }
+  annulationVec[TOTAL] = round2(annulationTotal);
+
+  // ── Cumuls sur la durée de vie du chantier ─────────────────────────────────
+  const lifeNow = await lifetimeSnapshot(entity, imp.id, imp.fiscalYearStart, mapper, kindOf);
+  const lifeBefore = await lifetimeSnapshot(
+    entity,
+    prevImp?.id ?? null,
+    imp.fiscalYearStart,
+    mapper,
+    kindOf
   );
 
-  const totals = rows.reduce(
-    (t, r) => ({
-      annulation: round2(t.annulation + r.annulation),
-      prevision: round2(t.prevision + (r.previsionManuelle?.value ?? r.prevision)),
-      facture: round2(t.facture + r.facture),
-      totalProduits: round2(t.totalProduits + r.totalProduits),
-      achatsMp: round2(t.achatsMp + r.achatsMp),
-      sousTraitance: round2(t.sousTraitance + r.sousTraitance),
-      autresCharges: round2(t.autresCharges + r.autresCharges),
-      resultat: round2(t.resultat + r.resultat),
-    }),
-    {
-      annulation: 0,
-      prevision: 0,
-      facture: 0,
-      totalProduits: 0,
-      achatsMp: 0,
-      sousTraitance: 0,
-      autresCharges: 0,
-      resultat: 0,
+  const evalCumul = (snapshot: Map<string, Map<string, number>>) => {
+    const leaves = new Map<string, Vector>();
+    for (const cat of mapper.categories) {
+      const vec: Vector = {};
+      let total = 0;
+      for (const centre of centres) {
+        const v = snapshot.get(centre)?.get(cat.code) ?? 0;
+        vec[centre] = v;
+        total += v;
+      }
+      vec[TOTAL] = round2(total);
+      leaves.set(cat.code, vec);
     }
-  );
+    return evaluate(mapper.lines, columns, leaves);
+  };
+  const cumulNow = evalCumul(lifeNow);
+  const cumulBefore = evalCumul(lifeBefore);
+
+  const provided = new Map<string, Vector>([
+    [CHANTIER_CODES.annulation, annulationVec],
+    [
+      CHANTIER_CODES.reportResultat,
+      cumulBefore.get(CHANTIER_CODES.resultat) ?? {},
+    ],
+    [
+      CHANTIER_CODES.reportFacturation,
+      cumulBefore.get(CHANTIER_CODES.caTotal) ?? {},
+    ],
+    [
+      CHANTIER_CODES.cumulCharges,
+      sumVectors(columns, [
+        cumulNow.get(CHANTIER_CODES.totalExploitation),
+        cumulNow.get(CHANTIER_CODES.totalPersonnel),
+      ]),
+    ],
+  ]);
+
+  const values = evaluate(mapper.lines, columns, monthlyLeaves, { provided });
+
+  // ── Lignes du tableau ──────────────────────────────────────────────────────
+  const visibleLines = mapper.lines.filter((l) => !l.hidden);
+  const rows: ChantierRow[] = centres.map((centre) => {
+    const rowValues: ChantierValues = {};
+    let mouvemente = false;
+    for (const line of visibleLines) {
+      const v = values.get(line.code)?.[centre] ?? null;
+      rowValues[line.code] = v;
+      if (line.kind === "poste" && v) mouvemente = true;
+    }
+    return {
+      centreCode: centre,
+      centreLabel: labels.get(centre) ?? centre,
+      pole: poleOf(centre),
+      values: rowValues,
+      previsionManuelle: provisions.get(centre) ?? null,
+      note: notes.get(centre) ?? null,
+      statut: statuts.get(centre) ?? "draft",
+      mouvemente,
+    };
+  });
+
+  const totals: ChantierValues = {};
+  for (const line of visibleLines) totals[line.code] = values.get(line.code)?.[TOTAL] ?? null;
 
   return {
     period: imp.period,
     prevPeriod: prevImp?.period ?? null,
+    fiscalYearStart: imp.fiscalYearStart,
+    lines: visibleLines,
     rows,
     totals,
     poles: [...new Set(rows.map((r) => r.pole).filter((p): p is string => !!p))].sort(),
+    controle: {
+      soldeChantier: currentFold.soldeTotal,
+      soldeMappe: currentFold.soldeMappe,
+    },
+    unmapped: [...currentFold.unmapped.values()].sort(
+      (a, b) => Math.abs(b.solde) - Math.abs(a.solde)
+    ),
     importId: imp.id,
   };
 }
 
+function sumVectors(columns: string[], vectors: (Vector | undefined)[]): Vector {
+  const out: Vector = {};
+  for (const c of columns) {
+    let acc = 0;
+    for (const v of vectors) acc += v?.[c] ?? 0;
+    out[c] = round2(acc);
+  }
+  return out;
+}
+
 // ── Vue Frais généraux ───────────────────────────────────────────────────────
+//
+// Trois colonnes de montants : N-2, N-1 et N YTD, chacune rapportée au CA de son
+// propre exercice — le « % / CA » d'une colonne ne se recopie jamais d'une
+// colonne à l'autre. L'exercice en cours est lu dans la balance analytique
+// (centres de structure) ; les exercices antérieurs le sont aussi lorsqu'un
+// snapshot analytique existe, sinon la balance ventilée sert de repli.
 
 export type FxRow = {
   category: Category;
-  ytd: number; // cumul exercice (snapshot analytique, centre FX)
-  mois: number; // delta M vs M-1
-  pctCa: number | null;
+  /** montants par exercice : n2 / n1 / n */
+  cells: Record<FxColumn, number | null>;
+  /** % du CA de l'exercice de la colonne */
+  pct: Record<FxColumn, number | null>;
+  ecart: number | null; // N − N-1 en euros
+  ecartPct: number | null; // variation relative N / N-1
   accounts: { account: string; label: string; ytd: number }[];
 };
 
+export type FxSection = { name: string; rows: FxRow[] };
+
+/** Provenance d'une colonne d'exercice antérieur. */
+export type FxColumnSource = "analytique" | "ventilee" | "absent";
+
 export type FxData = {
   period: string;
-  prevPeriod: string | null;
-  sections: { name: string; rows: FxRow[]; subtotal: { ytd: number; mois: number } }[];
+  fiscalYearStart: number;
+  sections: FxSection[];
+  byCode: Record<string, Record<FxColumn, number | null>>;
+  /** nombre de mois écoulés sur l'exercice en cours */
+  nbMois: number;
   totalYtd: number;
   totalMois: number;
-  caReference: number | null; // CA YTD depuis la ventilée, base des ratios
+  caReference: Record<FxColumn, number | null>;
+  /** contrôle de couverture : soldes bruts des centres de structure, mappés ou non */
+  controle: { soldeStructure: number; soldeMappe: number };
+  /** d'où viennent N-1 et N-2, pour l'avertissement affiché sous le tableau */
+  sources: Record<"n1" | "n2", FxColumnSource>;
   unmapped: { account: string; label: string; ytd: number }[];
   importId: number;
 };
+
+/** Cumul par compte des centres de structure d'un snapshot analytique. */
+async function structureSoldes(
+  importId: number,
+  kindOf: (code: string) => CentreKind
+): Promise<Map<string, { label: string; solde: number }>> {
+  const rows = await db
+    .select()
+    .from(tables.analyticLines)
+    .where(eq(tables.analyticLines.importId, importId));
+  const out = new Map<string, { label: string; solde: number }>();
+  for (const l of rows) {
+    if (kindOf(l.centreCode) !== "structure") continue;
+    const prev = out.get(l.account);
+    out.set(l.account, {
+      label: prev?.label ?? l.label,
+      solde: round2((prev?.solde ?? 0) + num(l.solde)),
+    });
+  }
+  return out;
+}
+
+/**
+ * Exercice antérieur : on privilégie le dernier snapshot analytique de
+ * l'exercice (le périmètre « structure » y est exact). À défaut on retombe sur
+ * la balance ventilée, restreinte aux comptes de la nomenclature FX — approximation
+ * signalée à l'utilisateur, car la ventilée ne porte pas l'axe analytique et
+ * inclut donc aussi la part imputée aux chantiers.
+ */
+async function priorYear(
+  entity: Entity,
+  fiscalYearStart: number,
+  kindOf: (code: string) => CentreKind,
+  fxAccounts: Set<string>
+): Promise<{ soldes: Map<string, number>; source: FxColumnSource }> {
+  const analytique = await latestValidatedImport(entity.id, "analytique", { fiscalYearStart });
+  if (analytique) {
+    const cumuls = await structureSoldes(analytique.id, kindOf);
+    return {
+      soldes: new Map([...cumuls].map(([a, v]) => [a, v.solde])),
+      source: "analytique",
+    };
+  }
+
+  const ventilee = await latestValidatedImport(entity.id, "ventilee", { fiscalYearStart });
+  if (!ventilee) return { soldes: new Map(), source: "absent" };
+
+  const lines = await db
+    .select()
+    .from(tables.generalBalanceLines)
+    .where(eq(tables.generalBalanceLines.importId, ventilee.id));
+  const soldes = new Map<string, number>();
+  for (const l of lines) {
+    if (!fxAccounts.has(l.account)) continue;
+    soldes.set(l.account, round2((soldes.get(l.account) ?? 0) + num(l.amount)));
+  }
+  return { soldes, source: "ventilee" };
+}
+
+/** CA de référence d'un exercice : la ligne CA TOTAL de la Synthèse. */
+async function caOfYear(entity: Entity, fiscalYearStart: number): Promise<number | null> {
+  const synthese = await getSynthese(entity, { fiscalYearStart });
+  return synthese?.byCode[SYNTHESE_CODES.caTotal]?.total ?? null;
+}
 
 export async function getFx(
   entity: Entity,
@@ -477,103 +848,435 @@ export async function getFx(
     atPeriod: opts?.period,
   });
   if (!imp) return null;
+  // Le cumul analytique se compare toujours à l'intérieur du même exercice.
   const prevImp = await latestValidatedImport(entity.id, "analytique", {
     beforePeriod: imp.period,
-  });
-
-  const load = async (importId: number) =>
-    (
-      await db
-        .select()
-        .from(tables.analyticLines)
-        .where(eq(tables.analyticLines.importId, importId))
-    ).filter((l) => l.centreCode === "FX");
-
-  const current = await load(imp.id);
-  const prevMap = new Map<string, number>();
-  if (prevImp) {
-    for (const l of await load(prevImp.id)) prevMap.set(l.account, num(l.solde));
-  }
-
-  const mapper = await loadMapper("fx", entity.id, entity.code);
-  const byCat = new Map<
-    number,
-    { ytd: number; mois: number; accounts: Map<string, { label: string; ytd: number }> }
-  >();
-  const unmapped = new Map<string, { label: string; ytd: number }>();
-
-  for (const l of current) {
-    const solde = num(l.solde);
-    const mois = round2(solde - (prevMap.get(l.account) ?? 0));
-    const cat = mapper.resolve(l.account);
-    if (!cat) {
-      const prev = unmapped.get(l.account);
-      unmapped.set(l.account, { label: l.label, ytd: round2((prev?.ytd ?? 0) + solde) });
-      continue;
-    }
-    const rec =
-      byCat.get(cat.id) ?? { ytd: 0, mois: 0, accounts: new Map() };
-    rec.ytd = round2(rec.ytd + solde);
-    rec.mois = round2(rec.mois + mois);
-    const accPrev = rec.accounts.get(l.account);
-    rec.accounts.set(l.account, { label: l.label, ytd: round2((accPrev?.ytd ?? 0) + solde) });
-    byCat.set(cat.id, rec);
-  }
-
-  // CA de référence pour les ratios : ventilée du même exercice, produits (70/71/75),
-  // cumulés jusqu'au mois affiché (pour que %/CA reste cohérent sur un mois passé)
-  const ventilee = await latestValidatedImport(entity.id, "ventilee", {
     fiscalYearStart: imp.fiscalYearStart,
   });
-  let caReference: number | null = null;
-  if (ventilee) {
-    const lines = await db
-      .select()
-      .from(tables.generalBalanceLines)
-      .where(eq(tables.generalBalanceLines.importId, ventilee.id));
-    caReference = round2(
-      -lines
-        .filter((l) => /^7(0|1|5)/.test(l.account) && l.month <= imp.period)
-        .reduce((s, l) => s + num(l.amount), 0)
-    );
+
+  const kindOf = await loadCentreKinds(entity.id);
+  const mapper = await loadMapper("fx", entity.id, entity.code);
+
+  const fxAccounts = new Set<string>();
+  for (const cat of mapper.categories) {
+    // On reconstitue le jeu de comptes de la vue à partir des règles actives.
+    void cat;
+  }
+  const ruleRows = await db
+    .select({ pattern: tables.accountRules.pattern, categoryId: tables.accountRules.categoryId })
+    .from(tables.accountRules)
+    .where(eq(tables.accountRules.active, true));
+  const fxCategoryIds = new Set(mapper.categories.map((c) => c.id));
+  for (const r of ruleRows) if (fxCategoryIds.has(r.categoryId)) fxAccounts.add(r.pattern);
+
+  // ── Exercice en cours ──────────────────────────────────────────────────────
+  const current = await structureSoldes(imp.id, kindOf);
+  const prevSnapshot = prevImp
+    ? await structureSoldes(prevImp.id, kindOf)
+    : new Map<string, { label: string; solde: number }>();
+
+  const { soldes: n1Soldes, source: n1Source } = await priorYear(
+    entity,
+    imp.fiscalYearStart - 1,
+    kindOf,
+    fxAccounts
+  );
+  const { soldes: n2Soldes, source: n2Source } = await priorYear(
+    entity,
+    imp.fiscalYearStart - 2,
+    kindOf,
+    fxAccounts
+  );
+
+  // ── Agrégation par poste ───────────────────────────────────────────────────
+  const leaves = new Map<string, Vector>();
+  const accountsByCat = new Map<string, { account: string; label: string; ytd: number }[]>();
+  const unmapped = new Map<string, { account: string; label: string; ytd: number }>();
+  let totalMois = 0;
+  const blankFxVector = (): Vector => ({ n2: 0, n1: 0, n: 0, [MOIS_COLUMN]: 0 });
+
+  // « mois » est une colonne de travail : elle suit les mêmes formules que les
+  // colonnes d'exercice, ce qui donne un total mensuel cohérent avec le TOTAL 4
+  // (et non une somme brute où les produits du siège viendraient s'ajouter).
+  const columns: string[] = [...FX_COLUMNS, MOIS_COLUMN];
+  const bump = (code: string, col: string, v: number) => {
+    const vec = leaves.get(code) ?? blankFxVector();
+    vec[col] = round2(((vec[col] as number) ?? 0) + v);
+    leaves.set(code, vec);
+  };
+  for (const cat of mapper.categories) leaves.set(cat.code, blankFxVector());
+
+  let soldeStructure = 0;
+  let soldeMappe = 0;
+  for (const [account, { label, solde }] of current) {
+    soldeStructure += solde;
+    const cat = mapper.resolve(account);
+    if (!cat) {
+      unmapped.set(account, { account, label, ytd: solde });
+      continue;
+    }
+    soldeMappe += solde;
+    const signed = round2(cat.sign * solde);
+    bump(cat.code, "n", signed);
+    bump(cat.code, MOIS_COLUMN, round2(cat.sign * (solde - (prevSnapshot.get(account)?.solde ?? 0))));
+    const list = accountsByCat.get(cat.code) ?? [];
+    list.push({ account, label, ytd: signed });
+    accountsByCat.set(cat.code, list);
+  }
+  for (const [col, soldes] of [
+    ["n1", n1Soldes],
+    ["n2", n2Soldes],
+  ] as const) {
+    for (const [account, solde] of soldes) {
+      const cat = mapper.resolve(account);
+      if (cat) bump(cat.code, col, round2(cat.sign * solde));
+    }
   }
 
-  const sectionNames = [...new Set(mapper.categories.map((c) => c.section))];
-  const sections = sectionNames.map((name) => {
-    const rows: FxRow[] = mapper.categories
-      .filter((c) => c.section === name)
-      .map((cat) => {
-        const rec = byCat.get(cat.id);
-        const ytd = rec?.ytd ?? 0;
-        return {
-          category: cat,
-          ytd,
-          mois: rec?.mois ?? 0,
-          pctCa: caReference ? round2((ytd / caReference) * 100) : null,
-          accounts: rec
-            ? [...rec.accounts.entries()].map(([account, v]) => ({ account, ...v }))
-            : [],
-        };
-      })
-      .filter((r) => r.ytd !== 0 || r.mois !== 0);
-    return {
-      name,
-      rows,
-      subtotal: {
-        ytd: round2(rows.reduce((s, r) => s + r.ytd, 0)),
-        mois: round2(rows.reduce((s, r) => s + r.mois, 0)),
-      },
+  // ── CA de référence, un par exercice ───────────────────────────────────────
+  const caReference: Record<FxColumn, number | null> = {
+    n: await caOfYear(entity, imp.fiscalYearStart),
+    n1: n1Source === "absent" ? null : await caOfYear(entity, imp.fiscalYearStart - 1),
+    n2: n2Source === "absent" ? null : await caOfYear(entity, imp.fiscalYearStart - 2),
+  };
+  const provided = new Map<string, Vector>([
+    [FX_CODES.caReference, { ...caReference, [MOIS_COLUMN]: null }],
+  ]);
+
+  const values = evaluate(mapper.lines, columns, leaves, { provided });
+  totalMois = values.get(FX_CODES.totalGeneral)?.[MOIS_COLUMN] ?? 0;
+
+  // ── Lignes ─────────────────────────────────────────────────────────────────
+  const sections: FxSection[] = [];
+  const byCode: FxData["byCode"] = {};
+  for (const line of mapper.lines) {
+    const vec = values.get(line.code) ?? {};
+    const cells: Record<FxColumn, number | null> = {
+      n2: vec.n2 ?? null,
+      n1: vec.n1 ?? null,
+      n: vec.n ?? null,
     };
-  });
+    byCode[line.code] = cells;
+    if (line.hidden) continue;
+
+    const isRatio = line.kind === "ratio";
+    const pct: Record<FxColumn, number | null> = { n2: null, n1: null, n: null };
+    if (!isRatio) {
+      for (const col of FX_COLUMNS) {
+        const ca = caReference[col];
+        const v = cells[col];
+        pct[col] = ca && v != null ? round2((v / ca) * 100) : null;
+      }
+    }
+
+    const ecart = cells.n != null && cells.n1 != null ? round2(cells.n - cells.n1) : null;
+    const rows: FxRow = {
+      category: line,
+      cells,
+      pct,
+      ecart,
+      ecartPct:
+        cells.n1 != null && cells.n1 !== 0 && cells.n != null
+          ? round2(((cells.n - cells.n1) / Math.abs(cells.n1)) * 100)
+          : null,
+      accounts: (accountsByCat.get(line.code) ?? []).sort(
+        (a, b) => Math.abs(b.ytd) - Math.abs(a.ytd)
+      ),
+    };
+
+    // Une ligne vide sur les trois exercices n'apporte rien, sauf si elle
+    // structure le tableau (total, ratio, sous-total).
+    if (line.kind === "poste" && !cells.n && !cells.n1 && !cells.n2) continue;
+
+    const last = sections[sections.length - 1];
+    if (last && last.name === line.section) last.rows.push(rows);
+    else sections.push({ name: line.section, rows: [rows] });
+  }
+
+  const fiscalMonthsOfYear = fiscalMonths(imp.fiscalYearStart);
+  const nbMois = fiscalMonthsOfYear.filter((m) => m <= imp.period).length;
 
   return {
     period: imp.period,
-    prevPeriod: prevImp?.period ?? null,
+    fiscalYearStart: imp.fiscalYearStart,
     sections,
-    totalYtd: round2(sections.reduce((s, x) => s + x.subtotal.ytd, 0)),
-    totalMois: round2(sections.reduce((s, x) => s + x.subtotal.mois, 0)),
+    byCode,
+    nbMois,
+    totalYtd: byCode[FX_CODES.totalGeneral]?.n ?? 0,
+    totalMois: round2(totalMois),
     caReference,
-    unmapped: [...unmapped.entries()].map(([account, v]) => ({ account, ...v })),
+    controle: { soldeStructure: round2(soldeStructure), soldeMappe: round2(soldeMappe) },
+    sources: { n1: n1Source, n2: n2Source },
+    unmapped: [...unmapped.values()].sort((a, b) => Math.abs(b.ytd) - Math.abs(a.ytd)),
     importId: imp.id,
+  };
+}
+
+// ── Section Objectifs Dirigeant ──────────────────────────────────────────────
+//
+// Réutilise les ratios déjà calculés par les vues Synthèse et Frais généraux :
+// aucun mapping comptable n'est dupliqué. Seuls l'objectif annuel et la valeur
+// GEN sont saisis, par indicateur et par exercice.
+
+export type ObjectifRow = {
+  key: string;
+  label: string;
+  notes?: string;
+  /** montant cumulé de l'exercice, null si l'indicateur n'est pas automatisable */
+  montant: number | null;
+  /** réalisé en % du CA */
+  realise: number | null;
+  objectif: number | null;
+  gen: number | null;
+  /** réalisé − objectif, en points de % */
+  ecart: number | null;
+  statut: ObjectifStatut;
+  controle: boolean;
+};
+
+export type ObjectifsData = {
+  fiscalYearStart: number;
+  period: string;
+  caTotal: number;
+  rows: ObjectifRow[];
+  /** somme des ratios suivis — doit avoisiner 100 % du CA */
+  totalControle: number | null;
+  chargesDirectes: number | null;
+  margeExploitation: number | null;
+  /** période portant les saisies : le 1er mois de l'exercice */
+  saisiePeriod: string;
+};
+
+export async function getObjectifs(
+  entity: Entity,
+  opts?: { period?: string }
+): Promise<ObjectifsData | null> {
+  const synthese = await getSynthese(entity, { period: opts?.period });
+  if (!synthese) return null;
+  const fx = await getFx(entity, { period: opts?.period });
+
+  // Les objectifs sont annuels : ils sont rangés sur le premier mois de
+  // l'exercice, ce qui les rend indépendants du mois consulté.
+  const saisiePeriod = fiscalMonths(synthese.fiscalYearStart)[0];
+  const saisies = await db
+    .select()
+    .from(tables.manualEntries)
+    .where(
+      and(
+        eq(tables.manualEntries.entityId, entity.id),
+        eq(tables.manualEntries.period, saisiePeriod)
+      )
+    );
+  const objectifs = new Map<string, number>();
+  const gens = new Map<string, number>();
+  for (const m of saisies) {
+    if (!m.subKey || m.valueNum == null) continue;
+    if (m.field === "objectif_annuel") objectifs.set(m.subKey, num(m.valueNum));
+    if (m.field === "gen") gens.set(m.subKey, num(m.valueNum));
+  }
+
+  const caTotal = synthese.byCode[SYNTHESE_CODES.caTotal]?.total ?? 0;
+  const rows: ObjectifRow[] = OBJECTIFS.map((def) => {
+    let montant: number | null = null;
+    if (def.source.view === "synthese")
+      montant = synthese.byCode[def.source.code]?.total ?? null;
+    else if (def.source.view === "fx") montant = fx?.byCode[def.source.code]?.n ?? null;
+
+    const realise =
+      montant != null && caTotal !== 0 ? round2((montant / caTotal) * 100) : null;
+    const objectif = objectifs.get(def.key) ?? null;
+    const gen = gens.get(def.key) ?? null;
+    const ecart = realise != null && objectif != null ? round2(realise - objectif) : null;
+    return {
+      key: def.key,
+      label: def.label,
+      notes: def.notes,
+      montant,
+      realise,
+      objectif,
+      gen,
+      ecart,
+      statut: statutObjectif(ecart),
+      controle: def.controle,
+    };
+  });
+
+  const suivis = rows.filter((r) => r.controle && r.realise != null);
+  const totalControle = suivis.length
+    ? round2(suivis.reduce((s, r) => s + (r.realise ?? 0), 0))
+    : null;
+
+  const chargesDirectes =
+    caTotal !== 0
+      ? round2(
+          (((synthese.byCode[SYNTHESE_CODES.exploitation]?.total ?? 0) +
+            (synthese.byCode[SYNTHESE_CODES.personnel]?.total ?? 0)) /
+            caTotal) *
+            100
+        )
+      : null;
+  const margeExploitation =
+    caTotal !== 0
+      ? round2(
+          ((synthese.byCode[SYNTHESE_CODES.resultatExploitation]?.total ?? 0) / caTotal) * 100
+        )
+      : null;
+
+  return {
+    fiscalYearStart: synthese.fiscalYearStart,
+    period: synthese.period,
+    caTotal,
+    rows,
+    totalControle,
+    chargesDirectes,
+    margeExploitation,
+    saisiePeriod,
+  };
+}
+
+// ── Consultation d'un compte ─────────────────────────────────────────────────
+//
+// Drill-down demandé par le cahier des charges : pouvoir interroger n'importe
+// quel compte comptable, y compris ventilé par chantier, en dehors des lignes
+// agrégées de la nomenclature.
+
+export type AccountDetail = {
+  account: string;
+  label: string;
+  /** poste de rattachement dans chaque vue, null si non mappé */
+  postes: { view: View; label: string | null; section: string | null }[];
+  fiscalYearStart: number;
+  months: string[];
+  /** montants mensuels issus de la balance ventilée */
+  monthly: Record<string, number>;
+  total: number;
+  /** ventilation par centre analytique, au dernier snapshot */
+  ventilation: {
+    centreCode: string;
+    centreLabel: string;
+    kind: CentreKind;
+    pole: string | null;
+    debit: number;
+    credit: number;
+    solde: number;
+    /** variation depuis le snapshot précédent du même exercice */
+    mois: number | null;
+  }[];
+  analytiquePeriod: string | null;
+  prevAnalytiquePeriod: string | null;
+};
+
+/** Comptes présents dans les imports validés, pour l'écran de recherche. */
+export async function listAccounts(
+  entity: Entity
+): Promise<{ account: string; label: string; total: number }[]> {
+  const imp = await latestValidatedImport(entity.id, "ventilee");
+  if (!imp) return [];
+  const rows = await db
+    .select()
+    .from(tables.generalBalanceLines)
+    .where(eq(tables.generalBalanceLines.importId, imp.id));
+  const out = new Map<string, { account: string; label: string; total: number }>();
+  for (const r of rows) {
+    const prev = out.get(r.account);
+    out.set(r.account, {
+      account: r.account,
+      label: prev?.label ?? r.label,
+      total: round2((prev?.total ?? 0) + num(r.amount)),
+    });
+  }
+  return [...out.values()].sort((a, b) => a.account.localeCompare(b.account));
+}
+
+export async function getAccountDetail(
+  entity: Entity,
+  account: string
+): Promise<AccountDetail | null> {
+  const imp = await latestValidatedImport(entity.id, "ventilee");
+  if (!imp) return null;
+
+  const lines = (
+    await db
+      .select()
+      .from(tables.generalBalanceLines)
+      .where(eq(tables.generalBalanceLines.importId, imp.id))
+  ).filter((l) => l.account === account);
+
+  const months = fiscalMonths(imp.fiscalYearStart);
+  const monthly: Record<string, number> = Object.fromEntries(months.map((m) => [m, 0]));
+  let total = 0;
+  let label = "";
+  for (const l of lines) {
+    label = label || l.label;
+    const v = num(l.amount);
+    monthly[l.month] = round2((monthly[l.month] ?? 0) + v);
+    total += v;
+  }
+
+  // Poste de rattachement dans chacune des trois vues.
+  const postes: AccountDetail["postes"] = [];
+  for (const view of ["synthese", "chantier", "fx"] as const) {
+    const mapper = await loadMapper(view, entity.id, entity.code);
+    const cat = mapper.resolve(account);
+    postes.push({ view, label: cat?.label ?? null, section: cat?.section ?? null });
+  }
+
+  // Ventilation analytique au dernier snapshot, avec la variation du mois.
+  const ana = await latestValidatedImport(entity.id, "analytique");
+  const anaPrev = ana
+    ? await latestValidatedImport(entity.id, "analytique", {
+        beforePeriod: ana.period,
+        fiscalYearStart: ana.fiscalYearStart,
+      })
+    : null;
+  const kindOf = await loadCentreKinds(entity.id);
+  const ventilation: AccountDetail["ventilation"] = [];
+  if (ana) {
+    const rows = (
+      await db
+        .select()
+        .from(tables.analyticLines)
+        .where(eq(tables.analyticLines.importId, ana.id))
+    ).filter((l) => l.account === account);
+    const prevByCentre = new Map<string, number>();
+    if (anaPrev) {
+      const prevRows = (
+        await db
+          .select()
+          .from(tables.analyticLines)
+          .where(eq(tables.analyticLines.importId, anaPrev.id))
+      ).filter((l) => l.account === account);
+      for (const p of prevRows)
+        prevByCentre.set(p.centreCode, round2((prevByCentre.get(p.centreCode) ?? 0) + num(p.solde)));
+    }
+    for (const r of rows) {
+      const solde = num(r.solde);
+      ventilation.push({
+        centreCode: r.centreCode,
+        centreLabel: r.centreLabel,
+        kind: kindOf(r.centreCode),
+        pole: poleOf(r.centreCode),
+        debit: num(r.debit),
+        credit: num(r.credit),
+        solde,
+        mois: anaPrev ? round2(solde - (prevByCentre.get(r.centreCode) ?? 0)) : null,
+      });
+    }
+    ventilation.sort((a, b) => Math.abs(b.solde) - Math.abs(a.solde));
+  }
+
+  if (lines.length === 0 && ventilation.length === 0) return null;
+
+  return {
+    account,
+    label,
+    postes,
+    fiscalYearStart: imp.fiscalYearStart,
+    months,
+    monthly,
+    total: round2(total),
+    ventilation,
+    analytiquePeriod: ana?.period ?? null,
+    prevAnalytiquePeriod: anaPrev?.period ?? null,
   };
 }

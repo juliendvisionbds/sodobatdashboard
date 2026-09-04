@@ -6,6 +6,7 @@ import { fiscalYearOf } from "@/lib/parsers";
 import { fmtEurAuto, monthLabelLong } from "@/lib/format";
 import MonthSelect from "@/components/MonthSelect";
 import ChantiersTable from "./ChantiersTable";
+import { CHANTIER_CODES } from "@/lib/nomenclature/codes";
 
 export const dynamic = "force-dynamic";
 
@@ -49,9 +50,9 @@ export default async function ChantiersPage({
     );
   }
 
-  const activeRows = data.rows.filter(
-    (r) => r.totalProduits !== 0 || r.achatsMp !== 0 || r.sousTraitance !== 0 || r.autresCharges !== 0
-  );
+  const activeRows = data.rows.filter((r) => r.mouvemente);
+  const totalProduits = data.totals[CHANTIER_CODES.caTotal] ?? 0;
+  const resultat = data.totals[CHANTIER_CODES.resultat] ?? 0;
 
   return (
     <>
@@ -72,11 +73,11 @@ export default async function ChantiersPage({
         </div>
 
         <div style={{ display: "flex", gap: 12, marginBottom: 20, flexWrap: "wrap" }}>
-          <span className={`tag ${data.totals.totalProduits >= 0 ? "blue" : "red"}`}>
-            Total produits : {fmtEurAuto(data.totals.totalProduits)}
+          <span className={`tag ${totalProduits >= 0 ? "blue" : "red"}`}>
+            CA HT total : {fmtEurAuto(totalProduits)}
           </span>
-          <span className={`tag ${data.totals.resultat >= 0 ? "green" : "red"}`}>
-            Résultat : {data.totals.resultat >= 0 ? "+" : ""}{fmtEurAuto(data.totals.resultat)}
+          <span className={`tag ${resultat >= 0 ? "green" : "red"}`}>
+            Résultat : {resultat >= 0 ? "+" : ""}{fmtEurAuto(resultat)}
           </span>
           <span className="tag gray">{activeRows.length} chantiers avec activité</span>
           {!data.prevPeriod && <span className="tag amber">cumul (pas de snapshot M-1)</span>}
@@ -84,6 +85,7 @@ export default async function ChantiersPage({
         </div>
 
         <ChantiersTable
+          lines={data.lines}
           rows={data.rows}
           totals={data.totals}
           poles={data.poles}
@@ -91,9 +93,10 @@ export default async function ChantiersPage({
           canEdit={writer}
         />
         <p style={{ marginTop: 10, fontSize: 11, color: "var(--gray3)" }}>
-          Résultat = total produits − charges directes affectées au chantier. Frais
-          généraux (centre FX) exclus de cette vue. La colonne Provision (TEC) est éditable
-          (brouillon 🟡 puis figé) par la DAF.
+          Résultat chantier = CA HT total − charges d&apos;exploitation − charges de
+          personnel affectées. Les centres de structure (FX, dépôt, siège) sont exclus :
+          voir Frais généraux. La colonne Provision (TEC) et le statut brouillon / figé
+          sont éditables par la DAF sur le dernier mois importé.
         </p>
       </div>
     </>

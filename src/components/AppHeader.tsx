@@ -8,7 +8,15 @@ export default async function AppHeader({
   active,
   fiscalYearStart,
 }: {
-  active: "synthese" | "chantiers" | "fx" | "imports" | "mapping" | "assistant";
+  active:
+    | "synthese"
+    | "chantiers"
+    | "fx"
+    | "objectifs"
+    | "comptes"
+    | "imports"
+    | "mapping"
+    | "assistant";
   fiscalYearStart?: number;
 }) {
   const session = await getSession();

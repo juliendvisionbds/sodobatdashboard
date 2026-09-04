@@ -331,8 +331,19 @@ export function parseBalanceFile(buffer: Buffer | ArrayBuffer): ParsedFile {
   );
 }
 
-// Pôle d'un chantier : lettre suffixe du code centre (1003B → B).
+// Pôle d'un chantier : suffixe alphabétique du code centre (1003B → B, 52MF → MF).
+// Les chantiers sans suffixe (52, 53) n'ont pas de pôle.
 export function poleOf(centreCode: string): string | null {
-  const m = centreCode.match(/^\d+([A-Z])$/);
-  return m ? m[1] : null;
+  const m = centreCode.trim().match(/^\d+\s*([A-Za-z]{1,2})$/);
+  return m ? m[1].toUpperCase() : null;
+}
+
+export type CentreKind = "chantier" | "structure";
+
+// Règle analytique fondamentale : un code centre commençant par un chiffre est un
+// chantier ; tout le reste (FX, DEPOT, QUADRA…) est un centre de structure, dont
+// les charges vont en frais généraux. La classification peut être surchargée
+// manuellement par centre (colonne centres.kind).
+export function classifyCentre(centreCode: string): CentreKind {
+  return /^\d/.test(centreCode.trim()) ? "chantier" : "structure";
 }

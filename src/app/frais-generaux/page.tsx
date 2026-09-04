@@ -43,7 +43,8 @@ export default async function FxPage({
     );
   }
 
-  const ratioFx = data.caReference ? (data.totalYtd / data.caReference) * 100 : null;
+  const caN = data.caReference.n;
+  const ratioFx = caN ? (data.totalYtd / caN) * 100 : null;
   const ytdSplit = splitAutoEur(data.totalYtd);
   const moisSplit = splitAutoEur(data.totalMois);
 
@@ -59,10 +60,8 @@ export default async function FxPage({
             )}
           </div>
           <p>
-            Centre analytique FX · cumul exercice à date
-            {data.prevPeriod
-              ? ` · colonne « Mois » = delta vs snapshot ${monthLabelLong(data.prevPeriod)}`
-              : " · premier snapshot : colonne « Mois » égale au cumul"}
+            Centres de structure (FX, dépôt, siège) · cumul exercice à date ·{" "}
+            {data.nbMois} mois écoulés
           </p>
         </div>
 
@@ -89,8 +88,8 @@ export default async function FxPage({
               {ratioFx != null ? fmtPct(ratioFx) : "-"}
             </div>
             <div className="kpi-sub">
-              {data.caReference != null
-                ? `CA de référence : ${fmtEurAuto(data.caReference)}`
+              {caN != null
+                ? `CA de référence : ${fmtEurAuto(caN)}`
                 : "importer la balance ventilée pour les ratios"}
             </div>
           </div>
@@ -107,9 +106,9 @@ export default async function FxPage({
 
         <FxTable data={data} />
         <p style={{ marginTop: 10, fontSize: 11, color: "var(--gray3)" }}>
-          Colonnes N-1 / N-2 : disponibles après reprise de l&apos;historique (fichiers des
-          exercices précédents à importer). Négatif = produit venant en déduction
-          (indemnités, refacturations).
+          Négatif = produit venant en déduction (indemnités, refacturations). Les
+          comptes partagés avec les chantiers (carburant, entretien, locations) ne
+          sont comptés ici que pour leur part imputée à un centre de structure.
         </p>
       </div>
     </>

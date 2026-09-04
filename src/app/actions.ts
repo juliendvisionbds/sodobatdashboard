@@ -2,10 +2,11 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { db, tables } from "@/db";
 import { canWrite, getSession, login, logout } from "@/lib/auth";
 import { getEntityByCode } from "@/lib/finance";
+import type { ManualField } from "@/lib/nomenclature/types";
 import {
   assignAccountToCategory,
   createImportPreview,
@@ -215,7 +216,9 @@ export async function saveManualEntryAction(formData: FormData) {
   const { session, entity } = await requireWriter();
   const period = String(formData.get("period") ?? "");
   const centreCode = String(formData.get("centreCode") ?? "") || null;
-  const field = String(formData.get("field") ?? "") as "tec_provision" | "note";
+  const field = String(formData.get("field") ?? "") as ManualField;
+  // Discriminant secondaire : indicateur visé (objectifs) ou part ventilée (SDG/NJW).
+  const subKey = String(formData.get("subKey") ?? "") || null;
   const status = String(formData.get("status") ?? "draft") as "draft" | "final";
   const valueNumRaw = String(formData.get("valueNum") ?? "").replace(",", ".").trim();
   const valueText = String(formData.get("valueText") ?? "") || null;
@@ -232,7 +235,8 @@ export async function saveManualEntryAction(formData: FormData) {
         eq(tables.manualEntries.period, period),
         centreCode
           ? eq(tables.manualEntries.centreCode, centreCode)
-          : eq(tables.manualEntries.field, field), // clé sans centre
+          : isNull(tables.manualEntries.centreCode),
+        subKey ? eq(tables.manualEntries.subKey, subKey) : isNull(tables.manualEntries.subKey),
         eq(tables.manualEntries.field, field)
       )
     );
@@ -256,6 +260,7 @@ export async function saveManualEntryAction(formData: FormData) {
       entityId: entity.id,
       period,
       centreCode,
+      subKey,
       field,
       valueNum,
       valueText,
@@ -263,8 +268,7 @@ export async function saveManualEntryAction(formData: FormData) {
       updatedBy: session.email,
     });
   }
-  revalidatePath("/chantiers");
-  revalidatePath("/");
+  revalidatePath("/", "layout");
 }
 
 // ── Alertes ──────────────────────────────────────────────────────────────────

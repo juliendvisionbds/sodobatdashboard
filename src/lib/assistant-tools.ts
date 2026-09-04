@@ -9,6 +9,7 @@ import { and, desc, eq } from "drizzle-orm";
 import { db, tables } from "@/db";
 import { Entity, getChantiers, getFx, getSynthese } from "./finance";
 import { monthLabelLong } from "./format";
+import { CHANTIER_CODES } from "./nomenclature/codes";
 
 const eur = (n: number) => Math.round(n); // euros entiers : suffisant pour le chat
 
@@ -66,15 +67,21 @@ export function buildAssistantTools(entity: Entity) {
           ...base,
           sections: data.sections.map((s) => ({
             section: s.name,
-            sousTotal: eur(s.subtotal.total),
             lignes: s.rows
-              .filter((r) => r.total !== 0 || (r.prevTotal ?? 0) !== 0)
+              .filter((r) => r.total || r.prevTotal)
               .map((r) => ({
                 ligne: r.category.label,
-                parMois: monthlyReadable(r.monthly, data.monthsWithData),
-                cumulExercice: eur(r.total),
+                nature: r.category.kind,
+                parMois: monthlyReadable(
+                  Object.fromEntries(
+                    data.monthsWithData.map((m) => [m, r.cells[m] ?? 0])
+                  ),
+                  data.monthsWithData
+                ),
+                cumulExercice: eur(r.total ?? 0),
                 pctDuCa: r.pctCa,
                 cumulN1: r.prevTotal != null ? eur(r.prevTotal) : null,
+                ecartN1: r.ecart != null ? eur(r.ecart) : null,
               })),
           })),
         };
@@ -118,24 +125,27 @@ export function buildAssistantTools(entity: Entity) {
             : "cumul depuis l'ouverture des chantiers (premier snapshot)",
           poles: data.poles,
           nombreChantiers: rows.length,
+          // Les postes suivent la nomenclature : on les expose tous, libellés en clair.
           chantiers: rows.map((r) => ({
             reference: r.centreCode,
             chantier: r.centreLabel,
             pole: r.pole,
-            facture: eur(r.facture),
-            provisionTravauxEnCours: eur(r.previsionManuelle?.value ?? r.prevision),
-            annulationProvisionM1: eur(r.annulation),
-            totalProduits: eur(r.totalProduits),
-            achatsMatieresPremieres: eur(r.achatsMp),
-            sousTraitance: eur(r.sousTraitance),
-            autresCharges: eur(r.autresCharges),
-            resultatMois: eur(r.resultat),
+            postes: Object.fromEntries(
+              data.lines
+                .filter((l) => l.kind !== "manual" && r.values[l.code])
+                .map((l) => [l.label, eur(r.values[l.code] ?? 0)])
+            ),
+            resultatMois: eur(r.values[CHANTIER_CODES.resultat] ?? 0),
+            cumulResultatChantier: eur(r.values[CHANTIER_CODES.cumulResultat] ?? 0),
+            cumulFacturationChantier: eur(r.values[CHANTIER_CODES.cumulFacturation] ?? 0),
+            statut: r.statut === "final" ? "figé" : "brouillon",
             note: r.note,
           })),
           totaux: {
-            facture: eur(data.totals.facture),
-            totalProduits: eur(data.totals.totalProduits),
-            resultatMois: eur(data.totals.resultat),
+            caHtTotal: eur(data.totals[CHANTIER_CODES.caTotal] ?? 0),
+            chargesExploitation: eur(data.totals[CHANTIER_CODES.totalExploitation] ?? 0),
+            chargesPersonnel: eur(data.totals[CHANTIER_CODES.totalPersonnel] ?? 0),
+            resultatMois: eur(data.totals[CHANTIER_CODES.resultat] ?? 0),
           },
         };
       },
@@ -143,29 +153,37 @@ export function buildAssistantTools(entity: Entity) {
 
     frais_generaux: tool({
       description:
-        "Frais généraux (centre analytique FX) : par poste, montant du mois, cumul exercice (YTD) " +
-        "et poids en % du CA. Source : balance analytique. Montants en euros.",
+        "Frais généraux (centres de structure : FX, dépôt, siège) : par poste, cumul de " +
+        "l'exercice en cours et des deux exercices précédents, poids en % du CA de chaque " +
+        "exercice et écart N/N-1. Source : balance analytique. Montants en euros.",
       inputSchema: z.object({}),
       execute: async () => {
         const data = await getFx(entity);
         if (!data) return { erreur: "Aucune balance analytique validée. Frais généraux indisponibles." };
 
+        const caN = data.caReference.n;
         return {
           mois: monthLabelLong(data.period),
-          caReferencePourRatios: data.caReference != null ? eur(data.caReference) : null,
+          nbMoisEcoules: data.nbMois,
+          caReferencePourRatios: caN != null ? eur(caN) : null,
           totalCumulExercice: eur(data.totalYtd),
           totalDuMois: eur(data.totalMois),
           ratioFxSurCa:
-            data.caReference && data.caReference !== 0
-              ? Math.round((data.totalYtd / data.caReference) * 1000) / 10
-              : null,
+            caN ? Math.round((data.totalYtd / caN) * 1000) / 10 : null,
+          historique: {
+            n1: data.sources.n1 === "absent" ? "exercice non importé" : "disponible",
+            n2: data.sources.n2 === "absent" ? "exercice non importé" : "disponible",
+          },
           postes: data.sections.flatMap((s) =>
             s.rows.map((r) => ({
               section: s.name,
               poste: r.category.label,
-              duMois: eur(r.mois),
-              cumulExercice: eur(r.ytd),
-              pctDuCa: r.pctCa,
+              nature: r.category.kind,
+              cumulExercice: r.cells.n != null ? eur(r.cells.n) : null,
+              cumulN1: r.cells.n1 != null ? eur(r.cells.n1) : null,
+              cumulN2: r.cells.n2 != null ? eur(r.cells.n2) : null,
+              pctDuCa: r.pct.n,
+              ecartN1: r.ecart != null ? eur(r.ecart) : null,
             }))
           ),
         };

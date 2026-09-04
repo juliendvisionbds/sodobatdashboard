@@ -66,12 +66,13 @@ export default async function SynthesePage({
     ca: data.caTotal.monthly[m] ?? 0,
   }));
 
-  // top charges pour la carte structure (catégories charges, triées)
+  // top charges pour la carte structure : postes de charge uniquement, triés
+  // (les totaux et ratios de la nomenclature ne sont pas des postes de dépense)
   const chargeRows = data.sections
     .filter((s) => s.name !== "PRODUITS / CA")
     .flatMap((s) => s.rows)
-    .filter((r) => r.total > 0)
-    .sort((a, b) => b.total - a.total)
+    .filter((r) => r.category.kind === "poste" && (r.total ?? 0) > 0)
+    .sort((a, b) => (b.total ?? 0) - (a.total ?? 0))
     .slice(0, 6);
   const palette = ["var(--blue)", "#5B8DEF", "#8AAEF5", "var(--gray3)", "var(--gray4)", "var(--gray4)"];
 
@@ -81,10 +82,7 @@ export default async function SynthesePage({
       : null;
   const pctNet =
     data.caTotal.total !== 0 ? (data.resultatNet.total / data.caTotal.total) * 100 : null;
-  const st = data.sections
-    .flatMap((s) => s.rows)
-    .filter((r) => r.category.code.startsWith("syn_st_"))
-    .reduce((s, r) => s + r.total, 0);
+  const st = data.byCode["syn_sous_traitance"]?.total ?? 0;
   const personnel = data.totalChargesPersonnel.total;
 
   const caSplit = splitAutoEur(data.caTotal.total);
@@ -266,7 +264,7 @@ export default async function SynthesePage({
                     </div>
                   </div>
                   <div className="charge-right">
-                    <div className="charge-amt">{fmtEurAuto(r.total)}</div>
+                    <div className="charge-amt">{fmtEurAuto(r.total ?? 0)}</div>
                     <div className="charge-pct">{fmtPct(r.pctCa)}</div>
                   </div>
                 </div>

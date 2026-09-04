@@ -11,8 +11,9 @@ import { readFileSync } from "fs";
 import { db, tables } from "../src/db";
 import { createImportPreview, validateImport } from "../src/lib/import-service";
 import { getChantiers, getEntityByCode, getFx, getSynthese } from "../src/lib/finance";
-import { parseBalanceFile } from "../src/lib/parsers";
+import { classifyCentre, parseBalanceFile } from "../src/lib/parsers";
 import { and, eq } from "drizzle-orm";
+import { CHANTIER_CODES, SYNTHESE_CODES } from "../src/lib/nomenclature/codes";
 
 const DOCS =
   process.argv[2] ??
@@ -68,22 +69,45 @@ async function main() {
     koClasses.map((c) => `classe ${c.class}`).join(", ") || undefined
   );
 
-  const synthese = await getSynthese(entity);
+  // Les vues sont interrogées sur la période importée ici : un import plus
+  // récent peut coexister en base (l'analytique ne remplace que son propre mois).
+  const period = v.summary.period as string;
+  const synthese = await getSynthese(entity, { period });
   if (!synthese) throw new Error("synthèse vide");
 
-  // résultat net calculé = -(TOTAL GENERAL du fichier) (classe 7 créditrice - classe 6)
+  // Résultat de la balance générale = -(TOTAL GENERAL du fichier), la classe 7
+  // étant créditrice. C'est le point de bouclage de la nomenclature.
   const fileResultat = parsed.fileGrandTotal != null ? -parsed.fileGrandTotal : null;
+  const resultatBg = synthese.byCode[SYNTHESE_CODES.resultatBg]?.total ?? 0;
   check(
-    "résultat net synthèse = total général de la balance (au centime)",
-    fileResultat != null && Math.abs(synthese.resultatNet.total - fileResultat) < 0.02,
-    `calculé ${fmt(synthese.resultatNet.total)} vs fichier ${fmt(fileResultat ?? 0)}`
+    "résultat BG comptable = total général de la balance (au centime)",
+    fileResultat != null && Math.abs(resultatBg - fileResultat) < 0.02,
+    `calculé ${fmt(resultatBg)} vs fichier ${fmt(fileResultat ?? 0)}`
   );
 
+  // Le résultat du TG exclut délibérément les dotations et la VNC : l'écart avec
+  // le résultat comptable doit donc être exactement égal à ces retraitements
+  // (« Ctrl doit être 0 ou lié aux DAP », maquette § Résultat final & contrôles).
+  const ctrl = synthese.byCode[SYNTHESE_CODES.ctrl]?.total ?? 0;
+  const dap = synthese.byCode["syn_retraitement_dap"]?.total ?? 0;
+  const vnc = synthese.byCode["syn_retraitement_vnc"]?.total ?? 0;
+  check(
+    "écart de contrôle intégralement expliqué par les retraitements DAP et VNC",
+    Math.abs(ctrl - (dap + vnc)) < 0.02,
+    `Ctrl ${fmt(ctrl)} = DAP ${fmt(dap)} + VNC ${fmt(vnc)} → inexpliqué ${fmt(ctrl - dap - vnc)}`
+  );
+
+  // CA de la maquette : produits d'exploitation + travaux en cours + cession
+  // d'immo + produits financiers et de gestion courante.
   const cls = (p: string) =>
     parsed.accounts.filter((x) => x.account.startsWith(p)).reduce((s, x) => s + x.total, 0);
-  const fileCa = -(cls("70") + cls("713") + cls("757") + cls("758"));
+  // Tous les produits de l'exercice, sauf la quote-part SEP (75550000) qui est
+  // portée par la section Frais généraux et non par le CA.
+  const fileCa = -(
+    cls("70") + cls("71") + cls("74") + cls("75") + cls("76") + cls("79") - cls("7555")
+  );
   check(
-    "CA total synthèse = classes 70+713+757+758 du fichier",
+    "CA total synthèse = définition CA de la maquette, calculée sur le fichier",
     Math.abs(synthese.caTotal.total - fileCa) < 0.02,
     `calculé ${fmt(synthese.caTotal.total)} vs fichier ${fmt(fileCa)}`
   );
@@ -95,40 +119,41 @@ async function main() {
   );
 
   console.log("\n3) VUE CHANTIERS — delta snapshots");
-  const chantiers = await getChantiers(entity);
+  const chantiers = await getChantiers(entity, { period });
   if (!chantiers) throw new Error("chantiers vide");
+  const chaTotal = (code: string) => chantiers.totals[code] ?? 0;
   console.log(
-    `  ${chantiers.rows.length} centres, résultat total ${fmt(chantiers.totals.resultat)}`
+    `  ${chantiers.rows.length} centres, résultat total ${fmt(chaTotal(CHANTIER_CODES.resultat))}`
   );
   // cohérence : somme des soldes analytiques (hors FX) = -(produits) + charges
   const analytiqueParsed = parseBalanceFile(analytiqueBuf);
   if (analytiqueParsed.type !== "analytique") throw new Error("détection analytique KO");
   const nonFxSolde = analytiqueParsed.lines
-    .filter((l) => l.centreCode !== "FX")
+    .filter((l) => classifyCentre(l.centreCode) === "chantier")
     .reduce((s, l) => s + l.solde, 0);
-  const recomputed =
-    chantiers.totals.achatsMp +
-    chantiers.totals.sousTraitance +
-    chantiers.totals.autresCharges -
-    chantiers.totals.facture -
-    chantiers.totals.prevision -
-    chantiers.totals.annulation;
+  // Contrôle de couverture : chaque euro imputé à un chantier est rattaché à un
+  // poste de la maquette (les saisies manuelles, elles, ne viennent pas du fichier).
   check(
-    "résultat chantiers cohérent avec la somme des soldes analytiques (hors FX)",
-    Math.abs(nonFxSolde - recomputed) < 0.02,
-    `soldes ${fmt(nonFxSolde)} vs recalcul ${fmt(recomputed)}`
+    "soldes des centres chantier retrouvés à l'identique dans la vue",
+    Math.abs(nonFxSolde - chantiers.controle.soldeChantier) < 0.02,
+    `fichier ${fmt(nonFxSolde)} vs vue ${fmt(chantiers.controle.soldeChantier)}`
+  );
+  check(
+    "aucun compte de chantier non mappé (rien n'est ignoré)",
+    chantiers.unmapped.length === 0,
+    chantiers.unmapped.map((u) => `${u.account} ${u.label}`).join(", ") || undefined
   );
 
   console.log("\n4) VUE FRAIS GÉNÉRAUX — centre FX");
-  const fx = await getFx(entity);
+  const fx = await getFx(entity, { period });
   if (!fx) throw new Error("fx vide");
   const fxFileTotal = analytiqueParsed.lines
-    .filter((l) => l.centreCode === "FX")
+    .filter((l) => classifyCentre(l.centreCode) === "structure")
     .reduce((s, l) => s + l.solde, 0);
   const fxComputed =
-    fx.totalYtd + fx.unmapped.reduce((s, u) => s + u.ytd, 0);
+    fx.controle.soldeMappe + fx.unmapped.reduce((s, u) => s + u.ytd, 0);
   check(
-    "total FX (mappé + non mappé) = somme des soldes du centre FX",
+    "total FX (mappé + non mappé) = somme des soldes des centres de structure",
     Math.abs(fxComputed - fxFileTotal) < 0.02,
     `calculé ${fmt(fxComputed)} vs fichier ${fmt(fxFileTotal)}`
   );
