@@ -14,6 +14,7 @@ import { getChantiers, getEntityByCode, getFx, getSynthese } from "../src/lib/fi
 import { classifyCentre, parseBalanceFile } from "../src/lib/parsers";
 import { and, eq } from "drizzle-orm";
 import { CHANTIER_CODES, SYNTHESE_CODES } from "../src/lib/nomenclature/codes";
+import { requireLocalDatabase } from "./guard-local";
 
 const DOCS =
   process.argv[2] ??
@@ -29,6 +30,7 @@ function check(label: string, ok: boolean, detail?: string) {
 }
 
 async function main() {
+  requireLocalDatabase("recette");
   const entity = await getEntityByCode("sodobat");
   if (!entity) throw new Error("Entité sodobat absente — lancer npm run db:seed");
 

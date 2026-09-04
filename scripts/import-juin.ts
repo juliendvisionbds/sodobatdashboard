@@ -22,6 +22,7 @@ import {
 } from "../src/lib/finance";
 import { classifyCentre, parseBalanceFile } from "../src/lib/parsers";
 import { CHANTIER_CODES, SYNTHESE_CODES } from "../src/lib/nomenclature/codes";
+import { requireLocalDatabase } from "./guard-local";
 
 const DIR = "/Users/juliend/Desktop/vision/Groupe SDG/dashboard financier/docs/balances juin";
 
@@ -35,6 +36,7 @@ function check(label: string, ok: boolean, detail?: string) {
 }
 
 async function main() {
+  requireLocalDatabase("import-juin");
   const entity = await getEntityByCode("sodobat");
   if (!entity) throw new Error("Entité sodobat absente");
 
