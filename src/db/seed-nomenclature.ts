@@ -25,6 +25,7 @@ import { accountsOfView, validateNomenclature } from "../lib/nomenclature/valida
 import { classifyCentre } from "../lib/parsers";
 import { COMPTES_TOUJOURS_FX } from "../lib/nomenclature/codes";
 import type { View } from "../lib/nomenclature/types";
+import { describeTarget, requireEnvTarget } from "../lib/env-target";
 
 const VIEWS: View[] = ["synthese", "chantier", "fx"];
 
@@ -117,6 +118,7 @@ async function dbSignature(): Promise<string> {
 }
 
 async function main() {
+  requireEnvTarget();
   const dryRun = process.argv.includes("--dry-run");
   const onlyIfChanged = process.argv.includes("--only-if-changed");
 
@@ -134,6 +136,7 @@ async function main() {
   const postes = nomenclature.filter((l) => l.kind === "poste");
   const ruleCount = postes.reduce((s, l) => s + (l.accounts?.length ?? 0), 0);
 
+  console.log(`Base : ${describeTarget()}`);
   console.log("Nomenclature Sodobat");
   for (const v of VIEWS) console.log(`  ${v.padEnd(9)} ${counts[v]} lignes`);
   console.log(`  ${postes.length} postes · ${ruleCount} règles sur comptes exacts`);

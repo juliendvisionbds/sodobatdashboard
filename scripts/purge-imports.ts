@@ -17,6 +17,7 @@
 import "dotenv/config";
 import { and, eq, inArray } from "drizzle-orm";
 import { db, tables } from "../src/db";
+import { describeTarget, requireEnvTarget } from "../src/lib/env-target";
 
 /** Auteurs correspondant à un rejeu de script, par opposition à un import humain. */
 const AUTEURS_SCRIPTS = ["recette", "import-juin"];
@@ -25,7 +26,9 @@ const fmtDate = (d: Date | string | null) =>
   d ? new Date(d).toLocaleDateString("fr-FR") : "—";
 
 async function main() {
+  requireEnvTarget();
   const apply = process.argv.includes("--apply");
+  console.log(`Base : ${describeTarget()}\n`);
 
   const all = await db.select().from(tables.imports);
   const parStatut = new Map<string, number>();

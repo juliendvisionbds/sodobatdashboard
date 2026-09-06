@@ -12,17 +12,17 @@ import { eq } from "drizzle-orm";
 import { db, tables } from "../src/db";
 import { getChantiers, getEntityByCode, latestValidatedImport } from "../src/lib/finance";
 import { loadMapper } from "../src/lib/mapping";
+import { describeTarget, requireEnvTarget } from "../src/lib/env-target";
 
 const bad = (v: unknown) => typeof v === "number" && !Number.isFinite(v);
 const show = (v: number | null | undefined) =>
   v == null ? "—" : Number.isFinite(v) ? v.toFixed(2) : `⚠ ${String(v)}`;
 
 async function main() {
+  requireEnvTarget();
   const entity = await getEntityByCode("sodobat");
   if (!entity) throw new Error("entité sodobat absente");
-  console.log(
-    `Base : ${process.env.DATABASE_URL ? "DISTANTE (" + (process.env.DATABASE_URL.split("@").pop() ?? "?") + ")" : "PGlite locale"}\n`
-  );
+  console.log(`Base : ${describeTarget()}\n`);
 
   // ── 1. Saisies manuelles : la source la plus probable ──────────────────────
   const imp = await latestValidatedImport(entity.id, "analytique");

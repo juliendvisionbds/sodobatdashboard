@@ -17,6 +17,7 @@ import "dotenv/config";
 import { eq, inArray } from "drizzle-orm";
 import { db, tables } from "../src/db";
 import { getEntityByCode } from "../src/lib/finance";
+import { describeTarget, requireEnvTarget } from "../src/lib/env-target";
 
 const arg = (name: string) => {
   const i = process.argv.indexOf(name);
@@ -28,13 +29,11 @@ const corrompue = (v: string | null) =>
   v != null && !Number.isFinite(parseFloat(v));
 
 async function main() {
+  requireEnvTarget();
   const entity = await getEntityByCode("sodobat");
   if (!entity) throw new Error("entité sodobat absente");
 
-  const cible = process.env.DATABASE_URL
-    ? `DISTANTE (${process.env.DATABASE_URL.split("@").pop()})`
-    : "PGlite locale";
-  console.log(`Base : ${cible}\n`);
+  console.log(`Base : ${describeTarget()}\n`);
 
   const rows = await db
     .select()
