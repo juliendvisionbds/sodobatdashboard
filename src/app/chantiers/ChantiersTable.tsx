@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { Fragment, useMemo, useState, useTransition } from "react";
 import type { Category } from "@/lib/mapping";
 import type { ChantierRow, ChantiersData } from "@/lib/finance";
 import { CHANTIER_CODES } from "@/lib/nomenclature/codes";
@@ -150,8 +150,8 @@ export default function ChantiersTable({
               </tr>
             )}
             {byPole.map(([p, list]) => (
-              <>
-                <tr className="section-row" key={`pole-${p}`}>
+              <Fragment key={`pole-${p}`}>
+                <tr className="section-row">
                   <td colSpan={colCount}>{p === "—" ? "Sans pôle" : `Pôle ${p}`}</td>
                 </tr>
                 {list.map((r) => (
@@ -164,7 +164,7 @@ export default function ChantiersTable({
                     canEdit={canEdit}
                   />
                 ))}
-              </>
+              </Fragment>
             ))}
             <tr className="total-row">
               <td className="left" colSpan={2}>
