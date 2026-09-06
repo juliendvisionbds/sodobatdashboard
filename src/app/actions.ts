@@ -224,7 +224,12 @@ export async function saveManualEntryAction(formData: FormData) {
   const valueText = String(formData.get("valueText") ?? "") || null;
   if (!period || !field) return;
 
-  const valueNum = valueNumRaw === "" ? null : String(parseFloat(valueNumRaw));
+  // PostgreSQL accepte 'NaN' comme valeur d'une colonne numeric : une saisie non
+  // numérique y serait stockée telle quelle et contaminerait tous les totaux qui
+  // la traversent. On refuse donc d'écrire autre chose qu'un nombre fini.
+  const parsedNum = parseFloat(valueNumRaw);
+  const valueNum =
+    valueNumRaw === "" || !Number.isFinite(parsedNum) ? null : String(parsedNum);
 
   const existing = await db
     .select()

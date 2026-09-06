@@ -19,8 +19,17 @@ import { OBJECTIFS, statutObjectif, type ObjectifStatut } from "./objectifs";
 
 export { TOTAL_COLUMN, CHANTIER_CODES, FX_CODES, SYNTHESE_CODES };
 
-const num = (v: string | number | null | undefined) =>
-  v == null ? 0 : typeof v === "number" ? v : parseFloat(v);
+/**
+ * Montant lu depuis une colonne numeric. PostgreSQL admet la valeur spéciale
+ * NaN : une seule ligne corrompue suffirait sinon à propager NaN dans tous les
+ * totaux qui la traversent. On la neutralise à la lecture.
+ */
+const num = (v: string | number | null | undefined) => {
+  if (v == null) return 0;
+  const n = typeof v === "number" ? v : parseFloat(v);
+  return Number.isFinite(n) ? n : 0;
+};
+
 const round2 = (n: number) => Math.round(n * 100) / 100;
 
 export type Entity = { id: number; code: string; name: string; active: boolean };

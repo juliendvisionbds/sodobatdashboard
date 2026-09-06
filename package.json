@@ -11,6 +11,8 @@
     "db:seed": "node --import=tsx src/db/seed.ts",
     "db:nomenclature": "node --import=tsx src/db/seed-nomenclature.ts",
     "db:password": "node --import=tsx scripts/reset-password.ts",
+    "manual": "node --import=tsx scripts/manual-entries.ts",
+    "diag:chantiers": "node --import=tsx scripts/diag-chantiers.ts",
     "purge:imports": "node --import=tsx scripts/purge-imports.ts",
     "recette": "node --import=tsx scripts/recette.ts",
     "recette:assistant": "node --import=tsx scripts/recette-assistant.ts",
