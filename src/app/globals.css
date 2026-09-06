@@ -378,15 +378,63 @@ td.muted { color: var(--gray3); }
   background: var(--blue-lt) !important; text-align: left;
 }
 .section-row:hover td { background: var(--blue-lt) !important; }
-.subtotal-row td { font-weight: 600; color: var(--black); background: var(--gray4); }
+.subtotal-row td { font-weight: 600; color: var(--black); }
 .subtotal-row td.neg { color: var(--red); }
 .total-row { border-top: 2px solid var(--gray4) !important; }
 .total-row td {
   font-weight: 600; color: var(--black) !important; font-size: 13px !important;
-  background: var(--blue-lt) !important;
 }
 .total-row td.neg { color: var(--red) !important; }
-.total-row:hover td { background: var(--blue-lt) !important; }
+/* Seuls les intitulés de section (.section-row) gardent un fond bleu. Les lignes
+   en gras (sous-totaux, totaux) restent en gras, sans fond, y compris au survol. */
+.ct tbody tr.subtotal-row,
+.ct tbody tr.subtotal-row:hover,
+.ct tbody tr.total-row,
+.ct tbody tr.total-row:hover { background: transparent !important; }
+
+/* Synthèse : colonne « Intitulé » élargie, les libellés de catégories étant longs. */
+.synthese-ct thead th.left,
+.synthese-ct td.label-cell { min-width: 320px; }
+
+/* Chantiers : colonnes Réf. + Chantier élargies et figées au défilement
+   horizontal. Largeurs en border-box pour que le décalage `left` de la 2e
+   colonne corresponde exactement à la largeur de la 1re. */
+.chantiers-ct th:nth-child(1),
+.chantiers-ct th:nth-child(2),
+.chantiers-ct td.code-cell,
+.chantiers-ct td.label-cell { box-sizing: border-box; }
+.chantiers-ct th:nth-child(1),
+.chantiers-ct td.code-cell { width: 100px; min-width: 100px; }
+.chantiers-ct th:nth-child(2),
+.chantiers-ct td.label-cell { width: 300px; min-width: 300px; max-width: 300px; }
+
+.chantiers-ct th:nth-child(1),
+.chantiers-ct th:nth-child(2) { position: sticky; z-index: 6; }
+.chantiers-ct th:nth-child(1) { left: 0; }
+.chantiers-ct th:nth-child(2) { left: 100px; }
+
+/* Les cellules figées doivent être opaques : le contenu non positionné des
+   autres colonnes passerait sinon dessous. */
+.chantiers-ct tbody td.code-cell,
+.chantiers-ct tbody td.label-cell,
+.chantiers-ct tbody tr.total-row td:first-child {
+  position: sticky; z-index: 3; background-color: var(--white);
+}
+.chantiers-ct tbody td.code-cell,
+.chantiers-ct tbody tr.total-row td:first-child { left: 0; }
+.chantiers-ct tbody td.label-cell { left: 100px; }
+
+/* Le survol teinte la ligne via un fond translucide, invisible sous une cellule
+   opaque : on le recompose en calque au-dessus du blanc. */
+.chantiers-ct tbody tr:hover td.code-cell,
+.chantiers-ct tbody tr:hover td.label-cell {
+  background-image: linear-gradient(var(--blue-hover), var(--blue-hover));
+}
+
+/* Démarcation entre le bloc figé et les colonnes qui défilent. */
+.chantiers-ct th:nth-child(2),
+.chantiers-ct tbody td.label-cell,
+.chantiers-ct tbody tr.total-row td:first-child { border-right: 1px solid var(--gray4); }
 
 /* ── TAGS / BADGES ── */
 .tag { display: inline-flex; align-items: center; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 500; }

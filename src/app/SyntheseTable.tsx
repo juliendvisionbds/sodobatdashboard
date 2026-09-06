@@ -5,10 +5,10 @@ import type { SyntheseData, SyntheseRow } from "@/lib/finance";
 import { TOTAL_COLUMN } from "@/lib/nomenclature/columns";
 import { fmtEur, fmtPct, monthLabel } from "@/lib/format";
 
-// La maquette impose 18 colonnes sur chaque ligne, sans exception :
-// Intitulé · les 12 mois de l'exercice · Total exercice · % / CA · N-1 Total ·
-// % N-1 · Écart N–N-1. Les mois sans données restent affichés (vides) pour que
-// le tableau conserve la même structure d'un mois à l'autre.
+// Structure de référence : Intitulé · les 12 mois de l'exercice · Total exercice ·
+// % / CA · N-1 Total · % N-1 · Écart N–N-1, soit 18 colonnes. Les mois sans données
+// sont masqués par défaut (« Masquer les colonnes vides ») ; décocher l'option
+// restitue les 12 mois pour retrouver la structure complète de la maquette.
 
 function pctBadge(pct: number | null) {
   return pct == null ? (
@@ -37,8 +37,27 @@ export default function SyntheseTable({ data }: { data: SyntheseData }) {
   const [section, setSection] = useState("");
   const [search, setSearch] = useState("");
   const [hideEmpty, setHideEmpty] = useState(false);
+  // Masquer les mois vides est l'affichage par défaut : en cours d'exercice, la
+  // moitié des colonnes est encore à zéro.
+  const [hideEmptyCols, setHideEmptyCols] = useState(true);
   const months = data.months;
   const filtering = section !== "" || search.trim() !== "";
+
+  // Un mois est vide si aucune ligne n'y porte de valeur. Calculé sur l'ensemble
+  // des sections, jamais sur les lignes filtrées : les colonnes ne doivent pas
+  // bouger pendant qu'on tape une recherche.
+  const monthsShown = useMemo(() => {
+    if (!hideEmptyCols) return months;
+    const kept = months.filter((m) =>
+      data.sections.some((s) =>
+        s.rows.some((r) => {
+          const v = r.cells[m];
+          return v != null && v !== 0;
+        }),
+      ),
+    );
+    return kept.length > 0 ? kept : months;
+  }, [months, data.sections, hideEmptyCols]);
 
   const visibleSections = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -57,7 +76,7 @@ export default function SyntheseTable({ data }: { data: SyntheseData }) {
       .filter((s) => s.rows.length > 0);
   }, [data.sections, section, search, hideEmpty]);
 
-  const colCount = months.length + 6;
+  const colCount = monthsShown.length + 6;
 
   return (
     <div style={{ marginTop: 32 }}>
@@ -91,13 +110,21 @@ export default function SyntheseTable({ data }: { data: SyntheseData }) {
           />
           Masquer les lignes vides
         </label>
+        <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12 }}>
+          <input
+            type="checkbox"
+            checked={hideEmptyCols}
+            onChange={(e) => setHideEmptyCols(e.target.checked)}
+          />
+          Masquer les colonnes vides
+        </label>
       </div>
       <div className="table-wrap">
-        <table className="ct">
+        <table className="ct synthese-ct">
           <thead>
             <tr>
               <th className="left">Intitulé</th>
-              {months.map((m) => (
+              {monthsShown.map((m) => (
                 <th key={m} className={data.monthsWithData.includes(m) ? "" : "muted"}>
                   {monthLabel(m)}
                 </th>
@@ -118,7 +145,7 @@ export default function SyntheseTable({ data }: { data: SyntheseData }) {
               </tr>
             )}
             {visibleSections.map((s) => (
-              <SectionRows key={s.name} name={s.name} rows={s.rows} months={months} colCount={colCount} />
+              <SectionRows key={s.name} name={s.name} rows={s.rows} months={monthsShown} colCount={colCount} />
             ))}
           </tbody>
         </table>

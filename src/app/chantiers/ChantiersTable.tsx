@@ -122,7 +122,7 @@ export default function ChantiersTable({
       </div>
 
       <div className="table-wrap">
-        <table className="ct">
+        <table className="ct chantiers-ct">
           <thead>
             <tr>
               <th className="left">Réf.</th>
