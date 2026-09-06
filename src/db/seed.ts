@@ -1,7 +1,7 @@
 import "dotenv/config";
 import bcrypt from "bcryptjs";
 import { db, tables } from "./index";
-import { DEFAULT_PASSWORD, seedEntities, seedUsers } from "./seed-data";
+import { resolveSeedPassword, seedEntities, seedUsers } from "./seed-data";
 
 async function main() {
   // Entités
@@ -11,7 +11,8 @@ async function main() {
     .onConflictDoNothing({ target: tables.entities.code });
 
   // Utilisateurs (un par rôle)
-  const hash = await bcrypt.hash(DEFAULT_PASSWORD, 10);
+  const password = resolveSeedPassword();
+  const hash = await bcrypt.hash(password, 10);
   await db
     .insert(tables.users)
     .values(seedUsers.map((u) => ({ ...u, passwordHash: hash })))
@@ -22,7 +23,11 @@ async function main() {
 
   console.log("Seed terminé :");
   console.log(`- ${seedEntities.length} entités`);
-  console.log(`- ${seedUsers.length} utilisateurs (mot de passe par défaut : ${DEFAULT_PASSWORD})`);
+  // Affiché une seule fois : le mot de passe n'est stocké nulle part en clair.
+  // `onConflictDoNothing` ci-dessus n'a pu créer que les comptes absents — les
+  // comptes déjà présents gardent le leur, ce message ne les concerne pas.
+  console.log(`- ${seedUsers.length} utilisateurs · mot de passe initial : ${password}`);
+  console.log("  (à noter maintenant, il ne sera pas réaffiché ; rotation : npm run db:password)");
   console.log("- nomenclature : lancer `npm run db:nomenclature`");
   process.exit(0);
 }

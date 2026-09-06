@@ -48,7 +48,20 @@ npm run recette:mapping  # cycle de vie des règles de mapping
 Deux invariants font échouer la recette : un compte non mappé, et un écart de contrôle
 (`Ctrl`) qui ne serait pas intégralement expliqué par les retraitements DAP et VNC.
 
-Connexion par défaut (seed) : `admin@visionbds.com` / `sodobat2026!` (à changer). Trois comptes : `admin@`, `daf@`, `lecteur@visionbds.com` — un par rôle.
+Le seed crée trois comptes, un par rôle (admin, DAF, lecteur), listés dans
+`src/db/seed-data.ts`. Aucun mot de passe n'est écrit en dur : `npm run db:seed`
+en tire un au hasard et l'affiche **une seule fois**. Pour le fixer (installation
+reproductible), définir `SEED_PASSWORD` avant de lancer le seed.
+
+Rotation d'un mot de passe, y compris en production :
+
+```bash
+npm run db:password -- --email admin@visionbds.com     # nouveau mdp aléatoire, affiché
+npm run db:password -- --all                           # un mdp distinct par compte
+```
+
+Ce script est le seul à ne pas refuser de tourner sur la base de production :
+c'est son objet. Il ne touche que la colonne `password_hash`.
 
 ## Production — Vercel + Supabase
 

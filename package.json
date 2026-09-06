@@ -10,6 +10,8 @@
     "db:push": "drizzle-kit push --force",
     "db:seed": "node --import=tsx src/db/seed.ts",
     "db:nomenclature": "node --import=tsx src/db/seed-nomenclature.ts",
+    "db:password": "node --import=tsx scripts/reset-password.ts",
+    "purge:imports": "node --import=tsx scripts/purge-imports.ts",
     "recette": "node --import=tsx scripts/recette.ts",
     "recette:assistant": "node --import=tsx scripts/recette-assistant.ts",
     "recette:tg": "node --import=tsx scripts/recette-tg.ts",

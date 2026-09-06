@@ -1,3 +1,5 @@
+import { randomBytes } from "node:crypto";
+
 // Référentiel des entités du groupe et comptes utilisateurs par défaut.
 //
 // La nomenclature comptable ne vit plus ici : elle est déclarée dans
@@ -11,7 +13,7 @@ export const seedEntities = [
   { code: "covarbat", name: "CovarBat", active: false },
 ];
 
-// Un compte par rôle. Mot de passe par défaut à changer à la mise en production.
+// Un compte par rôle.
 export const seedUsers: {
   email: string;
   name: string;
@@ -22,4 +24,15 @@ export const seedUsers: {
   { email: "lecteur@visionbds.com", name: "Lecteur", role: "lecteur" },
 ];
 
-export const DEFAULT_PASSWORD = "sodobat2026!";
+/**
+ * Mot de passe initial des comptes de seed.
+ *
+ * Aucune valeur en dur : elle vivrait dans le dépôt et dans l'historique Git.
+ * `SEED_PASSWORD` permet de la fixer (installation reproductible, conteneur) ;
+ * à défaut, elle est tirée au hasard et affichée une seule fois par le seed.
+ */
+export function resolveSeedPassword(): string {
+  const fromEnv = process.env.SEED_PASSWORD?.trim();
+  if (fromEnv) return fromEnv;
+  return randomBytes(12).toString("base64url");
+}
