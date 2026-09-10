@@ -331,10 +331,14 @@ export function parseBalanceFile(buffer: Buffer | ArrayBuffer): ParsedFile {
   );
 }
 
-// Pôle d'un chantier : suffixe alphabétique du code centre (1003B → B, 52MF → MF).
-// Les chantiers sans suffixe (52, 53) n'ont pas de pôle.
+// Pôle d'un chantier : lettre suffixe unique du code centre (1003B → B, 1022b → B).
+// Les pôles de Sodobat sont des lettres simples (A à F dans le tableau de gestion).
+// Un suffixe de plusieurs lettres n'est pas un pôle : c'est typiquement un centre
+// que Cegid a créé tout seul lors d'un import ASCII (« 52MF », libellé « Créé par
+// Import ASCII »), à rattacher à la main. Il reste sans pôle plutôt que d'en
+// inventer un. Les chantiers sans suffixe (52, 53) n'ont pas de pôle non plus.
 export function poleOf(centreCode: string): string | null {
-  const m = centreCode.trim().match(/^\d+\s*([A-Za-z]{1,2})$/);
+  const m = centreCode.trim().match(/^\d+\s*([A-Za-z])$/);
   return m ? m[1].toUpperCase() : null;
 }
 

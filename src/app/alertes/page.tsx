@@ -37,6 +37,12 @@ const TYPE_META: Record<
     conseil:
       "Montant strictement identique plusieurs mois de suite : abonnement ou forfait légitime, ou saisie recopiée par erreur. Si c'est normal, « Marquer comme normal » : l'alerte ne reviendra plus pour ce montant.",
   },
+  centre_import_ascii: {
+    label: "Centre créé par import",
+    action: "Faire corriger dans Cegid",
+    conseil:
+      "Cegid a créé ce centre tout seul parce qu'une écriture importée citait un code inexistant — presque toujours une faute de frappe sur le code chantier. Les montants sont réels mais rangés sur ce centre fantôme au lieu du bon chantier, dont la marge est faussée d'autant. Transmettre au cabinet le code à corriger : l'alerte revient chaque mois tant que le centre subsiste.",
+  },
 };
 
 export default async function AlertesPage() {
@@ -137,7 +143,9 @@ export default async function AlertesPage() {
                               ? "Ne reviendra plus tant que ce montant reste identique"
                               : a.type === "ecart_controle"
                                 ? "Clôt cette alerte ; un écart sur un prochain import sera re-signalé"
-                                : "Ne reviendra plus aux prochains imports"
+                                : a.type === "centre_import_ascii"
+                                  ? "Clôt l'alerte de ce mois ; re-signalée au prochain import si le centre subsiste"
+                                  : "Ne reviendra plus aux prochains imports"
                           }
                         >
                           {a.type === "montant_constant"

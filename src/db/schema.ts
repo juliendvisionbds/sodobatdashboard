@@ -41,7 +41,7 @@ export const centres = pgTable(
       .references(() => entities.id),
     code: text("code").notNull(), // "1003B", "FX", "DEPOT", "53"...
     name: text("name").notNull(),
-    pole: text("pole"), // "A".."F", "MF" ou null (structure, chantier sans suffixe)
+    pole: text("pole"), // lettre unique "A".."F", ou null (structure, chantier sans suffixe, centre créé par import ASCII)
     // Surcharge manuelle de la classification déduite du code (classifyCentre) :
     // null = déduite, sinon force le routage chantier / frais généraux.
     kind: text("kind", { enum: ["chantier", "structure"] }),
@@ -240,6 +240,7 @@ export const alerts = pgTable(
         "mois_sans_donnees",
         "montant_constant",
         "ecart_controle",
+        "centre_import_ascii",
       ],
     }).notNull(),
     severity: text("severity", { enum: ["info", "warn", "error"] }).notNull(),

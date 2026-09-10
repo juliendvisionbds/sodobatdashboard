@@ -9,6 +9,8 @@ import {
   poleOf,
 } from "./parsers";
 import { loadMapper } from "./mapping";
+import { detectAsciiCentres } from "./centres-ascii";
+import { COMPTES_TOUJOURS_FX } from "./nomenclature/codes";
 import { Entity, loadCentreKinds } from "./finance";
 
 const round2 = (n: number) => Math.round(n * 100) / 100;
@@ -42,6 +44,18 @@ export async function createImportPreview(opts: {
   const parsed = parseBalanceFile(buffer);
   const fileHash = createHash("sha256").update(buffer).digest("hex");
 
+  // Un export de chiffre d'affaires par chantier a les mêmes colonnes qu'une
+  // balance analytique et passe donc le parseur. Mais sans aucune charge, ce
+  // n'est pas un instantané mensuel : l'importer comme un mois ferait exploser
+  // les écarts M − M-1 de la vue Chantiers.
+  if (parsed.type === "analytique" && !parsed.accounts.some((a) => a.account.startsWith("6"))) {
+    throw new Error(
+      "Ce fichier ne contient que des comptes de produits (classe 7) : ce n'est pas une " +
+        "balance analytique mensuelle, mais un export de chiffre d'affaires par chantier. " +
+        "L'importer comme un mois fausserait toute la vue Chantiers."
+    );
+  }
+
   let period: string;
   let fiscalYearStart: number;
   if (parsed.type === "ventilee") {
@@ -62,6 +76,18 @@ export async function createImportPreview(opts: {
 
   // import précédent qui serait remplacé à la validation
   const replaced = await findReplaceable(entity.id, parsed.type, period, fiscalYearStart);
+
+  // Une ventilée remplace tout import validé du même exercice. Importer un export
+  // plus ancien que celui déjà en place effacerait donc les mois les plus récents
+  // (cas typique : la ventilée de mai importée après celle de juin).
+  if (parsed.type === "ventilee" && replaced && replaced.period > period) {
+    throw new Error(
+      `Cet export s'arrête en ${period.slice(0, 7)}, alors qu'un export plus récent du même ` +
+        `exercice est déjà validé (${replaced.fileName}, jusqu'à ${replaced.period.slice(0, 7)}). ` +
+        `Le valider effacerait les mois les plus récents. Inutile de l'importer : l'export le ` +
+        `plus récent contient déjà tout l'exercice.`
+    );
+  }
 
   const summary: ImportSummary = {
     type: parsed.type,
@@ -167,7 +193,10 @@ async function computeUnmapped(
     const fx = await loadMapper("fx", entity.id, entity.code);
     const kindOf = await loadCentreKinds(entity.id);
     for (const l of parsed.lines) {
-      if (kindOf(l.centreCode) === "structure") {
+      // Dotations et VNC vont en frais généraux quel que soit le centre : le
+      // contrôle doit suivre la même règle que les vues, sinon il signalerait
+      // comme non mappé un compte parfaitement rattaché.
+      if (kindOf(l.centreCode) === "structure" || COMPTES_TOUJOURS_FX.has(l.account)) {
         if (fx.resolve(l.account) == null) add(l.account, l.label, l.solde, "fx");
       } else {
         if (chantier.resolve(l.account) == null) add(l.account, l.label, l.solde, "chantier");
@@ -299,6 +328,11 @@ function alertDedupKey(a: {
       return `montant_constant|${a.account}|${a.amount}`;
     case "mois_sans_donnees":
       return `mois_sans_donnees|${a.period}`;
+    case "centre_import_ascii":
+      // Une alerte par centre fantôme et par mois : un réimport du même mois ne
+      // la duplique pas, mais elle revient chaque mois tant que le centre subsiste
+      // dans la balance — il faut qu'il soit corrigé dans Cegid pour disparaître.
+      return `centre_import_ascii|${a.account}|${a.period}`;
     default:
       return null;
   }
@@ -342,7 +376,14 @@ async function generateAlerts(importId: number) {
     }
   }
 
-  if (imp.type === "ventilee") {
+  // Un exercice complet (12 mois) n'est plus dans le cycle mensuel : « mois sans
+  // données » et « montant constant » y seraient du bruit — un loyer fixe en 2022
+  // n'appelle aucune action. Les contrôles d'intégrité, eux, valent pour tout
+  // exercice. On se fie au contenu du fichier plutôt qu'à la date du jour, pour
+  // que le résultat ne dépende pas du moment où l'import est fait.
+  const exerciceClos = (summary.months?.length ?? 0) >= 12;
+
+  if (imp.type === "ventilee" && !exerciceClos) {
     const lines = await db
       .select()
       .from(tables.generalBalanceLines)
@@ -402,6 +443,60 @@ async function generateAlerts(importId: number) {
           break;
         }
       }
+    }
+  }
+
+  // 5) centres créés à la volée par un import ASCII : faute de saisie du code
+  //    chantier, les montants sont rangés sur un centre fantôme
+  if (imp.type === "analytique") {
+    const anaLines = await db
+      .select()
+      .from(tables.analyticLines)
+      .where(eq(tables.analyticLines.importId, importId));
+    // Référentiel complet : le vrai chantier peut ne pas avoir bougé ce mois-ci.
+    const connus = await db
+      .select({ code: tables.centres.code, name: tables.centres.name })
+      .from(tables.centres)
+      .where(eq(tables.centres.entityId, imp.entityId));
+    const fantomes = detectAsciiCentres(
+      anaLines.map((l) => ({
+        centreCode: l.centreCode,
+        centreLabel: l.centreLabel,
+        account: l.account,
+        solde: num(l.solde),
+      })),
+      connus
+    );
+    for (const f of fantomes) {
+      const montants = [
+        f.produits ? `${fmt(f.produits)} € de produits` : null,
+        f.charges ? `${fmt(f.charges)} € de charges` : null,
+      ]
+        .filter(Boolean)
+        .join(" et ");
+      const unique = f.jumeaux.length === 1 ? f.jumeaux[0] : null;
+      const jumeau =
+        f.jumeaux.length === 0
+          ? "Aucun chantier connu ne porte ce numéro : à identifier avec le cabinet."
+          : unique
+            ? `Chantier probable : ${unique.code} · ${unique.name}.`
+            : `Chantiers possibles : ${f.jumeaux.map((j) => `${j.code} · ${j.name}`).join(", ")}.`;
+      alerts.push({
+        entityId: imp.entityId,
+        importId,
+        type: "centre_import_ascii",
+        severity: "warn",
+        title: `Centre créé par import ASCII : ${f.code}${unique ? ` → probablement ${unique.code}` : ""}`,
+        description:
+          `${montants || "Aucun montant"} imputé(s) à un centre que Cegid a créé à la volée ` +
+          `(${f.lignes} ligne${f.lignes > 1 ? "s" : ""}). ${jumeau} ` +
+          `Faire corriger le code centre dans Cegid : tant qu'il subsiste, ces montants manquent au bon chantier.`,
+        // La colonne « account » porte ici le code du centre fantôme : c'est la
+        // clé de déduplication de ce type d'alerte.
+        account: f.code,
+        amount: String(round2(Math.abs(f.produits) + Math.abs(f.charges))),
+        period: imp.period,
+      });
     }
   }
 
