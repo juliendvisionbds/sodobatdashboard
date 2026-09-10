@@ -128,12 +128,6 @@ function Section({ name, rows, nbMois }: { name: string; rows: FxRow[]; nbMois: 
               }
             >
               {r.category.label}
-              {accountList.length > 0 && (
-                <span className="charge-code" style={{ marginLeft: 8 }}>
-                  {accountList.slice(0, 3).join(" · ")}
-                  {accountList.length > 3 ? " …" : ""}
-                </span>
-              )}
             </td>
             <td className={negClass(r.cells.n2)}>{cell(r.cells.n2)}</td>
             <td className="pct-col">{pctBadge(r.pct.n2)}</td>
