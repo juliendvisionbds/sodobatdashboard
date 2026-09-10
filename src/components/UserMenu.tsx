@@ -58,14 +58,6 @@ export default function UserMenu({
         <div className="user-dropdown" role="menu">
           <div className="user-dropdown-meta">{name}</div>
           <Link
-            href="/objectifs"
-            role="menuitem"
-            className="user-dropdown-item"
-            onClick={() => setOpen(false)}
-          >
-            Objectifs
-          </Link>
-          <Link
             href="/comptes"
             role="menuitem"
             className="user-dropdown-item"

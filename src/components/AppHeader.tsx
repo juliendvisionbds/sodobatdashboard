@@ -26,6 +26,7 @@ export default async function AppHeader({
     { key: "synthese", label: "Synthèse", href: "/" },
     { key: "chantiers", label: "Chantiers", href: "/chantiers" },
     { key: "fx", label: "Frais généraux", href: "/frais-generaux" },
+    { key: "objectifs", label: "Objectifs", href: "/objectifs" },
     { key: "assistant", label: "Assistant IA", href: "/assistant" },
   ];
 
