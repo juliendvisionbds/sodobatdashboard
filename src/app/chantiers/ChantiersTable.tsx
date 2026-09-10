@@ -34,6 +34,13 @@ function cellText(line: Category, v: number | null) {
 /** Les lignes de saisie de la maquette ont leur propre colonne dédiée. */
 const MANUAL_COLUMNS: string[] = [CHANTIER_CODES.note, CHANTIER_CODES.statut];
 
+/** Totaux, sous-totaux, ratios et résultats : colonnes mises en avant (fond
+ *  --total-col). Déduit du `kind` de la nomenclature, pas d'une liste de codes :
+ *  une nouvelle ligne de total sera teintée sans retoucher ce fichier. */
+const TOTAL_KINDS = new Set(["total", "subtotal", "ratio", "computed"]);
+const isTotalCol = (l: Category) => TOTAL_KINDS.has(l.kind) && !l.hidden;
+const totCls = (l: Category) => (isTotalCol(l) ? " tot-col" : "");
+
 export default function ChantiersTable({
   lines,
   rows,
@@ -133,7 +140,7 @@ export default function ChantiersTable({
                 </th>
               )}
               {valueLines.map((l) => (
-                <th key={l.code} title={l.notes ?? undefined}>
+                <th key={l.code} title={l.notes ?? undefined} className={totCls(l).trim() || undefined}>
                   {l.label}
                 </th>
               ))}
@@ -177,7 +184,7 @@ export default function ChantiersTable({
                 </td>
               )}
               {valueLines.map((l) => (
-                <td key={l.code} className={amountClass(totals[l.code])}>
+                <td key={l.code} className={amountClass(totals[l.code]) + totCls(l)}>
                   {cellText(l, totals[l.code] ?? null)}
                 </td>
               ))}
@@ -280,7 +287,7 @@ function ChantierTr({
       {valueLines.map((l) => {
         const v = row.values[l.code] ?? null;
         return (
-          <td key={l.code} className={amountClass(v, l.section.startsWith("PRODUITS"))}>
+          <td key={l.code} className={amountClass(v, l.section.startsWith("PRODUITS")) + totCls(l)}>
             {cellText(l, v)}
           </td>
         );
