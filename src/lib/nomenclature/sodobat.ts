@@ -56,7 +56,8 @@ const CARBURANT_DEPLACEMENTS = [
 /** Code B — Locations matériels / engins, éclaté pour les objectifs dirigeant. */
 const LOCATION_MATERIEL_EXTERNE = ["61350500", "61350510"];
 const LOCATION_EASYMAT = ["61350520"];
-const LOCATION_AUTRES = ["61350550", "61351000", "61351700"];
+// 61351600 : location longue durée soldée, présente dans les exercices 2021 à 2023.
+const LOCATION_AUTRES = ["61350550", "61351000", "61351700", "61351600"];
 const LOCATIONS = [
   ...LOCATION_MATERIEL_EXTERNE,
   ...LOCATION_EASYMAT,
@@ -86,6 +87,18 @@ const MASSE_SALARIALE = [
   "64515000", "64530000", "64540000", "64582000", "64720000", "64750000",
   "64800000", "64810000", "64900000", "69101000",
 ];
+
+// ── Comptes historiques ──────────────────────────────────────────────────────
+// Les balances des exercices 2021/2022 à 2024/2025 portent des comptes absents du
+// plan comptable 2026 : crédits-baux soldés, produits de cession à l'ancienne
+// nomenclature, charges et produits exceptionnels, reprises de provisions,
+// transferts de charges. Chacun est rattaché au poste de même nature, pour que
+// les colonnes N-1 et N-2 bouclent : sans eux, ces exercices perdraient des
+// montants en route.
+
+/** Transferts de charges (IJ CPAM, avantages en nature) : ils viennent en
+ *  déduction de la masse salariale qu'ils remboursent. */
+const TRANSFERTS_CHARGES = ["79100000", "79110900", "79120000", "79142000"];
 
 /** Code C + D — Sous-traitance (toutes natures) */
 const SOUS_TRAITANCE = [
@@ -187,7 +200,7 @@ export const synthese: NomenclatureLine[] = [
     label: "Cession Immo",
     kind: "poste",
     sign: -1,
-    accounts: ["75700000"],
+    accounts: ["75700000", "77520000", "77560000"],
     notes: "Code ZX",
   },
   {
@@ -197,7 +210,7 @@ export const synthese: NomenclatureLine[] = [
     label: "Produits financiers et assurance",
     kind: "poste",
     sign: -1,
-    accounts: ["74000000", "75870000", "76000000", "76310000", "76400000", "79150000"],
+    accounts: ["74000000", "75870000", "76000000", "76310000", "76400000", "79150000", "76800000"],
     notes: "Code ZW (part « produits financiers et assurance »)",
   },
   {
@@ -428,7 +441,7 @@ export const synthese: NomenclatureLine[] = [
     section: SYN.personnel,
     label: "Masse salariale production (salaires + charges)",
     kind: "poste",
-    accounts: [...MASSE_SALARIALE, "64600000", "64601000"],
+    accounts: [...MASSE_SALARIALE, ...TRANSFERTS_CHARGES, "64600000", "64601000"],
     notes: "Code F, cotisations exploitant/RSI incluses",
   },
   {
@@ -501,6 +514,7 @@ export const synthese: NomenclatureLine[] = [
     accounts: [
       "61200000", "61210000", "61254290", "61258100", "61258200", "61258301",
       "61258400", "61284000",
+      "61220000", "61258300",
     ],
     notes: "Code Q",
   },
@@ -584,7 +598,7 @@ export const synthese: NomenclatureLine[] = [
     section: SYN.fx,
     label: "Autres charges / Produits divers",
     kind: "poste",
-    accounts: ["61810000", "65800000", "67110000"],
+    accounts: ["61810000", "65800000", "67110000", "67120000", "67180000", "77180000"],
     notes: "Code AC — 67110000 (pénalités sur marchés) rattaché ici, hors plan comptable 2026",
   },
   {
@@ -593,7 +607,7 @@ export const synthese: NomenclatureLine[] = [
     section: SYN.fx,
     label: "Résultat SEP",
     kind: "poste",
-    accounts: ["65550000", "75550000"],
+    accounts: ["65550000", "75550000", "75510000"],
     notes: "Code ZZ — Sodobat : SEP Bougé, Bouverie, Chausse, Théoule",
   },
   {
@@ -670,7 +684,7 @@ export const synthese: NomenclatureLine[] = [
     section: SYN.resultat,
     label: "Retraitement DAP",
     kind: "poste",
-    accounts: ["68112000", "68174000"],
+    accounts: ["68112000", "68174000", "78174000"],
     cumulative: true,
     notes: "Code ZY — cumul depuis l'ouverture, valeur mensuelle par différence",
   },
@@ -914,7 +928,7 @@ export const chantier: NomenclatureLine[] = [
     label: "Autres charges affectées (impôts, taxes, pénalités)",
     kind: "poste",
     hidden: true,
-    accounts: [...IMPOTS_TAXES, "67110000"],
+    accounts: [...IMPOTS_TAXES, "67110000", "67120000", "67180000", "77180000"],
     notes:
       "Codes X et AC — la maquette chantier ne les détaille pas, mais la balance analytique réelle les impute à des chantiers (ex. 63580000 sur 1024A)",
   },
@@ -1029,6 +1043,7 @@ export const chantier: NomenclatureLine[] = [
     accounts: [
       "64170000", "64180000", "64181000", "64582000", "64720000", "64750000",
       "64800000", "64810000", "64900000", "69101000", "64600000", "64601000",
+      "79100000", "79110900", "79120000", "79142000",
     ],
     notes:
       "Code F — intéressement, IJ SS, intempéries, médecine du travail, formation, remboursements de charges, cotisations exploitant",
@@ -1282,7 +1297,7 @@ export const fx: NomenclatureLine[] = [
     section: FX.generaux,
     label: "Masse salariale sédentaire (salaires + charges)",
     kind: "poste",
-    accounts: MASSE_SALARIALE,
+    accounts: [...MASSE_SALARIALE, ...TRANSFERTS_CHARGES],
     notes:
       "Code F — absent de la maquette FX mais porté par les centres FX / DEPOT de la balance réelle",
   },
@@ -1383,6 +1398,7 @@ export const fx: NomenclatureLine[] = [
     accounts: [
       "61200000", "61210000", "61254290", "61258100", "61258200", "61258301",
       "61258400", "61284000",
+      "61220000", "61258300",
     ],
     notes: "Code Q",
   },
@@ -1459,7 +1475,7 @@ export const fx: NomenclatureLine[] = [
     section: FX.generaux,
     label: "Provisions créances douteuses + Pertes sur créances irrécouvrables",
     kind: "poste",
-    accounts: ["65420000", "68174000"],
+    accounts: ["65420000", "68174000", "78174000"],
     notes:
       "Code BB — 68174000 (provision dépréciation actif circulant) rattaché ici plutôt qu'aux dotations, pour éviter le doublon",
   },
@@ -1489,7 +1505,7 @@ export const fx: NomenclatureLine[] = [
     section: FX.generaux,
     label: "Autres Charges & Produits divers",
     kind: "poste",
-    accounts: ["61810000", "65800000", "67110000"],
+    accounts: ["61810000", "65800000", "67110000", "67120000", "67180000", "77180000"],
     notes: "Code AC — 67110000 (pénalités sur marchés) rattaché ici, hors plan comptable 2026",
   },
   {
@@ -1498,7 +1514,7 @@ export const fx: NomenclatureLine[] = [
     section: FX.generaux,
     label: "Résultat SEP",
     kind: "poste",
-    accounts: ["65550000", "75550000"],
+    accounts: ["65550000", "75550000", "75510000"],
     notes: "Code ZZ",
   },
   {
@@ -1514,6 +1530,7 @@ export const fx: NomenclatureLine[] = [
       "76400000", "79150000", "70400010", "70400020", "70400029", "70400200",
       "70400290", "70400300", "70880020", "70700200", "70701900", "70600010",
       "70600020", "70800000", "70880000",
+      "76800000", "77520000", "77560000",
     ],
     notes:
       "Produits portés par un centre de structure (travaux en cours du siège, produits divers) : rattachés pour ne pas remonter en non-mappé, exclus du TOTAL 2",
