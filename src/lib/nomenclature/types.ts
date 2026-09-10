@@ -23,7 +23,6 @@ export type ManualField =
   | "note"
   | "annulation_m1"
   | "objectif_annuel"
-  | "gen"
   | "ventilation"
   | "statut";
 

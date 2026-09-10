@@ -8,7 +8,7 @@
 // de balance, alertes, saisies manuelles, référentiel des centres.
 // Conserve ce qui structure l'application : entités, utilisateurs, nomenclature
 // et règles de mapping. Sont aussi gardés les paramètres saisis à la main qui ne
-// dépendent d'aucun import — objectifs annuels du dirigeant et valeurs GEN — et
+// dépendent d'aucun import — objectifs annuels du dirigeant — et
 // les centres dont la classification chantier / structure a été forcée.
 
 import "dotenv/config";
@@ -23,7 +23,7 @@ async function n(table: PgTable) {
 }
 
 /** Saisies qui sont des paramètres, pas des données du cycle mensuel. */
-const PARAMETRES = ["objectif_annuel", "gen"] as const;
+const PARAMETRES = ["objectif_annuel"] as const;
 
 async function etat() {
   const centresForces = (
@@ -67,7 +67,7 @@ async function main() {
   console.log(`   utilisateurs            ${avant.utilisateurs}`);
   console.log(`   nomenclature            ${avant.categories} lignes · ${avant.regles} règles`);
   if (Number(avant.parametres))
-    console.log(`   objectifs et valeurs GEN ${avant.parametres}`);
+    console.log(`   objectifs annuels       ${avant.parametres}`);
   if (avant.centresForces)
     console.log(`   centres à classification forcée : ${avant.centresForces}`);
 

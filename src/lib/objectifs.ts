@@ -2,8 +2,8 @@
 //
 // Aucun mapping comptable n'est dupliqué ici : chaque indicateur pointe vers une
 // ligne déjà calculée de la Synthèse ou des Frais généraux, et son « réalisé »
-// est le ratio de cette ligne sur le CA total. Seuls l'objectif annuel et la
-// valeur GEN sont saisis, par indicateur et par exercice.
+// est le ratio de cette ligne sur le CA total. Seul l'objectif annuel est saisi,
+// par indicateur et par exercice.
 
 export type ObjectifSource =
   | { view: "synthese"; code: string }

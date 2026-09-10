@@ -197,12 +197,11 @@ export const manualEntries = pgTable(
         "note",
         "annulation_m1",
         "objectif_annuel",
-        "gen",
         "ventilation",
         "statut",
       ],
     }).notNull(),
-    // Discriminant secondaire : indicateur visé (objectif_annuel / gen) ou
+    // Discriminant secondaire : indicateur visé (objectif_annuel) ou
     // part ventilée (ventilation → "NJW"). null quand le champ suffit.
     subKey: text("sub_key"),
     valueNum: numeric("value_num", { precision: 14, scale: 2 }),

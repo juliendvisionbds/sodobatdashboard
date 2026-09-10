@@ -1033,8 +1033,8 @@ export async function getFx(
 // ── Section Objectifs Dirigeant ──────────────────────────────────────────────
 //
 // Réutilise les ratios déjà calculés par les vues Synthèse et Frais généraux :
-// aucun mapping comptable n'est dupliqué. Seuls l'objectif annuel et la valeur
-// GEN sont saisis, par indicateur et par exercice.
+// aucun mapping comptable n'est dupliqué. Seul l'objectif annuel est saisi, par
+// indicateur et par exercice.
 
 export type ObjectifRow = {
   key: string;
@@ -1045,7 +1045,6 @@ export type ObjectifRow = {
   /** réalisé en % du CA */
   realise: number | null;
   objectif: number | null;
-  gen: number | null;
   /** réalisé − objectif, en points de % */
   ecart: number | null;
   statut: ObjectifStatut;
@@ -1086,11 +1085,9 @@ export async function getObjectifs(
       )
     );
   const objectifs = new Map<string, number>();
-  const gens = new Map<string, number>();
   for (const m of saisies) {
     if (!m.subKey || m.valueNum == null) continue;
     if (m.field === "objectif_annuel") objectifs.set(m.subKey, num(m.valueNum));
-    if (m.field === "gen") gens.set(m.subKey, num(m.valueNum));
   }
 
   const caTotal = synthese.byCode[SYNTHESE_CODES.caTotal]?.total ?? 0;
@@ -1103,7 +1100,6 @@ export async function getObjectifs(
     const realise =
       montant != null && caTotal !== 0 ? round2((montant / caTotal) * 100) : null;
     const objectif = objectifs.get(def.key) ?? null;
-    const gen = gens.get(def.key) ?? null;
     const ecart = realise != null && objectif != null ? round2(realise - objectif) : null;
     return {
       key: def.key,
@@ -1112,7 +1108,6 @@ export async function getObjectifs(
       montant,
       realise,
       objectif,
-      gen,
       ecart,
       statut: statutObjectif(ecart),
       controle: def.controle,

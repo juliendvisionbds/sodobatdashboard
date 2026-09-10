@@ -6,8 +6,8 @@ import { STATUT_CLASS } from "@/lib/objectifs";
 import { fmtEur, fmtPct } from "@/lib/format";
 import { saveManualEntryAction } from "@/app/actions";
 
-// Objectif annuel et GEN sont les deux seules valeurs saisies : le réalisé, l'écart
-// et le statut en découlent. Les objectifs valent pour tout l'exercice, ils sont
+// L'objectif annuel est la seule valeur saisie : le réalisé, l'écart et le statut
+// en découlent. Les objectifs valent pour tout l'exercice, ils sont
 // donc rangés sur son premier mois et restent visibles quel que soit le mois consulté.
 
 export default function ObjectifsTable({
@@ -26,8 +26,7 @@ export default function ObjectifsTable({
               <th className="left">Indicateur</th>
               <th>Montant cumulé</th>
               <th className="pct-col">Réalisé (% CA)</th>
-              <th className="pct-col">Objectif annuel</th>
-              <th className="pct-col">GEN</th>
+              <th className="pct-col">Objectif annuel (% CA)</th>
               <th className="pct-col">Écart (points)</th>
               <th>Statut</th>
             </tr>
@@ -45,19 +44,19 @@ export default function ObjectifsTable({
               <td className="label-cell">Total de contrôle (≈ 100 % du CA)</td>
               <td className="muted">-</td>
               <td className="pct-col">{fmtPct(data.totalControle)}</td>
-              <td colSpan={4} className="muted" />
+              <td colSpan={3} className="muted" />
             </tr>
             <tr className="total-row">
               <td className="label-cell">Charges directes cumulées / CA</td>
               <td className="muted">-</td>
               <td className="pct-col">{fmtPct(data.chargesDirectes)}</td>
-              <td colSpan={4} className="muted" />
+              <td colSpan={3} className="muted" />
             </tr>
             <tr className="total-row">
               <td className="label-cell">Marge — résultat d&apos;exploitation / CA</td>
               <td className="muted">-</td>
               <td className="pct-col">{fmtPct(data.margeExploitation)}</td>
-              <td colSpan={4} className="muted" />
+              <td colSpan={3} className="muted" />
             </tr>
           </tbody>
         </table>
@@ -84,7 +83,7 @@ function ObjectifTr({
 }) {
   const [isPending, startTransition] = useTransition();
 
-  const save = (field: "objectif_annuel" | "gen", value: string) => {
+  const save = (field: "objectif_annuel", value: string) => {
     const fd = new FormData();
     fd.set("period", period);
     fd.set("field", field);
@@ -97,19 +96,24 @@ function ObjectifTr({
   };
 
   const numCell = (
-    field: "objectif_annuel" | "gen",
+    field: "objectif_annuel",
     value: number | null
   ) =>
     canEdit ? (
-      <input
-        className="inline-num"
-        defaultValue={value ?? ""}
-        placeholder="—"
-        onBlur={(e) => {
-          const v = e.target.value.trim();
-          if (v !== String(value ?? "")) save(field, v);
-        }}
-      />
+      // Saisie en points de pourcentage : 5 = 5 % du CA.
+      <span style={{ whiteSpace: "nowrap" }}>
+        <input
+          className="inline-num"
+          defaultValue={value ?? ""}
+          placeholder="—"
+          aria-label="Objectif annuel en % du CA"
+          onBlur={(e) => {
+            const v = e.target.value.trim();
+            if (v !== String(value ?? "")) save(field, v);
+          }}
+        />
+        <span className="muted" style={{ marginLeft: 4 }}>%</span>
+      </span>
     ) : (
       <span className={value == null ? "muted" : undefined}>
         {value == null ? "-" : fmtPct(value)}
@@ -133,7 +137,6 @@ function ObjectifTr({
         )}
       </td>
       <td className="pct-col">{numCell("objectif_annuel", row.objectif)}</td>
-      <td className="pct-col">{numCell("gen", row.gen)}</td>
       <td className={`pct-col${row.ecart != null && row.ecart > 0 ? " neg" : ""}`}>
         {row.ecart == null ? <span className="muted">-</span> : fmtPct(row.ecart)}
       </td>
