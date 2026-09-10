@@ -19,7 +19,9 @@ function buildPg(url: string): Db {
 function buildPglite(): Db {
   const { drizzle } = require("drizzle-orm/pglite") as typeof import("drizzle-orm/pglite");
   const { PGlite } = require("@electric-sql/pglite") as typeof import("@electric-sql/pglite");
-  const client = new PGlite("./.data/pglite");
+  // PGLITE_DIR permet de travailler sur une base jetable, sans toucher à la base
+  // de développement (utile pour répéter une procédure d'import de bout en bout).
+  const client = new PGlite(process.env.PGLITE_DIR ?? "./.data/pglite");
   return drizzle(client, { schema }) as unknown as Db;
 }
 

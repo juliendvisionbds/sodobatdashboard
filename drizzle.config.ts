@@ -14,6 +14,6 @@ export default defineConfig(
         dialect: "postgresql",
         driver: "pglite",
         schema: "./src/db/schema.ts",
-        dbCredentials: { url: "./.data/pglite" },
+        dbCredentials: { url: process.env.PGLITE_DIR ?? "./.data/pglite" },
       }
 );
