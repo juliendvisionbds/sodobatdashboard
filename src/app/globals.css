@@ -443,6 +443,21 @@ td.muted { color: var(--gray3); }
   background-image: linear-gradient(var(--blue-hover), var(--blue-hover));
 }
 
+/* Frais généraux mensuels : la colonne Cumul reprend le fond des totaux Chantiers. */
+.fx-mensuel-ct thead th.left,
+.fx-mensuel-ct td.label-cell { min-width: 320px; }
+.fx-mensuel-ct thead th.total-col { background: var(--total-col-head); }
+.fx-mensuel-ct td.total-col { background-color: var(--total-col); }
+.fx-mensuel-ct tbody tr:hover td.total-col {
+  background-image: linear-gradient(var(--blue-hover), var(--blue-hover));
+}
+
+/* Bascule entre deux lectures d'une même vue (exercices / mensuel). */
+.view-switch { display: inline-flex; border: 1px solid var(--gray4); border-radius: var(--radius-sm); overflow: hidden; box-shadow: var(--shadow-sm); }
+.view-switch a, .view-switch button { padding: 7px 14px; font-size: 13px; font-family: inherit; color: var(--gray2); background: var(--white); text-decoration: none; border: none; cursor: pointer; }
+.view-switch a + a, .view-switch button + button { border-left: 1px solid var(--gray4); }
+.view-switch a.active, .view-switch button.active { background: var(--blue-lt); color: var(--blue); font-weight: 500; }
+
 /* Démarcation entre le bloc figé et les colonnes qui défilent. */
 .chantiers-ct th:nth-child(2),
 .chantiers-ct tbody td.label-cell,

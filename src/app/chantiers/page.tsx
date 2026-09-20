@@ -41,7 +41,7 @@ export default async function ChantiersPage({
             <div className="card-label">Pour démarrer</div>
             <p style={{ fontSize: 13, color: "var(--gray2)", marginBottom: 16 }}>
               Importez la balance analytique mensuelle (export Cegid par centre) : la vue
-              chantiers est calculée à partir des snapshots mensuels.
+              chantiers se lit dans la balance de chaque mois.
             </p>
             <Link href="/imports" className="btn">Aller aux imports →</Link>
           </div>
@@ -66,9 +66,11 @@ export default async function ChantiersPage({
             )}
           </div>
           <p>
+            Activité du mois : mouvements de la balance analytique de{" "}
+            {monthLabelLong(data.period)}
             {data.prevPeriod
-              ? `Activité du mois : delta entre les snapshots analytiques ${monthLabelLong(data.prevPeriod)} → ${monthLabelLong(data.period)}`
-              : "Premier snapshot analytique importé : montants en cumul depuis le début de l'exercice"}
+              ? ` · reports de cumul arrêtés à ${monthLabelLong(data.prevPeriod)}`
+              : " · premier mois importé, aucun report de cumul"}
           </p>
         </div>
 
@@ -80,7 +82,6 @@ export default async function ChantiersPage({
             Résultat : {resultat >= 0 ? "+" : ""}{fmtEurAuto(resultat)}
           </span>
           <span className="tag gray">{activeRows.length} chantiers avec activité</span>
-          {!data.prevPeriod && <span className="tag amber">cumul (pas de snapshot M-1)</span>}
           {!isLatestPeriod && <span className="tag gray">mois passé · lecture seule</span>}
         </div>
 

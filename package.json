@@ -19,6 +19,7 @@
     "recette:tg": "node --import=tsx scripts/recette-tg.ts",
     "recette:daf": "node --import=tsx scripts/recette-daf.ts",
     "recette:mapping": "node --import=tsx scripts/test-rules-lifecycle.ts",
+    "rapprochement:tg": "node --import=tsx scripts/rapprochement-tg.ts",
     "test:assistant": "node --env-file=.env.local --import=tsx scripts/test-assistant-live.ts",
     "reset:data": "node --import=tsx scripts/reset-data.ts",
     "import:file": "node --import=tsx scripts/import-file.ts"

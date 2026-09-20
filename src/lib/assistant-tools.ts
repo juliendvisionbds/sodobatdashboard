@@ -92,7 +92,7 @@ export function buildAssistantTools(entity: Entity) {
       description:
         "Activité chantier du dernier mois importé : par chantier, facturation, travaux en cours " +
         "(provision/annulation), achats, sous-traitance, autres charges et résultat du mois. " +
-        "Source : balance analytique (delta entre les deux derniers snapshots). Montants en euros.",
+        "Source : balance analytique du mois (chaque fichier porte les mouvements de son mois). Montants en euros.",
       inputSchema: z.object({
         pole: z
           .string()
@@ -120,9 +120,7 @@ export function buildAssistantTools(entity: Entity) {
 
         return {
           mois: monthLabelLong(data.period),
-          nature: data.prevPeriod
-            ? `activité du mois (delta vs ${monthLabelLong(data.prevPeriod)})`
-            : "cumul depuis l'ouverture des chantiers (premier snapshot)",
+          nature: "activité du mois (mouvements de la balance analytique du mois)",
           poles: data.poles,
           nombreChantiers: rows.length,
           // Les postes suivent la nomenclature : on les expose tous, libellés en clair.

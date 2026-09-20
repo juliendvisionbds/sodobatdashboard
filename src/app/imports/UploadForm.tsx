@@ -19,7 +19,7 @@ export default function UploadForm() {
             (le mois est détecté automatiquement) → contrôler → valider.
             <br />
             <strong>2.</strong> Balance <strong>analytique</strong> : déposer le fichier{" "}
-            <strong>et renseigner le mois du snapshot</strong> → contrôler → valider.
+            <strong>et renseigner le mois de la balance</strong> → contrôler → valider.
             <br />
             La ventilée alimente la Synthèse ; l&apos;analytique alimente Chantiers et
             Frais généraux.
@@ -41,7 +41,7 @@ export default function UploadForm() {
       />
 
       <label className="field-label" htmlFor="period">
-        Mois du snapshot <span style={{ fontWeight: 400, textTransform: "none" }}>
+        Mois de la balance <span style={{ fontWeight: 400, textTransform: "none" }}>
           (requis pour la balance analytique, la ventilée est détectée automatiquement)
         </span>
       </label>

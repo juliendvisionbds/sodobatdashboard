@@ -137,6 +137,8 @@ export type SyntheseRow = {
   category: Category;
   /** valeur par mois de l'exercice, plus TOTAL_COLUMN */
   cells: Record<string, number | null>;
+  /** cumul depuis l'ouverture de l'exercice, arrêté à la fin de chaque mois */
+  cumulCells: Record<string, number | null>;
   total: number | null;
   pctCa: number | null;
   /** N-1 tronqué à la même fenêtre YTD que N */
@@ -289,6 +291,25 @@ export async function getSynthese(
 
   const values = evaluate(mapper.lines, columns, leaves, { provided });
 
+  // Lecture cumulée : on cumule les postes puis on rejoue les formules, de sorte
+  // qu'un ratio à fin mars soit celui des cinq premiers mois et non une somme de
+  // ratios mensuels. Les mois sans données restent vides.
+  const lastMonthWithData = monthsWithData[monthsWithData.length - 1];
+  const cumulate = (vec: Vector): Vector => {
+    const out: Vector = {};
+    let running = 0;
+    for (const m of months) {
+      running = round2(running + (vec[m] ?? 0));
+      out[m] = lastMonthWithData && m <= lastMonthWithData ? running : null;
+    }
+    out[TOTAL_COLUMN] = vec[TOTAL_COLUMN] ?? null;
+    return out;
+  };
+  const cumulLeaves = new Map([...leaves].map(([code, vec]) => [code, cumulate(vec)]));
+  const cumulValues = evaluate(mapper.lines, columns, cumulLeaves, {
+    provided: new Map([[SYNTHESE_CODES.resultatBg, cumulate(resultatBg)]]),
+  });
+
   const caTotalVec = values.get(SYNTHESE_CODES.caTotal) ?? {};
   const caTotal = caTotalVec[TOTAL_COLUMN] ?? 0;
   const prevCaTotal = prevYtdEval?.get(SYNTHESE_CODES.caTotal)?.v ?? null;
@@ -306,6 +327,7 @@ export async function getSynthese(
     const row: SyntheseRow = {
       category: line,
       cells: vec,
+      cumulCells: cumulValues.get(line.code) ?? {},
       total,
       // Un ratio est déjà un pourcentage : on ne le rapporte pas au CA.
       pctCa: isRatio ? null : caTotal !== 0 && total != null ? round2((total / caTotal) * 100) : null,
@@ -389,11 +411,15 @@ function bgResult(
 // Un chantier = une ligne, les postes de la maquette = les colonnes (disposition
 // du tableau de gestion Excel de Sodobat).
 //
-// La balance analytique est un cumul depuis l'ouverture de l'exercice : le mois
-// s'obtient par différence entre deux snapshots consécutifs du même exercice.
-// Les quatre lignes « cumuls sur la durée de vie du chantier » ne sont, elles,
-// pas bornées à l'exercice : elles additionnent le dernier snapshot de chaque
-// exercice antérieur au cumul de l'exercice en cours.
+// Chaque balance analytique porte les mouvements de SON mois : ses totaux de
+// classe 6 et 7 recoupent, au centime, la colonne du même mois de la balance
+// ventilée. Le mois affiché se lit donc directement dans son fichier, sans
+// différence avec le mois précédent.
+// Sur le compte de travaux en cours (71331000), le débit du mois est la reprise
+// de la provision de M-1 et le crédit la provision de M : ce sont les colonnes
+// « Annulation Mois-1 » et « Prévision Mois » du tableau de gestion de la DAF.
+// Les quatre lignes « cumuls sur la durée de vie du chantier » additionnent tous
+// les mois importés, sans se borner à l'exercice.
 
 export type ChantierValues = Record<string, number | null>;
 
@@ -434,7 +460,11 @@ type FoldResult = {
   unmapped: Map<string, { account: string; label: string; solde: number }>;
 };
 
-/** Cumuls d'un snapshot, par centre chantier × catégorie (signe d'affichage appliqué). */
+/**
+ * Mouvements d'une balance analytique, par centre chantier × catégorie (signe
+ * d'affichage appliqué). Le compte de travaux en cours est scindé : son crédit
+ * alimente la provision du mois, son débit l'annulation de la provision M-1.
+ */
 function foldSnapshot(
   lines: {
     centreCode: string;
@@ -471,6 +501,13 @@ function foldSnapshot(
     const byCat = byCentre.get(l.centreCode) ?? new Map<string, number>();
     byCentre.set(l.centreCode, byCat);
 
+    if (cat.code === CHANTIER_CODES.provision) {
+      const bump = (code: string, v: number) =>
+        byCat.set(code, round2((byCat.get(code) ?? 0) + v));
+      bump(CHANTIER_CODES.provision, num(l.credit));
+      bump(CHANTIER_CODES.annulation, -num(l.debit));
+      continue;
+    }
     byCat.set(cat.code, round2((byCat.get(cat.code) ?? 0) + cat.sign * solde));
   }
   return {
@@ -481,53 +518,44 @@ function foldSnapshot(
   };
 }
 
-/** Cumul « durée de vie » : exercices clos + snapshot de l'exercice en cours. */
-async function lifetimeSnapshot(
+/**
+ * Cumul « durée de vie » : somme de tous les mois importés jusqu'à `upTo`
+ * (inclus ou non), tous exercices confondus. Un seul import par mois : le plus
+ * récent l'emporte.
+ */
+async function lifetimeCumul(
   entity: Entity,
-  upToImportId: number | null,
-  fiscalYearStart: number,
+  upTo: { period: string; inclusive: boolean },
   mapper: Awaited<ReturnType<typeof loadMapper>>,
   kindOf: (code: string) => CentreKind
 ): Promise<Map<string, Map<string, number>>> {
-  const acc = new Map<string, Map<string, number>>();
-  const add = (src: Map<string, Map<string, number>>) => {
-    for (const [centre, byCat] of src) {
-      const target = acc.get(centre) ?? new Map<string, number>();
-      acc.set(centre, target);
-      for (const [code, v] of byCat) target.set(code, round2((target.get(code) ?? 0) + v));
-    }
-  };
-
-  // Exercices antérieurs : dernier snapshot de chacun (le cumul y est complet).
-  const priorYears = await db
-    .selectDistinct({ fiscalYearStart: tables.imports.fiscalYearStart })
+  const imports = await db
+    .select({ id: tables.imports.id, period: tables.imports.period })
     .from(tables.imports)
     .where(
       and(
         eq(tables.imports.entityId, entity.id),
         eq(tables.imports.type, "analytique"),
-        eq(tables.imports.status, "validated"),
-        lt(tables.imports.fiscalYearStart, fiscalYearStart)
+        eq(tables.imports.status, "validated")
       )
-    );
-  for (const y of priorYears) {
-    const last = await latestValidatedImport(entity.id, "analytique", {
-      fiscalYearStart: y.fiscalYearStart,
-    });
-    if (!last) continue;
-    const rows = await db
-      .select()
-      .from(tables.analyticLines)
-      .where(eq(tables.analyticLines.importId, last.id));
-    add(foldSnapshot(rows, mapper, kindOf).byCentre);
-  }
+    )
+    .orderBy(tables.imports.id);
+  const importByMonth = new Map<string, number>();
+  for (const i of imports)
+    if (i.period < upTo.period || (upTo.inclusive && i.period === upTo.period))
+      importByMonth.set(i.period, i.id);
 
-  if (upToImportId != null) {
+  const acc = new Map<string, Map<string, number>>();
+  for (const importId of importByMonth.values()) {
     const rows = await db
       .select()
       .from(tables.analyticLines)
-      .where(eq(tables.analyticLines.importId, upToImportId));
-    add(foldSnapshot(rows, mapper, kindOf).byCentre);
+      .where(eq(tables.analyticLines.importId, importId));
+    for (const [centre, byCat] of foldSnapshot(rows, mapper, kindOf).byCentre) {
+      const target = acc.get(centre) ?? new Map<string, number>();
+      acc.set(centre, target);
+      for (const [code, v] of byCat) target.set(code, round2((target.get(code) ?? 0) + v));
+    }
   }
   return acc;
 }
@@ -540,12 +568,10 @@ export async function getChantiers(
     atPeriod: opts?.period,
   });
   if (!imp) return null;
-  // Le comparatif M-1 reste dans le même exercice : sinon le snapshot de
-  // novembre serait différencié contre le cumul d'octobre de l'exercice
-  // précédent, qui ne s'est pas remis à zéro dans la même série.
+  // Mois précédent importé : il ne sert plus au calcul du mois, seulement à dire
+  // jusqu'où remontent les reports de cumul.
   const prevImp = await latestValidatedImport(entity.id, "analytique", {
     beforePeriod: imp.period,
-    fiscalYearStart: imp.fiscalYearStart,
   });
 
   const mapper = await loadMapper("chantier", entity.id, entity.code);
@@ -555,20 +581,31 @@ export async function getChantiers(
     .select()
     .from(tables.analyticLines)
     .where(eq(tables.analyticLines.importId, imp.id));
-  const previousLines = prevImp
-    ? await db
-        .select()
-        .from(tables.analyticLines)
-        .where(eq(tables.analyticLines.importId, prevImp.id))
-    : [];
 
   const currentFold = foldSnapshot(currentLines, mapper, kindOf);
-  const previousFold = foldSnapshot(previousLines, mapper, kindOf);
-  const currentCumul = currentFold.byCentre;
-  const prevCumul = previousFold.byCentre;
+  const currentMonth = currentFold.byCentre;
+  // Reports : tout ce qui a été importé avant le mois affiché.
+  const lifeBefore = await lifetimeCumul(
+    entity,
+    { period: imp.period, inclusive: false },
+    mapper,
+    kindOf
+  );
+  const lifeNow = await lifetimeCumul(
+    entity,
+    { period: imp.period, inclusive: true },
+    mapper,
+    kindOf
+  );
 
   const labels = new Map<string, string>();
   for (const l of currentLines) if (!labels.has(l.centreCode)) labels.set(l.centreCode, l.centreLabel);
+  // Chantier sans mouvement ce mois-ci : son intitulé vient du référentiel.
+  const referentiel = await db
+    .select({ code: tables.centres.code, name: tables.centres.name })
+    .from(tables.centres)
+    .where(eq(tables.centres.entityId, entity.id));
+  for (const c of referentiel) if (!labels.has(c.code)) labels.set(c.code, c.name);
 
   // ── Saisies manuelles du mois ──────────────────────────────────────────────
   const manual = await db
@@ -600,24 +637,21 @@ export async function getChantiers(
 
 
   // ── Colonnes = centres retenus ─────────────────────────────────────────────
-  const centres = [...new Set([...currentCumul.keys(), ...prevCumul.keys()])].sort(
+  // Un chantier sans mouvement ce mois-ci reste listé : ses cumuls continuent de
+  // compter dans le suivi, comme dans le tableau de gestion.
+  const centres = [...new Set([...currentMonth.keys(), ...lifeBefore.keys()])].sort(
     (a, b) => (poleOf(a) ?? "ZZ").localeCompare(poleOf(b) ?? "ZZ") || a.localeCompare(b)
   );
   const TOTAL = TOTAL_COLUMN;
   const columns = [...centres, TOTAL];
 
-  // ── Valeurs du mois : delta de cumul, poste par poste ──────────────────────
+  // ── Valeurs du mois : les mouvements du fichier, poste par poste ───────────
   const monthlyLeaves = new Map<string, Vector>();
   for (const cat of mapper.categories) {
     const vec: Vector = {};
     let total = 0;
     for (const centre of centres) {
-      const now = currentCumul.get(centre)?.get(cat.code) ?? 0;
-      const before = prevCumul.get(centre)?.get(cat.code) ?? 0;
-      // Les travaux en cours ne sont pas un flux mais une position : le solde du
-      // snapshot est la provision ouverte à la date d'arrêté, pas sa variation.
-      const v =
-        cat.code === CHANTIER_CODES.provision ? round2(now) : round2(now - before);
+      const v = round2(currentMonth.get(centre)?.get(cat.code) ?? 0);
       vec[centre] = v;
       total += v;
     }
@@ -635,12 +669,13 @@ export async function getChantiers(
     monthlyLeaves.set(CHANTIER_CODES.provision, vec);
   }
 
-  // Annulation M-1 : reprise de la provision ouverte au snapshot précédent.
-  // La saisie de la DAF prime (mécanisme brouillon → figé de la maquette).
+  // Annulation M-1 : reprise de la provision de M-1, passée au débit du compte de
+  // travaux en cours dans le mois. La saisie de la DAF prime (mécanisme
+  // brouillon → figé de la maquette).
   const annulationVec: Vector = {};
   let annulationTotal = 0;
   for (const centre of centres) {
-    const repriseM1 = round2(-(prevCumul.get(centre)?.get(CHANTIER_CODES.provision) ?? 0));
+    const repriseM1 = round2(currentMonth.get(centre)?.get(CHANTIER_CODES.annulation) ?? 0);
     const v = annulations.has(centre) ? annulations.get(centre)! : repriseM1;
     annulationVec[centre] = v;
     annulationTotal += v;
@@ -648,22 +683,22 @@ export async function getChantiers(
   annulationVec[TOTAL] = round2(annulationTotal);
 
   // ── Cumuls sur la durée de vie du chantier ─────────────────────────────────
-  const lifeNow = await lifetimeSnapshot(entity, imp.id, imp.fiscalYearStart, mapper, kindOf);
-  const lifeBefore = await lifetimeSnapshot(
-    entity,
-    prevImp?.id ?? null,
-    imp.fiscalYearStart,
-    mapper,
-    kindOf
-  );
-
   const evalCumul = (snapshot: Map<string, Map<string, number>>) => {
     const leaves = new Map<string, Vector>();
     for (const cat of mapper.categories) {
       const vec: Vector = {};
       let total = 0;
       for (const centre of centres) {
-        const v = snapshot.get(centre)?.get(cat.code) ?? 0;
+        const byCat = snapshot.get(centre);
+        // En cumul, provisions et reprises se compensent : il ne reste que la
+        // provision encore ouverte à la fin du dernier mois.
+        const v =
+          cat.code === CHANTIER_CODES.provision
+            ? round2(
+                (byCat?.get(CHANTIER_CODES.provision) ?? 0) +
+                  (byCat?.get(CHANTIER_CODES.annulation) ?? 0)
+              )
+            : (byCat?.get(cat.code) ?? 0);
         vec[centre] = v;
         total += v;
       }
@@ -792,7 +827,7 @@ export type FxData = {
   importId: number;
 };
 
-/** Cumul par compte des centres de structure d'un snapshot analytique. */
+/** Mouvements du mois par compte, sur les centres de structure d'une balance analytique. */
 async function structureSoldes(
   importId: number,
   kindOf: (code: string) => CentreKind
@@ -816,8 +851,52 @@ async function structureSoldes(
 }
 
 /**
- * Exercice antérieur : on privilégie le dernier snapshot analytique de
- * l'exercice (le périmètre « structure » y est exact). À défaut on retombe sur
+ * Imports analytiques validés d'un exercice, un par mois (le plus récent
+ * l'emporte), jusqu'à `upTo` inclus.
+ */
+async function analytiqueImportsOfYear(
+  entityId: number,
+  fiscalYearStart: number,
+  upTo?: string
+): Promise<Map<string, number>> {
+  const rows = await db
+    .select({ id: tables.imports.id, period: tables.imports.period })
+    .from(tables.imports)
+    .where(
+      and(
+        eq(tables.imports.entityId, entityId),
+        eq(tables.imports.type, "analytique"),
+        eq(tables.imports.status, "validated"),
+        eq(tables.imports.fiscalYearStart, fiscalYearStart)
+      )
+    )
+    .orderBy(tables.imports.id);
+  const byMonth = new Map<string, number>();
+  for (const r of rows) if (!upTo || r.period <= upTo) byMonth.set(r.period, r.id);
+  return byMonth;
+}
+
+/** Cumul des centres de structure sur plusieurs mois : la somme des fichiers mensuels. */
+async function structureCumul(
+  importIds: Iterable<number>,
+  kindOf: (code: string) => CentreKind
+): Promise<Map<string, { label: string; solde: number }>> {
+  const out = new Map<string, { label: string; solde: number }>();
+  for (const id of importIds) {
+    for (const [account, v] of await structureSoldes(id, kindOf)) {
+      const prev = out.get(account);
+      out.set(account, {
+        label: prev?.label ?? v.label,
+        solde: round2((prev?.solde ?? 0) + v.solde),
+      });
+    }
+  }
+  return out;
+}
+
+/**
+ * Exercice antérieur : on privilégie les balances analytiques de l'exercice,
+ * additionnées (le périmètre « structure » y est exact). À défaut on retombe sur
  * la balance ventilée, restreinte aux comptes de la nomenclature FX — approximation
  * signalée à l'utilisateur, car la ventilée ne porte pas l'axe analytique et
  * inclut donc aussi la part imputée aux chantiers.
@@ -828,9 +907,9 @@ async function priorYear(
   kindOf: (code: string) => CentreKind,
   fxAccounts: Set<string>
 ): Promise<{ soldes: Map<string, number>; source: FxColumnSource }> {
-  const analytique = await latestValidatedImport(entity.id, "analytique", { fiscalYearStart });
-  if (analytique) {
-    const cumuls = await structureSoldes(analytique.id, kindOf);
+  const analytiques = await analytiqueImportsOfYear(entity.id, fiscalYearStart);
+  if (analytiques.size) {
+    const cumuls = await structureCumul(analytiques.values(), kindOf);
     return {
       soldes: new Map([...cumuls].map(([a, v]) => [a, v.solde])),
       source: "analytique",
@@ -852,9 +931,17 @@ async function priorYear(
   return { soldes, source: "ventilee" };
 }
 
-/** CA de référence d'un exercice : la ligne CA TOTAL de la Synthèse. */
-async function caOfYear(entity: Entity, fiscalYearStart: number): Promise<number | null> {
-  const synthese = await getSynthese(entity, { fiscalYearStart });
+/**
+ * CA de référence d'un exercice : la ligne CA TOTAL de la Synthèse, arrêtée à
+ * `period` quand on consulte un mois passé — des frais à fin mars se rapportent
+ * au CA à fin mars, pas à celui de tout l'exercice importé.
+ */
+async function caOfYear(
+  entity: Entity,
+  fiscalYearStart: number,
+  period?: string
+): Promise<number | null> {
+  const synthese = await getSynthese(entity, { fiscalYearStart, period });
   return synthese?.byCode[SYNTHESE_CODES.caTotal]?.total ?? null;
 }
 
@@ -866,12 +953,6 @@ export async function getFx(
     atPeriod: opts?.period,
   });
   if (!imp) return null;
-  // Le cumul analytique se compare toujours à l'intérieur du même exercice.
-  const prevImp = await latestValidatedImport(entity.id, "analytique", {
-    beforePeriod: imp.period,
-    fiscalYearStart: imp.fiscalYearStart,
-  });
-
   const kindOf = await loadCentreKinds(entity.id);
   const mapper = await loadMapper("fx", entity.id, entity.code);
 
@@ -888,10 +969,13 @@ export async function getFx(
   for (const r of ruleRows) if (fxCategoryIds.has(r.categoryId)) fxAccounts.add(r.pattern);
 
   // ── Exercice en cours ──────────────────────────────────────────────────────
-  const current = await structureSoldes(imp.id, kindOf);
-  const prevSnapshot = prevImp
-    ? await structureSoldes(prevImp.id, kindOf)
-    : new Map<string, { label: string; solde: number }>();
+  // N = somme des mois importés de l'exercice, jusqu'au mois affiché ; la colonne
+  // de travail « mois » reprend le seul fichier du mois.
+  const current = await structureCumul(
+    (await analytiqueImportsOfYear(entity.id, imp.fiscalYearStart, imp.period)).values(),
+    kindOf
+  );
+  const moisSoldes = await structureSoldes(imp.id, kindOf);
 
   const { soldes: n1Soldes, source: n1Source } = await priorYear(
     entity,
@@ -936,7 +1020,7 @@ export async function getFx(
     soldeMappe += solde;
     const signed = round2(cat.sign * solde);
     bump(cat.code, "n", signed);
-    bump(cat.code, MOIS_COLUMN, round2(cat.sign * (solde - (prevSnapshot.get(account)?.solde ?? 0))));
+    bump(cat.code, MOIS_COLUMN, round2(cat.sign * (moisSoldes.get(account)?.solde ?? 0)));
     const list = accountsByCat.get(cat.code) ?? [];
     list.push({ account, label, ytd: signed });
     accountsByCat.set(cat.code, list);
@@ -953,7 +1037,7 @@ export async function getFx(
 
   // ── CA de référence, un par exercice ───────────────────────────────────────
   const caReference: Record<FxColumn, number | null> = {
-    n: await caOfYear(entity, imp.fiscalYearStart),
+    n: await caOfYear(entity, imp.fiscalYearStart, imp.period),
     n1: n1Source === "absent" ? null : await caOfYear(entity, imp.fiscalYearStart - 1),
     n2: n2Source === "absent" ? null : await caOfYear(entity, imp.fiscalYearStart - 2),
   };
@@ -1027,6 +1111,143 @@ export async function getFx(
     sources: { n1: n1Source, n2: n2Source },
     unmapped: [...unmapped.values()].sort((a, b) => Math.abs(b.ytd) - Math.abs(a.ytd)),
     importId: imp.id,
+  };
+}
+
+// ── Frais généraux, vue mensuelle ────────────────────────────────────────────
+//
+// Une colonne par mois de l'exercice, plus le cumul. Chaque balance analytique
+// importée est lue comme le mouvement de son mois — ses totaux de classe 6 et 7
+// recoupent la colonne du même mois de la balance ventilée — et le cumul est la
+// somme des mois affichés. Un mois sans import reste vide et est signalé.
+
+export type FxMensuelRow = {
+  category: Category;
+  /** une valeur par mois, plus TOTAL_COLUMN pour le cumul */
+  cells: Record<string, number | null>;
+  /** poids du cumul dans le CA cumulé des mêmes mois */
+  pctCumul: number | null;
+  accounts: string[];
+};
+
+export type FxMensuelData = {
+  period: string;
+  fiscalYearStart: number;
+  /** mois de l'exercice jusqu'au mois affiché */
+  months: string[];
+  /** mois sans balance analytique validée */
+  missing: string[];
+  sections: { name: string; rows: FxMensuelRow[] }[];
+  byCode: Record<string, Record<string, number | null>>;
+  /** CA de la Synthèse, par mois et cumulé sur les mois affichés */
+  caReference: Record<string, number | null>;
+  unmapped: { account: string; label: string; cumul: number }[];
+};
+
+export async function getFxMensuel(
+  entity: Entity,
+  opts?: { period?: string }
+): Promise<FxMensuelData | null> {
+  const last = await latestValidatedImport(entity.id, "analytique", {
+    atPeriod: opts?.period,
+  });
+  if (!last) return null;
+
+  const months = fiscalMonths(last.fiscalYearStart).filter((m) => m <= last.period);
+  const imports = await db
+    .select()
+    .from(tables.imports)
+    .where(
+      and(
+        eq(tables.imports.entityId, entity.id),
+        eq(tables.imports.type, "analytique"),
+        eq(tables.imports.status, "validated"),
+        eq(tables.imports.fiscalYearStart, last.fiscalYearStart)
+      )
+    )
+    .orderBy(tables.imports.id);
+  // Un seul import par mois : le plus récent l'emporte.
+  const importByMonth = new Map<string, number>();
+  for (const i of imports) if (months.includes(i.period)) importByMonth.set(i.period, i.id);
+  const missing = months.filter((m) => !importByMonth.has(m));
+
+  const kindOf = await loadCentreKinds(entity.id);
+  const mapper = await loadMapper("fx", entity.id, entity.code);
+  const columns = [...months, TOTAL_COLUMN];
+
+  const blank = (): Vector =>
+    Object.fromEntries(columns.map((c) => [c, missing.includes(c) ? null : 0]));
+  const leaves = new Map<string, Vector>();
+  for (const cat of mapper.categories) leaves.set(cat.code, blank());
+  const accountsByCat = new Map<string, Set<string>>();
+  const unmapped = new Map<string, { account: string; label: string; cumul: number }>();
+
+  for (const [month, importId] of importByMonth) {
+    for (const [account, { label, solde }] of await structureSoldes(importId, kindOf)) {
+      const cat = mapper.resolve(account);
+      if (!cat) {
+        const prev = unmapped.get(account);
+        unmapped.set(account, { account, label, cumul: round2((prev?.cumul ?? 0) + solde) });
+        continue;
+      }
+      const vec = leaves.get(cat.code) ?? blank();
+      const signed = cat.sign * solde;
+      vec[month] = round2((vec[month] ?? 0) + signed);
+      vec[TOTAL_COLUMN] = round2((vec[TOTAL_COLUMN] ?? 0) + signed);
+      leaves.set(cat.code, vec);
+      const set = accountsByCat.get(cat.code) ?? new Set<string>();
+      set.add(account);
+      accountsByCat.set(cat.code, set);
+    }
+  }
+
+  // CA de référence : celui de la Synthèse, mois par mois. Le cumul ne retient
+  // que les mois effectivement couverts, pour rester comparable aux charges.
+  const synthese = await getSynthese(entity, { fiscalYearStart: last.fiscalYearStart });
+  const caCells = synthese?.byCode[SYNTHESE_CODES.caTotal]?.cells ?? {};
+  const caReference: Record<string, number | null> = {};
+  let caCumul = 0;
+  for (const m of months) {
+    const v = missing.includes(m) ? null : (caCells[m] ?? null);
+    caReference[m] = v;
+    caCumul += v ?? 0;
+  }
+  caReference[TOTAL_COLUMN] = synthese ? round2(caCumul) : null;
+
+  const values = evaluate(mapper.lines, columns, leaves, {
+    provided: new Map([[FX_CODES.caReference, caReference]]),
+  });
+
+  const sections: FxMensuelData["sections"] = [];
+  const byCode: FxMensuelData["byCode"] = {};
+  for (const line of mapper.lines) {
+    const cells = values.get(line.code) ?? {};
+    byCode[line.code] = cells;
+    if (line.hidden) continue;
+    if (line.kind === "poste" && !columns.some((c) => cells[c])) continue;
+
+    const cumul = cells[TOTAL_COLUMN];
+    const ca = caReference[TOTAL_COLUMN];
+    const row: FxMensuelRow = {
+      category: line,
+      cells,
+      pctCumul: line.kind !== "ratio" && ca && cumul != null ? round2((cumul / ca) * 100) : null,
+      accounts: [...(accountsByCat.get(line.code) ?? [])].sort(),
+    };
+    const lastSection = sections[sections.length - 1];
+    if (lastSection && lastSection.name === line.section) lastSection.rows.push(row);
+    else sections.push({ name: line.section, rows: [row] });
+  }
+
+  return {
+    period: last.period,
+    fiscalYearStart: last.fiscalYearStart,
+    months,
+    missing,
+    sections,
+    byCode,
+    caReference,
+    unmapped: [...unmapped.values()].sort((a, b) => Math.abs(b.cumul) - Math.abs(a.cumul)),
   };
 }
 
@@ -1234,47 +1455,43 @@ export async function getAccountDetail(
     postes.push({ view, label: cat?.label ?? null, section: cat?.section ?? null });
   }
 
-  // Ventilation analytique au dernier snapshot, avec la variation du mois.
+  // Ventilation analytique : cumul des balances mensuelles de l'exercice, et
+  // mouvement du dernier mois importé.
   const ana = await latestValidatedImport(entity.id, "analytique");
-  const anaPrev = ana
-    ? await latestValidatedImport(entity.id, "analytique", {
-        beforePeriod: ana.period,
-        fiscalYearStart: ana.fiscalYearStart,
-      })
-    : null;
   const kindOf = await loadCentreKinds(entity.id);
   const ventilation: AccountDetail["ventilation"] = [];
   if (ana) {
-    const rows = (
-      await db
+    const byCentre = new Map<string, AccountDetail["ventilation"][number]>();
+    const monthsOfYear = await analytiqueImportsOfYear(entity.id, ana.fiscalYearStart, ana.period);
+    for (const [month, importId] of monthsOfYear) {
+      const rows = await db
         .select()
         .from(tables.analyticLines)
-        .where(eq(tables.analyticLines.importId, ana.id))
-    ).filter((l) => l.account === account);
-    const prevByCentre = new Map<string, number>();
-    if (anaPrev) {
-      const prevRows = (
-        await db
-          .select()
-          .from(tables.analyticLines)
-          .where(eq(tables.analyticLines.importId, anaPrev.id))
-      ).filter((l) => l.account === account);
-      for (const p of prevRows)
-        prevByCentre.set(p.centreCode, round2((prevByCentre.get(p.centreCode) ?? 0) + num(p.solde)));
+        .where(
+          and(
+            eq(tables.analyticLines.importId, importId),
+            eq(tables.analyticLines.account, account)
+          )
+        );
+      for (const r of rows) {
+        const v = byCentre.get(r.centreCode) ?? {
+          centreCode: r.centreCode,
+          centreLabel: r.centreLabel,
+          kind: kindOf(r.centreCode),
+          pole: poleOf(r.centreCode),
+          debit: 0,
+          credit: 0,
+          solde: 0,
+          mois: 0,
+        };
+        v.debit = round2(v.debit + num(r.debit));
+        v.credit = round2(v.credit + num(r.credit));
+        v.solde = round2(v.solde + num(r.solde));
+        if (month === ana.period) v.mois = round2((v.mois ?? 0) + num(r.solde));
+        byCentre.set(r.centreCode, v);
+      }
     }
-    for (const r of rows) {
-      const solde = num(r.solde);
-      ventilation.push({
-        centreCode: r.centreCode,
-        centreLabel: r.centreLabel,
-        kind: kindOf(r.centreCode),
-        pole: poleOf(r.centreCode),
-        debit: num(r.debit),
-        credit: num(r.credit),
-        solde,
-        mois: anaPrev ? round2(solde - (prevByCentre.get(r.centreCode) ?? 0)) : null,
-      });
-    }
+    ventilation.push(...byCentre.values());
     ventilation.sort((a, b) => Math.abs(b.solde) - Math.abs(a.solde));
   }
 
@@ -1290,6 +1507,6 @@ export async function getAccountDetail(
     total: round2(total),
     ventilation,
     analytiquePeriod: ana?.period ?? null,
-    prevAnalytiquePeriod: anaPrev?.period ?? null,
+    prevAnalytiquePeriod: null,
   };
 }

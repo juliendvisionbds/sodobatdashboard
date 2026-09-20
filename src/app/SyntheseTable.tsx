@@ -40,6 +40,9 @@ export default function SyntheseTable({ data }: { data: SyntheseData }) {
   // Masquer les mois vides est l'affichage par défaut : en cours d'exercice, la
   // moitié des colonnes est encore à zéro.
   const [hideEmptyCols, setHideEmptyCols] = useState(true);
+  // Mensuel : le mouvement de chaque mois. Cumulé : l'exercice à date à la fin de
+  // chaque mois, la dernière colonne rejoignant alors le total de l'exercice.
+  const [cumul, setCumul] = useState(false);
   const months = data.months;
   const filtering = section !== "" || search.trim() !== "";
 
@@ -84,6 +87,14 @@ export default function SyntheseTable({ data }: { data: SyntheseData }) {
         Tableau de synthèse · exercice {data.fiscalYearStart}/{data.fiscalYearStart + 1}
       </div>
       <div className="table-controls">
+        <div className="view-switch" role="group" aria-label="Lecture des colonnes de mois">
+          <button type="button" className={cumul ? undefined : "active"} onClick={() => setCumul(false)}>
+            Mensuel
+          </button>
+          <button type="button" className={cumul ? "active" : undefined} onClick={() => setCumul(true)}>
+            Cumulé
+          </button>
+        </div>
         <select
           className="tctl-select"
           value={section}
@@ -125,8 +136,12 @@ export default function SyntheseTable({ data }: { data: SyntheseData }) {
             <tr>
               <th className="left">Intitulé</th>
               {monthsShown.map((m) => (
-                <th key={m} className={data.monthsWithData.includes(m) ? "" : "muted"}>
-                  {monthLabel(m)}
+                <th
+                  key={m}
+                  className={data.monthsWithData.includes(m) ? "" : "muted"}
+                  title={cumul ? `Cumul de l'exercice à fin ${monthLabel(m)}` : undefined}
+                >
+                  {cumul ? `→ ${monthLabel(m)}` : monthLabel(m)}
                 </th>
               ))}
               <th>Total exercice</th>
@@ -145,7 +160,7 @@ export default function SyntheseTable({ data }: { data: SyntheseData }) {
               </tr>
             )}
             {visibleSections.map((s) => (
-              <SectionRows key={s.name} name={s.name} rows={s.rows} months={monthsShown} colCount={colCount} />
+              <SectionRows key={s.name} name={s.name} rows={s.rows} months={monthsShown} colCount={colCount} cumul={cumul} />
             ))}
           </tbody>
         </table>
@@ -154,6 +169,8 @@ export default function SyntheseTable({ data }: { data: SyntheseData }) {
         Chiffres recalculés à la volée depuis les lignes de balance importées (aucun
         agrégat stocké). Le total N-1 est arrêté au même rang de mois que l&apos;exercice
         en cours, pour une comparaison à périmètre égal.
+        {cumul &&
+          " Lecture cumulée : chaque colonne donne l'exercice à date à la fin du mois, ratios recalculés sur ce cumul."}
         {filtering && " Filtre actif : les totaux restent ceux de la section complète."}
       </p>
     </div>
@@ -165,11 +182,13 @@ function SectionRows({
   rows,
   months,
   colCount,
+  cumul,
 }: {
   name: string;
   rows: SyntheseRow[];
   months: string[];
   colCount: number;
+  cumul: boolean;
 }) {
   return (
     <>
@@ -185,7 +204,7 @@ function SectionRows({
               {r.category.label}
             </td>
             {months.map((m) => {
-              const v = r.cells[m] ?? null;
+              const v = (cumul ? r.cumulCells : r.cells)[m] ?? null;
               return (
                 <td key={m} className={v ? negClass(v) : "muted"}>
                   {cell(v)}

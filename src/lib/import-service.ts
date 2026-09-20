@@ -64,7 +64,7 @@ export async function createImportPreview(opts: {
   } else {
     if (!opts.periodOverride) {
       throw new Error(
-        "La balance analytique ne contient pas sa période : sélectionnez le mois du snapshot."
+        "La balance analytique ne contient pas sa période : sélectionnez le mois de la balance."
       );
     }
     period = opts.periodOverride;

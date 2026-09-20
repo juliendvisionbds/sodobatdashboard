@@ -7,7 +7,7 @@ Tableaux de gestion intelligents alimentés par les exports Cegid (balance venti
 - **Import mensuel** : upload des deux fichiers xlsx (balance ventilée, balance analytique) avec prévisualisation et contrôles avant intégration. Ré-importer une période remplace la version précédente (gère les 2 mises à jour mensuelles : M+24 puis correction comptable).
 - **Mapping** : chaque compte comptable est affecté, par son numéro exact, à un poste de la maquette structurelle validée avec la DAF. Tout compte inconnu remonte en alerte — jamais de classement par défaut.
 - **Règle analytique** : un même compte peut exister dans la vue Chantiers et dans la vue Frais généraux (entretien, carburant, locations, fournitures). C'est le centre de la balance analytique qui tranche : un code commençant par un chiffre est un chantier, tout le reste (FX, dépôt, siège) est de la structure.
-- **5 vues** : Synthèse (mensuel, exercice nov→oct, 18 colonnes), Activité chantier (delta des snapshots analytiques M vs M-1, cumuls sur la durée de vie du chantier), Frais généraux (N-2 / N-1 / N YTD, chaque ratio rapporté au CA de son propre exercice), Objectifs Dirigeant (réalisé vs objectif en % du CA), Consultation par compte (drill-down mensuel et ventilation par chantier).
+- **5 vues** : Synthèse (mensuel, exercice nov→oct, 18 colonnes), Activité chantier (mouvements de la balance analytique du mois, cumuls sur tous les mois importés), Frais généraux (N-2 / N-1 / N YTD, chaque ratio rapporté au CA de son propre exercice), Objectifs Dirigeant (réalisé vs objectif en % du CA), Consultation par compte (drill-down mensuel et ventilation par chantier).
 - **Fiabilité** : les chiffres affichés sont recalculés à la volée depuis les lignes de balance brutes importées ; aucun agrégat n'est stocké.
 
 ## Développement
@@ -43,6 +43,14 @@ liste les comptes présents dans les imports validés qu'aucun poste ne couvrira
 npm run recette          # import de mai + contrôles de fiabilité fichier vs recalcul
 npm run recette:tg       # rapprochement avec le tableau de gestion Excel de mai 2026
 npm run recette:mapping  # cycle de vie des règles de mapping
+```
+
+Rapprochement avec le tableau de gestion de la DAF, en lecture seule — onglets
+« TG MM AAAA » contre la vue Chantiers, chantier par chantier, et résultat BG
+contre la Synthèse :
+
+```bash
+npm run rapprochement:tg -- "<TABLEAU GESTION.xlsx>" [--detail]
 ```
 
 Deux invariants font échouer la recette : un compte non mappé, et un écart de contrôle
@@ -106,4 +114,4 @@ pour ne pas effacer les règles créées depuis l'écran Mapping.
 | Fichier | Contenu | Usage |
 | --- | --- | --- |
 | `*_BALANCE VENTILEE.xlsx` | Balance générale, une colonne par mois de l'exercice | Vues Synthèse et ratios / CA |
-| `*_BALANCE ANALYTIQUE.xlsx` | Cumul par centre (chantier / FX) × compte à date d'édition | Vue Chantiers (delta M − M-1) et vue Frais généraux |
+| `*_BALANCE ANALYTIQUE.xlsx` | Mouvements **du mois** par centre (chantier / FX) × compte — ses totaux de classe 6 et 7 recoupent la colonne du même mois de la ventilée | Vue Chantiers (le mois se lit dans son fichier) et vue Frais généraux (cumul = somme des mois) |

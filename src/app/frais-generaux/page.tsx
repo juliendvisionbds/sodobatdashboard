@@ -1,25 +1,28 @@
 import Link from "next/link";
 import AppHeader from "@/components/AppHeader";
-import { getEntityByCode, getFx, listAnalytiquePeriods } from "@/lib/finance";
+import { getEntityByCode, getFx, getFxMensuel, listAnalytiquePeriods } from "@/lib/finance";
 import { fiscalYearOf } from "@/lib/parsers";
 import { fmtEurAuto, fmtPct, monthLabelLong, splitAutoEur } from "@/lib/format";
 import MonthSelect from "@/components/MonthSelect";
 import FxTable from "./FxTable";
+import FxMensuelTable from "./FxMensuelTable";
 
 export const dynamic = "force-dynamic";
 
 export default async function FxPage({
   searchParams,
 }: {
-  searchParams: Promise<{ mois?: string }>;
+  searchParams: Promise<{ mois?: string; vue?: string }>;
 }) {
   const entity = await getEntityByCode("sodobat");
   if (!entity) return null;
 
   const periods = await listAnalytiquePeriods(entity.id);
-  const { mois } = await searchParams;
+  const { mois, vue } = await searchParams;
+  const mensuel = vue === "mensuel";
   const period = mois && periods.includes(mois) ? mois : undefined;
   const data = await getFx(entity, { period });
+  const mensuelData = mensuel ? await getFxMensuel(entity, { period }) : null;
 
   if (!data) {
     return (
@@ -56,8 +59,27 @@ export default async function FxPage({
           <div className="page-header-row">
             <h1>Frais généraux · {monthLabelLong(data.period)}</h1>
             {periods.length > 0 && (
-              <MonthSelect basePath="/frais-generaux" periods={periods} current={data.period} />
+              <MonthSelect
+                basePath="/frais-generaux"
+                periods={periods}
+                current={data.period}
+                extraQuery={mensuel ? "vue=mensuel" : undefined}
+              />
             )}
+            <nav className="view-switch" aria-label="Lecture du tableau">
+              <Link
+                href={`/frais-generaux?mois=${data.period}`}
+                className={mensuel ? undefined : "active"}
+              >
+                Exercices
+              </Link>
+              <Link
+                href={`/frais-generaux?mois=${data.period}&vue=mensuel`}
+                className={mensuel ? "active" : undefined}
+              >
+                Mensuel
+              </Link>
+            </nav>
           </div>
           <p>
             Centres de structure (FX, dépôt, siège) · cumul exercice à date ·{" "}
@@ -104,7 +126,7 @@ export default async function FxPage({
           </div>
         </div>
 
-        <FxTable data={data} />
+        {mensuelData ? <FxMensuelTable data={mensuelData} /> : <FxTable data={data} />}
         <p style={{ marginTop: 10, fontSize: 11, color: "var(--gray3)" }}>
           Négatif = produit venant en déduction (indemnités, refacturations). Les
           comptes partagés avec les chantiers (carburant, entretien, locations) ne

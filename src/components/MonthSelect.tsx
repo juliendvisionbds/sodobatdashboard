@@ -7,10 +7,13 @@ export default function MonthSelect({
   basePath,
   periods,
   current,
+  extraQuery,
 }: {
   basePath: string;
   periods: string[];
   current: string;
+  /** paramètres à conserver au changement de mois, ex. « vue=mensuel » */
+  extraQuery?: string;
 }) {
   const router = useRouter();
   return (
@@ -19,7 +22,7 @@ export default function MonthSelect({
       value={current}
       disabled={periods.length < 2}
       title={periods.length < 2 ? "Un seul mois disponible pour l'instant" : undefined}
-      onChange={(e) => router.push(`${basePath}?mois=${e.target.value}`)}
+      onChange={(e) => router.push(`${basePath}?mois=${e.target.value}${extraQuery ? `&${extraQuery}` : ""}`)}
       aria-label="Choisir le mois affiché"
     >
       {periods.map((p) => (

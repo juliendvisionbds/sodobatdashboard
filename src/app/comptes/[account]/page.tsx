@@ -94,7 +94,7 @@ export default async function ComptePage({
           <div className="card-label">
             Ventilation analytique
             {data.analytiquePeriod
-              ? ` · snapshot ${monthLabelLong(data.analytiquePeriod)}`
+              ? ` · exercice arrêté à ${monthLabelLong(data.analytiquePeriod)}`
               : ""}
           </div>
           {data.ventilation.length === 0 ? (
@@ -144,12 +144,8 @@ export default async function ComptePage({
             </div>
           )}
           <p style={{ marginTop: 10, fontSize: 11, color: "var(--gray3)" }}>
-            La colonne « Mois » est l&apos;écart avec le snapshot précédent du même
-            exercice
-            {data.prevAnalytiquePeriod
-              ? ` (${monthLabelLong(data.prevAnalytiquePeriod)})`
-              : " — indisponible sur le premier snapshot"}
-            . C&apos;est la nature du centre (chantier ou structure) qui décide si une
+            Débit, crédit et cumul additionnent les balances analytiques mensuelles de
+            l&apos;exercice ; la colonne « Mois » reprend la dernière importée. C&apos;est la nature du centre (chantier ou structure) qui décide si une
             écriture alimente la vue Chantiers ou la vue Frais généraux.
           </p>
         </div>
