@@ -138,6 +138,9 @@ async function main() {
           field: "report_ouverture" as const,
           subKey,
           valueNum: r[subKey].toFixed(2),
+          // Un chantier clos avant le premier mois importé n'existe dans aucune
+          // balance : son intitulé ne peut venir que du tableau de gestion.
+          valueText: r.label || null,
           status: "final" as const,
           updatedBy: "init-reports-cumul",
         }))

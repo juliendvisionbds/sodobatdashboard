@@ -657,6 +657,9 @@ export async function getChantiers(
     if (m.subKey === "facturation") o.facturation = round2(o.facturation + num(m.valueNum));
     if (m.subKey === "resultat") o.resultat = round2(o.resultat + num(m.valueNum));
     ouvertures.set(m.centreCode, o);
+    // Chantier clos avant le premier mois importé : ni balance ni référentiel ne
+    // le connaissent, son intitulé est celui du tableau de gestion.
+    if (m.valueText && !labels.has(m.centreCode)) labels.set(m.centreCode, m.valueText);
   }
 
   // ── Colonnes = centres retenus ─────────────────────────────────────────────
