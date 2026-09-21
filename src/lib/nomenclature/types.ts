@@ -59,6 +59,14 @@ export type NomenclatureLine = {
   formula?: Formula;
   /** compte redescendant en cumul depuis le début d'exercice (DOT, VNC) */
   cumulative?: boolean;
+  /**
+   * Poste dont les comptes vivent à la fois sur des chantiers et sur des centres
+   * de structure. La balance ventilée ne portant pas l'axe analytique, la part
+   * imputée au siège est retrouvée dans la balance analytique du mois et
+   * transférée vers cette ligne des frais généraux — c'est le découpage que la
+   * DAF opère à la main dans son tableau de gestion.
+   */
+  structureTo?: string;
   /** "all" ou codes d'entités séparés par des virgules */
   entityScope?: string;
   /**

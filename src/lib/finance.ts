@@ -15,6 +15,8 @@ import {
   FX_CODES,
   SYNTHESE_CODES,
 } from "./nomenclature/codes";
+import { synthese as nomenclatureSynthese } from "./nomenclature/sodobat";
+import { structureRouting } from "./nomenclature/validate";
 import { OBJECTIFS, statutObjectif, type ObjectifStatut } from "./objectifs";
 
 export { TOTAL_COLUMN, CHANTIER_CODES, FX_CODES, SYNTHESE_CODES };
@@ -169,6 +171,12 @@ export type SyntheseData = {
   totalFx: { monthly: Record<string, number>; total: number };
   resultatNet: { monthly: Record<string, number>; total: number };
   unmapped: { account: string; label: string; total: number }[];
+  /**
+   * Mois de l'exercice sans balance analytique : leurs charges partagées n'ont
+   * pas pu être découpées entre chantiers et structure, et restent donc en
+   * totalité sur la ligne d'exploitation.
+   */
+  moisSansAnalytique: string[];
   hasPrevYear: boolean;
   prevCaTotal: number | null;
   importId: number;
@@ -201,6 +209,41 @@ function aggregateByCategory(
     byCat.set(cat.code, rec);
   }
   return { byCat, unmapped };
+}
+
+/**
+ * Part « structure » de chaque poste, mois par mois, lue dans les balances
+ * analytiques de l'exercice.
+ *
+ * La balance ventilée ignore l'axe analytique : le carburant d'un chantier et
+ * celui du dépôt y sont un seul montant. La balance analytique du même mois,
+ * elle, porte le centre de chaque écriture — c'est donc elle qui dit combien,
+ * dans ce montant, relève du siège. Les montants restent bruts (charges
+ * positives), comme ceux de la ventilée.
+ */
+async function structurePartParMois(
+  entity: Entity,
+  fiscalYearStart: number,
+  mapper: Awaited<ReturnType<typeof loadMapper>>,
+  months: string[],
+  upTo?: string
+): Promise<{ byCat: Map<string, Record<string, number>>; moisSansAnalytique: string[] }> {
+  const kindOf = await loadCentreKinds(entity.id);
+  const imports = await analytiqueImportsOfYear(entity.id, fiscalYearStart, upTo);
+  const byCat = new Map<string, Record<string, number>>();
+  for (const [month, importId] of imports) {
+    for (const [account, v] of await structureSoldes(importId, kindOf)) {
+      const cat = mapper.resolve(account);
+      if (!cat) continue;
+      const rec = byCat.get(cat.code) ?? {};
+      rec[month] = round2((rec[month] ?? 0) + v.solde);
+      byCat.set(cat.code, rec);
+    }
+  }
+  return {
+    byCat,
+    moisSansAnalytique: months.filter((m) => (!upTo || m <= upTo) && !imports.has(m)),
+  };
 }
 
 export async function getSynthese(
@@ -245,6 +288,44 @@ export async function getSynthese(
     leaves.set(cat.code, vec);
   }
 
+  // ── Découpage chantier / structure ─────────────────────────────────────────
+  // Les postes partagés cèdent aux frais généraux ce que la balance analytique
+  // du mois impute au siège. Le transfert est additif : ce qui quitte une ligne
+  // arrive intégralement sur l'autre, le résultat net est donc inchangé et Ctrl
+  // reste nul. Sans balance analytique pour un mois, rien n'est transféré et la
+  // ligne garde le montant global — le mois est alors signalé.
+  const routing = structureRouting(nomenclatureSynthese, "synthese");
+  const signOf = new Map(mapper.categories.map((c) => [c.code, c.sign]));
+  // Seuls les mois déjà couverts par la ventilée peuvent manquer d'analytique :
+  // les mois à venir de l'exercice n'ont de données d'aucune sorte.
+  const { byCat: structByCat, moisSansAnalytique } = await structurePartParMois(
+    entity,
+    imp.fiscalYearStart,
+    mapper,
+    monthsWithData,
+    opts?.period && opts.period < imp.period ? opts.period : undefined
+  );
+  const transfert = (
+    src: Map<string, Vector>,
+    part: (code: string, month: string) => number,
+    cols: string[]
+  ) => {
+    for (const [source, target] of routing) {
+      const from = src.get(source);
+      const to = src.get(target);
+      if (!from || !to) continue;
+      for (const m of cols) {
+        const v = round2((signOf.get(source) ?? 1) * part(source, m));
+        if (!v) continue;
+        from[m] = round2((from[m] ?? 0) - v);
+        to[m] = round2((to[m] ?? 0) + v);
+      }
+      from[TOTAL_COLUMN] = round2(cols.reduce((t, m) => t + ((from[m] as number) ?? 0), 0));
+      to[TOTAL_COLUMN] = round2(cols.reduce((t, m) => t + ((to[m] as number) ?? 0), 0));
+    }
+  };
+  transfert(leaves, (code, m) => structByCat.get(code)?.[m] ?? 0, months);
+
   // ── N-1 ────────────────────────────────────────────────────────────────────
   // Comparaison à périmètre égal : le cumul N-1 est tronqué au même rang de mois
   // que N (7 mois de N contre 7 mois de N-1), en plus du total annuel complet.
@@ -273,6 +354,35 @@ export async function getSynthese(
       }
       prevYtd.set(cat.code, round2(cat.sign * ytd));
       prevFull.set(cat.code, round2(cat.sign * full));
+    }
+
+    // Même découpage sur N-1, sans quoi l'écart N–N-1 comparerait une ligne
+    // chantier à une ligne chantier + siège. Si l'exercice précédent n'a pas de
+    // balance analytique, rien n'est transféré : l'écart reste lisible mais
+    // porte des périmètres différents, ce que `moisSansAnalytique` signale.
+    const prev = await structurePartParMois(
+      entity,
+      prevImp.fiscalYearStart,
+      mapper,
+      prevMonths
+    );
+    for (const [source, target] of routing) {
+      const raw = prev.byCat.get(source);
+      if (!raw) continue;
+      const sg = signOf.get(source) ?? 1;
+      let ytd = 0;
+      let full = 0;
+      for (const [m, v] of Object.entries(raw)) {
+        full += v;
+        if (ytdCutoff && m <= ytdCutoff) ytd += v;
+      }
+      for (const [bucket, v] of [
+        [prevYtd, round2(sg * ytd)],
+        [prevFull, round2(sg * full)],
+      ] as [Map<string, number>, number][]) {
+        bucket.set(source, round2((bucket.get(source) ?? 0) - v));
+        bucket.set(target, round2((bucket.get(target) ?? 0) + v));
+      }
     }
   }
 
@@ -377,6 +487,7 @@ export async function getSynthese(
       label: v.label,
       total: v.total,
     })),
+    moisSansAnalytique,
     hasPrevYear: !!prevImp,
     prevCaTotal,
     importId: imp.id,

@@ -195,9 +195,9 @@ export default function ChantiersTable({
       </div>
 
       <p style={{ marginTop: 10, fontSize: 11, color: "var(--gray3)" }}>
-        Montants du mois = écart entre les deux derniers snapshots analytiques de
-        l&apos;exercice. Les cumuls de fin de tableau couvrent en revanche toute la durée de
-        vie du chantier. Les centres de structure (FX, dépôt) sont exclus : voir Frais
+        Montants du mois = mouvements de la balance analytique du mois, lue telle
+        quelle. Les cumuls de fin de tableau additionnent en revanche tous les mois
+        importés, sur toute la durée de vie du chantier. Les centres de structure (FX, dépôt) sont exclus : voir Frais
         généraux.
         {hidden > 0 && ` ${hidden} chantier(s) sans activité masqué(s) — les données sont conservées.`}
         {" Le total général porte sur les chantiers affichés."}

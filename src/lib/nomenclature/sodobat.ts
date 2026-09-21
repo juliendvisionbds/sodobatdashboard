@@ -22,6 +22,7 @@ const SYN = {
   produits: "PRODUITS / CA",
   exploitation: "CHARGES D'EXPLOITATION",
   personnel: "CHARGES DE PERSONNEL",
+  autresProduits: "AUTRES PRODUITS",
   fx: "FRAIS GÉNÉRAUX & AUTRES CHARGES",
   resultat: "RÉSULTAT FINAL & CONTRÔLES",
 } as const;
@@ -194,36 +195,6 @@ export const synthese: NomenclatureLine[] = [
     notes: "Code O — Travaux en cours. Brouillon → figé en fin de mois.",
   },
   {
-    code: "syn_cession_immo",
-    view: "synthese",
-    section: SYN.produits,
-    label: "Cession Immo",
-    kind: "poste",
-    sign: -1,
-    accounts: ["75700000", "77520000", "77560000"],
-    notes: "Code ZX",
-  },
-  {
-    code: "syn_produits_financiers",
-    view: "synthese",
-    section: SYN.produits,
-    label: "Produits financiers et assurance",
-    kind: "poste",
-    sign: -1,
-    accounts: ["74000000", "75870000", "76000000", "76310000", "76400000", "79150000", "76800000"],
-    notes: "Code ZW (part « produits financiers et assurance »)",
-  },
-  {
-    code: "syn_produits_gestion",
-    view: "synthese",
-    section: SYN.produits,
-    label: "Produits de gestion courante",
-    kind: "poste",
-    sign: -1,
-    accounts: ["75800000"],
-    notes: "Code ZW (part « produits de gestion courante »)",
-  },
-  {
     code: "syn_ca_total",
     view: "synthese",
     section: SYN.produits,
@@ -235,17 +206,19 @@ export const synthese: NomenclatureLine[] = [
         { code: "syn_ca_facturation", sign: 1 },
         { code: "syn_annulation_m1", sign: 1 },
         { code: "syn_tec_provision", sign: 1 },
-        { code: "syn_cession_immo", sign: 1 },
-        { code: "syn_produits_financiers", sign: 1 },
-        { code: "syn_produits_gestion", sign: 1 },
       ],
     },
-    notes: "Base de référence de tous les ratios % des trois vues",
+    notes:
+      "Facturation + variation des travaux en cours, comme le TG de la DAF. " +
+      "Les cessions, produits financiers et produits de gestion courante sont " +
+      "exclus et regroupés sous « Autres produits ». Base de référence de tous " +
+      "les ratios % des trois vues.",
   },
 
   // ▸ CHARGES D'EXPLOITATION
   {
     code: "syn_achats_mp",
+    structureTo: "syn_fx_achats_structure",
     view: "synthese",
     section: SYN.exploitation,
     label: "Achats matières premières et fournitures",
@@ -260,6 +233,7 @@ export const synthese: NomenclatureLine[] = [
   },
   {
     code: "syn_variation_stock",
+    structureTo: "syn_fx_achats_structure",
     view: "synthese",
     section: SYN.exploitation,
     label: "Variation de stock",
@@ -303,6 +277,7 @@ export const synthese: NomenclatureLine[] = [
   // séparément, d'où trois postes de rattachement et un sous-total affiché.
   {
     code: "syn_location_materiel_externe",
+    structureTo: "syn_fx_locations_structure",
     view: "synthese",
     section: SYN.exploitation,
     label: "Location matériel externe",
@@ -313,6 +288,7 @@ export const synthese: NomenclatureLine[] = [
   },
   {
     code: "syn_location_easymat",
+    structureTo: "syn_fx_locations_structure",
     view: "synthese",
     section: SYN.exploitation,
     label: "Location EasyMat",
@@ -323,6 +299,7 @@ export const synthese: NomenclatureLine[] = [
   },
   {
     code: "syn_location_autres",
+    structureTo: "syn_fx_locations_structure",
     view: "synthese",
     section: SYN.exploitation,
     label: "Autres locations (matériel 0%, transport, véhicules)",
@@ -349,6 +326,7 @@ export const synthese: NomenclatureLine[] = [
   },
   {
     code: "syn_dechets",
+    structureTo: "syn_fx_locations_structure",
     view: "synthese",
     section: SYN.exploitation,
     label: "Déchets — locations de bennes",
@@ -358,6 +336,7 @@ export const synthese: NomenclatureLine[] = [
   },
   {
     code: "syn_entretien",
+    structureTo: "syn_fx_entretien_structure",
     view: "synthese",
     section: SYN.exploitation,
     label: "Entretien / Réparation / Maintenance",
@@ -382,6 +361,7 @@ export const synthese: NomenclatureLine[] = [
   },
   {
     code: "syn_edf_eau_chantier",
+    structureTo: "syn_fx_edf_eau_structure",
     view: "synthese",
     section: SYN.exploitation,
     label: "EDF / Eau chantier",
@@ -391,6 +371,7 @@ export const synthese: NomenclatureLine[] = [
   },
   {
     code: "syn_carburant",
+    structureTo: "syn_fx_carburant_structure",
     view: "synthese",
     section: SYN.exploitation,
     label: "Carburant / GNR / Déplacements / Réception",
@@ -437,6 +418,7 @@ export const synthese: NomenclatureLine[] = [
   // ▸ CHARGES DE PERSONNEL
   {
     code: "syn_masse_salariale",
+    structureTo: "syn_fx_ms_structure",
     view: "synthese",
     section: SYN.personnel,
     label: "Masse salariale production (salaires + charges)",
@@ -487,6 +469,56 @@ export const synthese: NomenclatureLine[] = [
         { code: "syn_ca_total", sign: 1 },
         { code: "syn_total_exploitation", sign: -1 },
         { code: "syn_total_personnel", sign: -1 },
+      ],
+    },
+  },
+
+  // ▸ AUTRES PRODUITS
+  // Produits qui ne relèvent pas de l'activité travaux : la DAF les sort du CA
+  // et les reprend après le résultat d'exploitation, pour que le ratio de
+  // chaque charge se lise sur le seul chiffre d'affaires chantier.
+  {
+    code: "syn_cession_immo",
+    view: "synthese",
+    section: SYN.autresProduits,
+    label: "Vente d'immobilisation",
+    kind: "poste",
+    sign: -1,
+    accounts: ["75700000", "77520000", "77560000"],
+    notes: "Code ZX",
+  },
+  {
+    code: "syn_produits_financiers",
+    view: "synthese",
+    section: SYN.autresProduits,
+    label: "Produits financiers et assurance",
+    kind: "poste",
+    sign: -1,
+    accounts: ["74000000", "75870000", "76000000", "76310000", "76400000", "79150000", "76800000"],
+    notes: "Code ZW (part « produits financiers et assurance »)",
+  },
+  {
+    code: "syn_produits_gestion",
+    view: "synthese",
+    section: SYN.autresProduits,
+    label: "Produits de gestion courante",
+    kind: "poste",
+    sign: -1,
+    accounts: ["75800000"],
+    notes: "Code ZW (part « produits de gestion courante »)",
+  },
+  {
+    code: "syn_total_autres_produits",
+    view: "synthese",
+    section: SYN.autresProduits,
+    label: "TOTAL AUTRES PRODUITS",
+    kind: "total",
+    formula: {
+      op: "sum",
+      operands: [
+        { code: "syn_cession_immo", sign: 1 },
+        { code: "syn_produits_financiers", sign: 1 },
+        { code: "syn_produits_gestion", sign: 1 },
       ],
     },
   },
@@ -592,6 +624,56 @@ export const synthese: NomenclatureLine[] = [
     accounts: ["65420000"],
     notes: "Code BB",
   },
+  // Part des comptes partagés imputée aux centres de structure (siège, dépôt).
+  // Ces lignes ne captent aucun compte en propre : elles reçoivent, mois par
+  // mois, ce que la balance analytique impute hors chantier sur les postes
+  // d'exploitation — le découpage que la DAF fait à la main dans son TG.
+  {
+    code: "syn_fx_achats_structure",
+    view: "synthese",
+    section: SYN.fx,
+    label: "Petit outillage / Fournitures administratives (structure)",
+    kind: "poste",
+    notes: "Part structure des achats et fournitures — cf. structureTo sur syn_achats_mp",
+  },
+  {
+    code: "syn_fx_locations_structure",
+    view: "synthese",
+    section: SYN.fx,
+    label: "Locations et bennes (structure)",
+    kind: "poste",
+    notes: "Part structure des locations et des déchets",
+  },
+  {
+    code: "syn_fx_entretien_structure",
+    view: "synthese",
+    section: SYN.fx,
+    label: "Entretien / Réparation / Maintenance (structure)",
+    kind: "poste",
+    notes: "Entretien du matériel roulant et du siège, hors chantier",
+  },
+  {
+    code: "syn_fx_edf_eau_structure",
+    view: "synthese",
+    section: SYN.fx,
+    label: "EDF / Eau (siège, dépôt)",
+    kind: "poste",
+  },
+  {
+    code: "syn_fx_carburant_structure",
+    view: "synthese",
+    section: SYN.fx,
+    label: "GNR / Essence / Péages / Déplacements (structure)",
+    kind: "poste",
+  },
+  {
+    code: "syn_fx_ms_structure",
+    view: "synthese",
+    section: SYN.fx,
+    label: "Masse salariale sédentaire",
+    kind: "poste",
+    notes: "Salaires et charges imputés aux centres de structure",
+  },
   {
     code: "syn_autres_charges",
     view: "synthese",
@@ -628,6 +710,12 @@ export const synthese: NomenclatureLine[] = [
         { code: "syn_fx_cotisations", sign: 1 },
         { code: "syn_fx_bancaires", sign: 1 },
         { code: "syn_fx_irr", sign: 1 },
+        { code: "syn_fx_achats_structure", sign: 1 },
+        { code: "syn_fx_locations_structure", sign: 1 },
+        { code: "syn_fx_entretien_structure", sign: 1 },
+        { code: "syn_fx_edf_eau_structure", sign: 1 },
+        { code: "syn_fx_carburant_structure", sign: 1 },
+        { code: "syn_fx_ms_structure", sign: 1 },
         { code: "syn_autres_charges", sign: 1 },
         { code: "syn_resultat_sep", sign: 1 },
       ],
@@ -655,6 +743,7 @@ export const synthese: NomenclatureLine[] = [
       op: "sum",
       operands: [
         { code: "syn_resultat_exploitation", sign: 1 },
+        { code: "syn_total_autres_produits", sign: 1 },
         { code: "syn_total_fx", sign: -1 },
         { code: "syn_impots_taxes", sign: -1 },
       ],

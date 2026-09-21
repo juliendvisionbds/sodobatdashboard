@@ -34,6 +34,7 @@ const rowClass = (kind: string) => {
 };
 
 export default function SyntheseTable({ data }: { data: SyntheseData }) {
+  const { moisSansAnalytique } = data;
   const [section, setSection] = useState("");
   const [search, setSearch] = useState("");
   const [hideEmpty, setHideEmpty] = useState(false);
@@ -168,7 +169,12 @@ export default function SyntheseTable({ data }: { data: SyntheseData }) {
       <p style={{ marginTop: 10, fontSize: 11, color: "var(--gray3)" }}>
         Chiffres recalculés à la volée depuis les lignes de balance importées (aucun
         agrégat stocké). Le total N-1 est arrêté au même rang de mois que l&apos;exercice
-        en cours, pour une comparaison à périmètre égal.
+        en cours, pour une comparaison à périmètre égal. Les charges partagées entre
+        chantiers et siège (achats, locations, entretien, carburant, EDF/eau, masse
+        salariale) sont découpées d&apos;après la balance analytique du mois : la part
+        imputée aux centres de structure figure en frais généraux.
+        {moisSansAnalytique.length > 0 &&
+          ` ${moisSansAnalytique.map(monthLabel).join(", ")} : pas de balance analytique, ces charges y restent groupées sur l'exploitation.`}
         {cumul &&
           " Lecture cumulée : chaque colonne donne l'exercice à date à la fin du mois, ratios recalculés sur ce cumul."}
         {filtering && " Filtre actif : les totaux restent ceux de la section complète."}
