@@ -23,7 +23,7 @@ async function n(table: PgTable) {
 }
 
 /** Saisies qui sont des paramètres, pas des données du cycle mensuel. */
-const PARAMETRES = ["objectif_annuel"] as const;
+const PARAMETRES = ["objectif_annuel", "report_ouverture"] as const;
 
 async function etat() {
   const centresForces = (

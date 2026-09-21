@@ -199,6 +199,9 @@ export const manualEntries = pgTable(
         "objectif_annuel",
         "ventilation",
         "statut",
+        // Cumul d'un chantier à l'ouverture du premier mois importé, repris du
+        // tableau de gestion : sub_key = "facturation" | "resultat".
+        "report_ouverture",
       ],
     }).notNull(),
     // Discriminant secondaire : indicateur visé (objectif_annuel) ou

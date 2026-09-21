@@ -636,10 +636,35 @@ export async function getChantiers(
 
 
 
+  // ── Reports d'ouverture ────────────────────────────────────────────────────
+  // Les balances importées ne remontent pas avant le premier mois : le cumul
+  // antérieur d'un chantier (facturation et résultat) est repris du tableau de
+  // gestion, et s'ajoute aux mois importés. Les charges s'en déduisent.
+  const ouvertures = new Map<string, { facturation: number; resultat: number }>();
+  const ouvertureRows = await db
+    .select()
+    .from(tables.manualEntries)
+    .where(
+      and(
+        eq(tables.manualEntries.entityId, entity.id),
+        eq(tables.manualEntries.field, "report_ouverture")
+      )
+    );
+  for (const m of ouvertureRows) {
+    if (!m.centreCode || m.valueNum == null || m.period > imp.period) continue;
+    if (kindOf(m.centreCode) !== "chantier") continue;
+    const o = ouvertures.get(m.centreCode) ?? { facturation: 0, resultat: 0 };
+    if (m.subKey === "facturation") o.facturation = round2(o.facturation + num(m.valueNum));
+    if (m.subKey === "resultat") o.resultat = round2(o.resultat + num(m.valueNum));
+    ouvertures.set(m.centreCode, o);
+  }
+
   // ── Colonnes = centres retenus ─────────────────────────────────────────────
   // Un chantier sans mouvement ce mois-ci reste listé : ses cumuls continuent de
   // compter dans le suivi, comme dans le tableau de gestion.
-  const centres = [...new Set([...currentMonth.keys(), ...lifeBefore.keys()])].sort(
+  const centres = [
+    ...new Set([...currentMonth.keys(), ...lifeBefore.keys(), ...ouvertures.keys()]),
+  ].sort(
     (a, b) => (poleOf(a) ?? "ZZ").localeCompare(poleOf(b) ?? "ZZ") || a.localeCompare(b)
   );
   const TOTAL = TOTAL_COLUMN;
@@ -710,21 +735,42 @@ export async function getChantiers(
   const cumulNow = evalCumul(lifeNow);
   const cumulBefore = evalCumul(lifeBefore);
 
+  const ouvertureVec = (pick: (o: { facturation: number; resultat: number }) => number): Vector => {
+    const vec: Vector = {};
+    let total = 0;
+    for (const centre of centres) {
+      const o = ouvertures.get(centre);
+      const v = o ? round2(pick(o)) : 0;
+      vec[centre] = v;
+      total += v;
+    }
+    vec[TOTAL] = round2(total);
+    return vec;
+  };
+
   const provided = new Map<string, Vector>([
     [CHANTIER_CODES.annulation, annulationVec],
     [
       CHANTIER_CODES.reportResultat,
-      cumulBefore.get(CHANTIER_CODES.resultat) ?? {},
+      sumVectors(columns, [
+        cumulBefore.get(CHANTIER_CODES.resultat),
+        ouvertureVec((o) => o.resultat),
+      ]),
     ],
     [
       CHANTIER_CODES.reportFacturation,
-      cumulBefore.get(CHANTIER_CODES.caTotal) ?? {},
+      sumVectors(columns, [
+        cumulBefore.get(CHANTIER_CODES.caTotal),
+        ouvertureVec((o) => o.facturation),
+      ]),
     ],
     [
       CHANTIER_CODES.cumulCharges,
       sumVectors(columns, [
         cumulNow.get(CHANTIER_CODES.totalExploitation),
         cumulNow.get(CHANTIER_CODES.totalPersonnel),
+        // Résultat = facturation − charges : les charges d'avant l'ouverture.
+        ouvertureVec((o) => o.facturation - o.resultat),
       ]),
     ],
   ]);

@@ -21,6 +21,8 @@
     "recette:mapping": "node --import=tsx scripts/test-rules-lifecycle.ts",
     "rapprochement:tg": "node --import=tsx scripts/rapprochement-tg.ts",
     "test:assistant": "node --env-file=.env.local --import=tsx scripts/test-assistant-live.ts",
+    "backup:db": "node --import=tsx scripts/backup-db.ts",
+    "init:reports": "node --import=tsx scripts/init-reports-cumul.ts",
     "reset:data": "node --import=tsx scripts/reset-data.ts",
     "import:file": "node --import=tsx scripts/import-file.ts"
   },
