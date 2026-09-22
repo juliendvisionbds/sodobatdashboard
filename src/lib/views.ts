@@ -63,8 +63,10 @@ function cached<A extends unknown[], R>(
   return async (entity, ...args) => inner(await dataVersion(entity.id), entity, ...args);
 }
 
-/** L'entité change à la création seulement : lecture directe, mémoïsée par requête. */
-export const getEntityByCode = cache(finance.getEntityByCode);
+/** L'entité ne change qu'à sa création : conservée une heure, hors empreinte. */
+export const getEntityByCode = cache(
+  unstable_cache(finance.getEntityByCode, ["views", "entity"], { revalidate: 3600, tags: ["views"] })
+);
 
 export const getSynthese = cached("synthese", finance.getSynthese);
 export const getChantiers = cached("chantiers", finance.getChantiers);
