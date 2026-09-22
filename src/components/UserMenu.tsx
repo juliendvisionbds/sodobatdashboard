@@ -95,6 +95,15 @@ export default function UserMenu({
           >
             Alertes
           </Link>
+          <Link
+            href="/rapprochement"
+            role="menuitem"
+            className="user-dropdown-item"
+            onClick={() => setOpen(false)}
+          >
+            Rapprochement
+          </Link>
+          <div className="user-dropdown-sep" />
           <a
             href="/docs/guide-utilisateur.html"
             target="_blank"
