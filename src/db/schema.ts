@@ -226,6 +226,24 @@ export const manualEntries = pgTable(
   ]
 );
 
+// Réponses de la DAF aux points du rapprochement (écran « Rapprochement »).
+// Une ligne par point : la saisie est partagée, pas conservée dans le navigateur,
+// pour que la réponse soit visible de tous et retrouvée après le rendez-vous.
+export const rapprochementDecisions = pgTable(
+  "rapprochement_decisions",
+  {
+    id: serial("id").primaryKey(),
+    entityId: integer("entity_id")
+      .notNull()
+      .references(() => entities.id),
+    pointKey: text("point_key").notNull(), // "c1" … "c13"
+    answer: text("answer").notNull().default(""),
+    updatedBy: text("updated_by"),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("rappro_decisions_key").on(t.entityId, t.pointKey)]
+);
+
 export const alerts = pgTable(
   "alerts",
   {

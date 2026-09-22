@@ -24,7 +24,8 @@
     "backup:db": "node --import=tsx scripts/backup-db.ts",
     "init:reports": "node --import=tsx scripts/init-reports-cumul.ts",
     "reset:data": "node --import=tsx scripts/reset-data.ts",
-    "import:file": "node --import=tsx scripts/import-file.ts"
+    "import:file": "node --import=tsx scripts/import-file.ts",
+    "dev:local": "DATABASE_URL= next dev"
   },
   "dependencies": {
     "@ai-sdk/openai": "^4.0.46",

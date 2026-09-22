@@ -303,3 +303,48 @@ export async function forgetAlertAction(formData: FormData) {
     .where(and(eq(tables.alerts.id, id), eq(tables.alerts.status, "resolved")));
   revalidatePath("/", "layout");
 }
+
+// ── Rapprochement DAF ────────────────────────────────────────────────────────
+
+/**
+ * Réponse à un point du rapprochement. La saisie est partagée : elle est
+ * enregistrée en base et non dans le navigateur, pour rester lisible de tous et
+ * survivre au rendez-vous. Une réponse vidée supprime la ligne.
+ */
+export async function saveDecisionAction(formData: FormData) {
+  const { session, entity } = await requireWriter();
+  const pointKey = String(formData.get("pointKey") ?? "").trim();
+  if (!/^c\d{1,2}$/.test(pointKey)) return;
+  const answer = String(formData.get("answer") ?? "").trim();
+
+  if (!answer) {
+    await db
+      .delete(tables.rapprochementDecisions)
+      .where(
+        and(
+          eq(tables.rapprochementDecisions.entityId, entity.id),
+          eq(tables.rapprochementDecisions.pointKey, pointKey)
+        )
+      );
+    revalidatePath("/rapprochement");
+    return;
+  }
+
+  await db
+    .insert(tables.rapprochementDecisions)
+    .values({
+      entityId: entity.id,
+      pointKey,
+      answer,
+      updatedBy: session.email,
+      updatedAt: new Date(),
+    })
+    .onConflictDoUpdate({
+      target: [
+        tables.rapprochementDecisions.entityId,
+        tables.rapprochementDecisions.pointKey,
+      ],
+      set: { answer, updatedBy: session.email, updatedAt: new Date() },
+    });
+  revalidatePath("/rapprochement");
+}

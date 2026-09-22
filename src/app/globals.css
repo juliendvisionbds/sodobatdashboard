@@ -543,3 +543,209 @@ td.muted { color: var(--gray3); }
 }
 .inline-num:focus { border-color: var(--blue); border-style: solid; background: var(--white); }
 .inline-num.draft { background: var(--amber-lt); border-color: var(--amber); }
+
+/* ── ÉCRAN RAPPROCHEMENT ──────────────────────────────────────────────────────
+   Document de travail partagé avec la DAF : lecture longue, colonne étroite,
+   et une zone de réponse par point. Les classes sont préfixées .doc- pour ne pas
+   entrer en collision avec les tableaux de gestion. */
+.doc { max-width: 940px; }
+.doc .ok   { color: var(--green); }
+.doc .warn { color: var(--amber); }
+.doc p { margin: 0 0 12px; color: var(--gray1); }
+.doc ul { margin: 0 0 12px; padding-left: 20px; color: var(--gray1); }
+.doc li { margin-bottom: 5px; }
+.doc-num { font-variant-numeric: tabular-nums; font-weight: 600; white-space: nowrap; }
+.doc-note { font-size: 12.5px; color: var(--gray2); }
+
+.doc-state {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 1px;
+  background: var(--gray4);
+  border: 1px solid var(--gray4);
+  border-radius: var(--radius);
+  overflow: hidden;
+  margin-bottom: 36px;
+}
+.doc-state-cell { background: var(--white); padding: 14px 16px; }
+.doc-state-value {
+  display: block;
+  font-size: 20px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--green);
+  line-height: 1.2;
+}
+.doc-state-value.warn { color: var(--amber); }
+.doc-state-label { display: block; margin-top: 4px; font-size: 11.5px; color: var(--gray2); }
+
+.doc-part { margin-bottom: 44px; }
+.doc-part-head { margin-bottom: 20px; }
+.doc-part-tag {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--blue);
+  background: var(--blue-lt);
+  padding: 3px 8px;
+  border-radius: var(--radius-sm);
+}
+.doc-part-head h2 { margin: 10px 0 6px; font-size: 21px; font-weight: 600; }
+.doc-part-head p { color: var(--gray2); font-size: 13px; }
+
+.doc-block {
+  background: var(--white);
+  border: 1px solid var(--gray4);
+  border-radius: var(--radius);
+  padding: 18px 20px;
+  margin-bottom: 14px;
+  box-shadow: var(--shadow-sm);
+}
+.doc-block h3 { margin: 0 0 10px; font-size: 15px; font-weight: 600; }
+
+.doc-tbl-wrap { overflow-x: auto; margin: 12px 0; }
+.doc-tbl { border-collapse: collapse; width: 100%; font-size: 12.5px; }
+.doc-tbl th,
+.doc-tbl td {
+  border: 1px solid var(--gray4);
+  padding: 6px 10px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.doc-tbl th { background: var(--gray5); font-weight: 600; text-align: right; }
+.doc-tbl th:first-child,
+.doc-tbl td:first-child { text-align: left; font-variant-numeric: normal; }
+.doc-tbl tr.sum td { background: var(--gray5); font-weight: 600; }
+
+.doc-steps { display: grid; gap: 10px; }
+.doc-step {
+  display: flex;
+  gap: 14px;
+  background: var(--white);
+  border: 1px solid var(--gray4);
+  border-radius: var(--radius);
+  padding: 16px 18px;
+  box-shadow: var(--shadow-sm);
+}
+.doc-step-num {
+  flex-shrink: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--blue);
+  font-variant-numeric: tabular-nums;
+}
+.doc-step h3 { margin: 0 0 6px; font-size: 14px; font-weight: 600; }
+.doc-step p { font-size: 13px; }
+.doc-step p:last-child { margin-bottom: 0; }
+
+.doc-points { display: grid; gap: 14px; }
+.doc-q {
+  background: var(--white);
+  border: 1px solid var(--gray4);
+  border-left: 3px solid var(--gray3);
+  border-radius: var(--radius);
+  padding: 18px 20px;
+  box-shadow: var(--shadow-sm);
+}
+.doc-q--stop { border-left-color: var(--red); }
+.doc-q--warn { border-left-color: var(--amber); }
+.doc-q--ok   { border-left-color: var(--green); }
+.doc-q-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.doc-q-top h3 { margin: 0; font-size: 15px; font-weight: 600; }
+.doc-stake { font-size: 11.5px; color: var(--gray2); white-space: nowrap; }
+.doc-q--stop .doc-stake { color: var(--red); }
+.doc-ask {
+  background: var(--blue-lt);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--black);
+  margin: 14px 0 0;
+}
+
+.doc-decision { margin-top: 12px; }
+.doc-decision-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--gray2);
+  margin-bottom: 6px;
+}
+.doc-decision textarea {
+  width: 100%;
+  border: 1px solid var(--gray4);
+  border-radius: var(--radius-sm);
+  padding: 9px 11px;
+  font: inherit;
+  font-size: 13px;
+  color: var(--black);
+  background: var(--gray5);
+  resize: vertical;
+}
+.doc-decision textarea:focus {
+  outline: none;
+  border-color: var(--blue);
+  background: var(--white);
+  box-shadow: 0 0 0 3px var(--blue-dim);
+}
+.doc-decision-foot {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 7px;
+  font-size: 11.5px;
+}
+.doc-decision-read {
+  font-size: 13px;
+  white-space: pre-wrap;
+  background: var(--gray5);
+  border-radius: var(--radius-sm);
+  padding: 9px 11px;
+  margin: 0;
+}
+.doc-decision-read.muted { color: var(--gray3); }
+
+.doc-files { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+.doc-file {
+  background: var(--white);
+  border: 1px solid var(--gray4);
+  border-top: 3px solid var(--gray3);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  box-shadow: var(--shadow-sm);
+}
+.doc-file--stop { border-top-color: var(--red); }
+.doc-file--warn { border-top-color: var(--amber); }
+.doc-file h3 { margin: 0 0 6px; font-size: 13.5px; font-weight: 600; }
+.doc-file p { font-size: 12.5px; color: var(--gray2); }
+.doc-file-tag { font-size: 11px; color: var(--gray3); }
+
+.doc-foot {
+  margin-top: 36px;
+  padding-top: 16px;
+  border-top: 1px solid var(--gray4);
+  font-size: 11.5px;
+  color: var(--gray3);
+}
+
+.doc-decision-foot .btn-sm {
+  padding: 5px 12px;
+  font-size: 12px;
+}
+.doc-decision-foot .btn-sm:disabled {
+  background: var(--gray5);
+  color: var(--gray3);
+  cursor: default;
+}

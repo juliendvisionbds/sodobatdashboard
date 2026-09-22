@@ -13,6 +13,7 @@ export default async function AppHeader({
     | "chantiers"
     | "fx"
     | "objectifs"
+    | "rapprochement"
     | "comptes"
     | "imports"
     | "mapping"
@@ -27,6 +28,7 @@ export default async function AppHeader({
     { key: "chantiers", label: "Chantiers", href: "/chantiers" },
     { key: "fx", label: "Frais généraux", href: "/frais-generaux" },
     { key: "objectifs", label: "Objectifs", href: "/objectifs" },
+    { key: "rapprochement", label: "Rapprochement", href: "/rapprochement" },
     { key: "assistant", label: "Assistant IA", href: "/assistant" },
   ];
 

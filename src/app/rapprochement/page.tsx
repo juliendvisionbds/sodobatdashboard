@@ -1,0 +1,345 @@
+import { eq } from "drizzle-orm";
+import AppHeader from "@/components/AppHeader";
+import { db, tables } from "@/db";
+import { getEntityByCode } from "@/lib/finance";
+import { getSession, canWrite } from "@/lib/auth";
+import DecisionBox from "./DecisionBox";
+import { FICHIERS, POINTS } from "./points";
+
+// Écran « Rapprochement » : l'état du contrôle de l'application contre les
+// fichiers de la DAF, et les points qui appellent sa décision. Les réponses sont
+// enregistrées en base — partagées, pas conservées dans le navigateur.
+
+export const dynamic = "force-dynamic";
+
+const dateFr = (d: Date) =>
+  d.toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" });
+
+export default async function RapprochementPage() {
+  const entity = await getEntityByCode("sodobat");
+  if (!entity) return null;
+
+  const session = await getSession();
+  const writer = session ? canWrite(session) : false;
+
+  const rows = await db
+    .select()
+    .from(tables.rapprochementDecisions)
+    .where(eq(tables.rapprochementDecisions.entityId, entity.id));
+  const decisions = new Map(rows.map((r) => [r.pointKey, r]));
+
+  const ouverts = POINTS.filter((p) => p.tone !== "ok");
+  const repondus = ouverts.filter((p) => (decisions.get(p.key)?.answer ?? "").trim()).length;
+
+  return (
+    <>
+      <AppHeader active="rapprochement" fiscalYearStart={2025} />
+      <div className="page">
+        <div className="page-header">
+          <h1>Rapprochement avec votre tableau de gestion</h1>
+          <p>
+            Où en est l&apos;application par rapport à vos fichiers : ce qui est déjà contrôlé, ce
+            qui a été aligné sur votre présentation, et les douze points qui appellent votre
+            décision. Chaque point porte une zone de réponse — elle est enregistrée et visible de
+            tous.
+          </p>
+        </div>
+
+        <div className="doc">
+          {/* ── Bandeau d'état ─────────────────────────────────────────────── */}
+          <div className="doc-state">
+            <div className="doc-state-cell">
+              <span className="doc-state-value">14 / 14</span>
+              <span className="doc-state-label">
+                Fichiers repris en base à l&apos;identique, au centime et à la ligne
+              </span>
+            </div>
+            <div className="doc-state-cell">
+              <span className="doc-state-value">0,00 €</span>
+              <span className="doc-state-label">
+                Écart de contrôle inexpliqué sur les cinq exercices de la Synthèse
+              </span>
+            </div>
+            <div className="doc-state-cell">
+              <span className="doc-state-value">5 / 5</span>
+              <span className="doc-state-label">
+                Mois de janvier à mai dont le CA total est identique au vôtre
+              </span>
+            </div>
+            <div className="doc-state-cell">
+              <span className="doc-state-value warn">92 %</span>
+              <span className="doc-state-label">
+                Des 2 282 valeurs chantier comparées sont identiques à l&apos;euro
+              </span>
+            </div>
+            <div className="doc-state-cell">
+              <span className={`doc-state-value${repondus === ouverts.length ? "" : " warn"}`}>
+                {repondus} / {ouverts.length}
+              </span>
+              <span className="doc-state-label">Points auxquels vous avez déjà répondu</span>
+            </div>
+          </div>
+
+          {/* ── A · contrôles passés ───────────────────────────────────────── */}
+          <section className="doc-part">
+            <div className="doc-part-head">
+              <span className="doc-part-tag">Partie A</span>
+              <h2>Ce qui est contrôlé et juste</h2>
+              <p>
+                Tous ces contrôles portent sur les fichiers que vous nous avez transmis, relus
+                avec les calculs qui alimentent les écrans.
+              </p>
+            </div>
+
+            <div className="doc-block">
+              <h3>1. Vos fichiers sont en base tels que vous les avez envoyés</h3>
+              <p>
+                Chaque import est relu depuis le fichier d&apos;origine et comparé à la base :
+                nombre de lignes, total des soldes, total des débits.
+              </p>
+              <div className="doc-tbl-wrap">
+                <table className="doc-tbl">
+                  <tbody>
+                    <tr><th>Fichiers</th><th>Nombre</th><th>Lignes</th><th>Écart</th></tr>
+                    <tr><td>Balances ventilées, exercices 2021/22 à 2024/25</td><td>4</td><td>3 692</td><td className="ok">0,00</td></tr>
+                    <tr><td>Balance ventilée 2025/26, arrêtée à juillet 2026</td><td>1</td><td>701</td><td className="ok">0,00</td></tr>
+                    <tr><td>Balances analytiques, novembre 2025 à juillet 2026</td><td>9</td><td>5 035</td><td className="ok">0,00</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div className="doc-block">
+              <h3>2. Chaque balance analytique recoupe la ventilée du même mois</h3>
+              <p>
+                Totaux des classes 6 et 7, analytique moins ventilée. C&apos;est ce recoupement
+                qui établit que chaque balance analytique porte bien les mouvements de son mois,
+                et non un cumul depuis l&apos;ouverture.
+              </p>
+              <div className="doc-tbl-wrap">
+                <table className="doc-tbl">
+                  <tbody>
+                    <tr><th>Mois</th><th>Écart classe 6</th><th>Écart classe 7</th></tr>
+                    <tr><td>Novembre 2025 à avril 2026 (6 mois)</td><td className="ok">0,00</td><td className="ok">0,00</td></tr>
+                    <tr><td>Mai 2026 — export antérieur aux révisions</td><td className="warn">55 630,80</td><td className="warn">74 906,00</td></tr>
+                    <tr><td>Juin 2026</td><td className="ok">0,00</td><td className="ok">0,00</td></tr>
+                    <tr><td>Juillet 2026</td><td className="ok">0,00</td><td className="ok">0,00</td></tr>
+                  </tbody>
+                </table>
+              </div>
+              <p className="doc-note">Le seul écart, celui de mai, est l&apos;objet du point 1.</p>
+            </div>
+
+            <div className="doc-block">
+              <h3>3. La Synthèse boucle sur les cinq exercices</h3>
+              <p>
+                L&apos;écart entre le résultat calculé et celui de la balance générale doit être
+                intégralement expliqué par les retraitements de dotations et de VNC. Il l&apos;est,
+                mois par mois et au total, et aucun compte ne reste sans ligne d&apos;accueil.
+              </p>
+              <div className="doc-tbl-wrap">
+                <table className="doc-tbl">
+                  <tbody>
+                    <tr><th>Exercice</th><th>Mois</th><th>CA total</th><th>Résultat comptable</th><th>Comptes sans ligne</th><th>Inexpliqué</th></tr>
+                    <tr><td>2021 / 2022</td><td>12</td><td>19 632 483</td><td>206 748</td><td>0</td><td className="ok">0,00</td></tr>
+                    <tr><td>2022 / 2023</td><td>12</td><td>22 853 988</td><td>165 622</td><td>0</td><td className="ok">0,00</td></tr>
+                    <tr><td>2023 / 2024</td><td>12</td><td>28 031 830</td><td>308 193</td><td>0</td><td className="ok">0,00</td></tr>
+                    <tr><td>2024 / 2025</td><td>12</td><td>21 982 755</td><td>186 113</td><td>0</td><td className="ok">0,00</td></tr>
+                    <tr><td>2025 / 2026, à fin juillet</td><td>9</td><td>14 699 555</td><td>−14 304</td><td>0</td><td className="ok">0,00</td></tr>
+                  </tbody>
+                </table>
+              </div>
+              <p className="doc-note">
+                En juin 2026, le résultat net de la Synthèse (−228 618) et le résultat comptable
+                (−295 357) diffèrent de 66 739 € : dotations 31 147 plus VNC 35 592, soit
+                exactement les retraitements.
+              </p>
+            </div>
+
+            <div className="doc-block">
+              <h3>4. La vue Chantiers contre vos onglets mensuels</h3>
+              <p>
+                Chaque onglet est comparé à ce que l&apos;écran Chantiers affiche pour le même
+                mois, chantier par chantier, sur quatorze blocs : annulation, prévision,
+                facturation, achats, sous-traitance, locations, déchets, honoraires, intérims,
+                salaires, totaux et résultat.
+              </p>
+              <div className="doc-tbl-wrap">
+                <table className="doc-tbl">
+                  <tbody>
+                    <tr><th>Onglet</th><th>Valeurs identiques</th><th>Charges, vous</th><th>Charges, application</th><th>Résultat, vous</th><th>Résultat, application</th></tr>
+                    <tr><td>TG 11-12 2025</td><td>323 / 363</td><td>2 586 805</td><td className="ok">2 586 805</td><td>279 280</td><td className="ok">279 280</td></tr>
+                    <tr><td>TG 01 2026</td><td>358 / 370</td><td>1 254 448</td><td className="ok">1 254 448</td><td>215 325</td><td className="warn">185 325</td></tr>
+                    <tr><td>TG 02 2026</td><td>365 / 376</td><td>1 584 975</td><td className="ok">1 584 975</td><td>222 960</td><td className="ok">222 960</td></tr>
+                    <tr><td>TG 03 2026</td><td>348 / 392</td><td>1 373 290</td><td>1 373 291</td><td>137 863</td><td>137 862</td></tr>
+                    <tr><td>TG 04 2026</td><td>379 / 399</td><td>1 498 914</td><td>1 498 916</td><td>75 394</td><td>75 392</td></tr>
+                    <tr><td>TG 05 2026</td><td>325 / 382</td><td>1 250 557</td><td className="warn">1 243 302</td><td>6 323</td><td className="warn">−61 328</td></tr>
+                    <tr className="sum"><td>Total</td><td>2 098 / 2 282 — 92 %</td><td colSpan={4} /></tr>
+                  </tbody>
+                </table>
+              </div>
+              <p className="doc-note">
+                Sous-traitance, intérims, déchets, locations et facturation du mois : écart nul,
+                tous les mois. Les deux écarts de résultat renvoient aux points 2 et 1.
+              </p>
+            </div>
+
+            <div className="doc-block">
+              <h3>5. Le résultat comptable, mois par mois</h3>
+              <p>Votre ligne « Resultat BG Comptable » en regard de la Synthèse de l&apos;application.</p>
+              <div className="doc-tbl-wrap">
+                <table className="doc-tbl">
+                  <tbody>
+                    <tr><th>Mois</th><th>Vous</th><th>Application</th><th>Écart</th><th>Origine</th></tr>
+                    <tr><td>Novembre + décembre 2025</td><td>−20 559</td><td>29 543</td><td className="warn">50 102</td><td>quote-part SEP — point 10</td></tr>
+                    <tr><td>Janvier 2026</td><td>−26 373</td><td>−26 373</td><td className="ok">0</td><td>—</td></tr>
+                    <tr><td>Février 2026</td><td>−189</td><td>−189</td><td className="ok">0</td><td>—</td></tr>
+                    <tr><td>Mars 2026</td><td>45 604</td><td>45 604</td><td className="ok">0</td><td>—</td></tr>
+                    <tr><td>Avril 2026</td><td>−47 241</td><td>−47 292</td><td>−52</td><td>intérêts d&apos;emprunt — point 10</td></tr>
+                    <tr><td>Mai 2026</td><td>−257 704</td><td>−194 818</td><td className="warn">62 886</td><td>révisions de mai — points 1 et 10</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+
+          {/* ── B · alignements livrés ─────────────────────────────────────── */}
+          <section className="doc-part">
+            <div className="doc-part-head">
+              <span className="doc-part-tag">Partie B</span>
+              <h2>Ce qui a été aligné sur vos fichiers</h2>
+              <p>
+                Cinq ajustements livrés depuis le dernier point. Aucun compte n&apos;a changé de
+                rattachement.
+              </p>
+            </div>
+            <div className="doc-steps">
+              <article className="doc-step">
+                <div className="doc-step-num">01</div>
+                <div>
+                  <h3>Les balances analytiques sont lues comme des mouvements mensuels</h3>
+                  <p>
+                    Le mois se lit directement dans son fichier, sur les écrans Chantiers, Frais
+                    généraux et fiche compte. C&apos;est ce qui fait tomber le total des charges
+                    chantier à l&apos;identique du vôtre.
+                  </p>
+                </div>
+              </article>
+              <article className="doc-step">
+                <div className="doc-step-num">02</div>
+                <div>
+                  <h3>L&apos;annulation M-1 et la prévision du mois viennent de la comptabilité</h3>
+                  <p>
+                    Sur le compte 71331000, le débit du mois est la reprise de la provision de M-1
+                    et le crédit la provision du mois : ce sont vos colonnes « Annulation Mois-1 »
+                    et « Prévision Mois », chantier par chantier.
+                  </p>
+                </div>
+              </article>
+              <article className="doc-step">
+                <div className="doc-step-num">03</div>
+                <div>
+                  <h3>Les cumuls repartent de votre situation au 31 octobre 2025</h3>
+                  <p>
+                    Vos colonnes de report de l&apos;onglet « TG 11-12 2025 » ont été reprises pour
+                    71 chantiers : 65 201 113,04 € de facturation et 6 758 151,76 € de résultat.
+                  </p>
+                </div>
+              </article>
+              <article className="doc-step">
+                <div className="doc-step-num">04</div>
+                <div>
+                  <h3>Deux lectures que vous aviez demandées</h3>
+                  <p>
+                    Frais généraux : un mois par colonne, puis le cumul et son pourcentage du CA.
+                    Synthèse : une bascule mensuel / cumulé, les ratios étant recalculés sur le
+                    cumul.
+                  </p>
+                </div>
+              </article>
+              <article className="doc-step">
+                <div className="doc-step-num">05</div>
+                <div>
+                  <h3>La Synthèse épouse la présentation de votre tableau</h3>
+                  <p>
+                    Les cessions, produits financiers et produits de gestion courante forment
+                    désormais un bloc « Autres produits » placé après le résultat
+                    d&apos;exploitation. Et les charges partagées entre chantiers et siège sont
+                    réparties d&apos;après la balance analytique du mois : six lignes
+                    apparaissent en frais généraux, calquées sur votre bloc « Autres charges ».
+                  </p>
+                  <p>
+                    Le CA mensuel de janvier à mai est désormais identique au vôtre au chiffre
+                    près : 1 439 773, 1 807 935, 1 511 153, 1 574 308 et 1 256 880. Le résultat
+                    net, lui, est inchangé : la répartition se déplace, rien ne se perd.
+                  </p>
+                </div>
+              </article>
+            </div>
+          </section>
+
+          {/* ── C · les points à trancher ──────────────────────────────────── */}
+          <section className="doc-part">
+            <div className="doc-part-head">
+              <span className="doc-part-tag">Partie C</span>
+              <h2>Les points qui appellent votre décision</h2>
+              <p>
+                Classés par enjeu. En rouge, ce qui empêche un mois d&apos;être juste. En orange,
+                ce sur quoi l&apos;application est cohérente avec la comptabilité mais pas avec
+                votre fichier : il faut choisir la référence. Vos réponses sont enregistrées au
+                fur et à mesure.
+              </p>
+            </div>
+            <div className="doc-points">
+              {POINTS.map((p) => {
+                const d = decisions.get(p.key);
+                return (
+                  <article key={p.key} className={`doc-q doc-q--${p.tone}`}>
+                    <div className="doc-q-top">
+                      <h3>
+                        {p.n}. {p.title}
+                      </h3>
+                      <span className="doc-stake">{p.stake}</span>
+                    </div>
+                    {p.body}
+                    <p className="doc-ask">{p.ask}</p>
+                    <DecisionBox
+                      pointKey={p.key}
+                      initial={d?.answer ?? ""}
+                      updatedBy={d?.updatedBy ?? null}
+                      updatedAt={d ? dateFr(new Date(d.updatedAt)) : null}
+                      canEdit={writer}
+                    />
+                  </article>
+                );
+              })}
+            </div>
+          </section>
+
+          {/* ── D · fichiers attendus ──────────────────────────────────────── */}
+          <section className="doc-part">
+            <div className="doc-part-head">
+              <span className="doc-part-tag">Partie D</span>
+              <h2>Ce que nous vous demandons</h2>
+            </div>
+            <div className="doc-files">
+              {FICHIERS.map((f) => (
+                <div key={f.nom} className={`doc-file doc-file--${f.tone}`}>
+                  <h3>{f.nom}</h3>
+                  <p>{f.pourquoi}</p>
+                  <span className="doc-file-tag">{f.tag}</span>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <p className="doc-foot">
+            Chiffres relevés sur la base de l&apos;application, à jour des balances de novembre
+            2025 à juillet 2026 et du tableau de gestion arrêté à mai 2026. Montants en euros.
+            {!writer && " Les réponses sont en lecture seule avec votre profil."}
+          </p>
+        </div>
+      </div>
+    </>
+  );
+}
