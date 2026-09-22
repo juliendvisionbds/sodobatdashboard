@@ -43,10 +43,12 @@ export default async function RapprochementPage() {
         <div className="page-header">
           <h1>Rapprochement avec votre tableau de gestion</h1>
           <p>
-            Où en est l&apos;application par rapport à vos fichiers : ce qui est déjà contrôlé, ce
-            qui a été aligné sur votre présentation, et les {combien} points qui appellent votre
-            décision. Chaque point porte une zone de réponse — elle est enregistrée et visible de
-            tous.
+            Ce document est le vôtre. Il dit où en est l&apos;application par rapport à votre
+            tableau de gestion, arrêté à mai : ce qui est déjà contrôlé (partie A), ce qui a été
+            aligné sur votre présentation (partie B), et les {combien} points de la partie C
+            qui appellent votre décision. Sous chacun d&apos;eux, une zone « Votre réponse »
+            vous attend : écrivez-y librement, avec votre compte, avant ou pendant notre
+            rendez-vous. Chaque réponse est enregistrée aussitôt et reste lisible de tous.
           </p>
         </div>
 

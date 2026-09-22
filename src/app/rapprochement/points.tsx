@@ -171,7 +171,7 @@ export const POINTS: Point[] = [
     key: "c6",
     n: 6,
     title: "Le DEPOT et le SAV sont classés en chantier, comme dans votre tableau",
-    stake: "appliqué le 22 septembre — à confirmer",
+    stake: "déjà appliqué : à confirmer d'un mot",
     tone: "warn",
     body: (
       <>
@@ -343,7 +343,7 @@ export const POINTS: Point[] = [
         </li>
       </ul>
     ),
-    ask: "Confirmez-vous que votre tableau de mai a été bâti avant ces écritures ? Un tableau à jour de juin et juillet permettrait de refermer ce contrôle.",
+    ask: "Confirmez-vous que votre tableau de mai a été bâti avant ces écritures ? Si oui, ce point est refermé : juin et juillet ne se lisent plus que dans l'application.",
   },
   {
     key: "c11",
@@ -380,10 +380,14 @@ export const POINTS: Point[] = [
         <li>Chaque mois, deux fichiers : la balance ventilée de l&apos;exercice et la balance analytique <em>du mois</em>{" "}— le format actuel, sur lequel l&apos;application est alignée.</li>
         <li>Un nommage stable et deux envois : le premier à M+24, puis la version corrigée par le cabinet, qui remplace la première. L&apos;application conserve l&apos;ancienne en « remplacée ».</li>
         <li>Qui dépose les fichiers : vous, depuis l&apos;écran Imports, ou nous.</li>
-        <li>À chaque tableau de gestion transmis, le rapprochement est relancé et la liste des écarts vous revient.</li>
+        <li>
+          Votre tableau de gestion s&apos;arrête à mai : à partir de juin, les écrans Chantiers,
+          Synthèse et Frais généraux le remplacent. Ce que vous y relevez chaque mois se note
+          ici, point par point, et l&apos;application est ajustée en conséquence.
+        </li>
       </ul>
     ),
-    ask: "Quelle date d'envoi chaque mois, et qui valide l'import ?",
+    ask: "Quelle date d'envoi chaque mois, et qui valide l'import ? Et voulez-vous relire les écrans avant validation, ou après ?",
   },
   {
     key: "c13",
@@ -467,16 +471,10 @@ export const FICHIERS = [
     tone: "stop" as Tone,
   },
   {
-    nom: "Votre tableau de gestion à jour de juin et juillet",
-    pourquoi: "L'application va jusqu'à juillet ; le tableau dont nous disposons s'arrête à mai.",
-    tag: "point 10",
-    tone: "warn" as Tone,
-  },
-  {
-    nom: "La liste des comptes de vos lignes de frais généraux",
+    nom: "Vos réponses aux points de la partie C",
     pourquoi:
-      "Pour chiffrer compte par compte les écarts de masse salariale, crédit-bail, téléphonie et fournitures.",
-    tag: "point 8",
+      "Six d'entre eux commandent des réglages de l'application (périmètre, provisions, cumuls, conventions de frais généraux). Un mot suffit ; le détail se voit ensemble.",
+    tag: "points 2 à 9",
     tone: "warn" as Tone,
   },
   {
