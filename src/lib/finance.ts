@@ -41,9 +41,21 @@ const round2 = (n: number) => Math.round(n * 100) / 100;
 // le résultat le temps d'une requête serveur, puis l'oublie ; hors requête
 // (scripts), il ne mémorise rien. Les résultats partagés ne sont jamais modifiés
 // par leurs lecteurs.
-const analyticLinesOf = cache(async (importId: number) =>
-  db.select().from(tables.analyticLines).where(eq(tables.analyticLines.importId, importId))
-);
+const analyticLinesOf = cache(async (importId: number) => {
+  const rows = await db
+    .select()
+    .from(tables.analyticLines)
+    .where(eq(tables.analyticLines.importId, importId));
+  if (rows.length === 0) return rows;
+  const alias = await loadCentreAliases(rows[0].entityId);
+  if (alias.size === 0) return rows;
+  // Un centre fantôme (faute de frappe à l'import Cegid) est lu comme son vrai
+  // chantier : même code, même intitulé. Les lignes en base ne bougent pas.
+  return rows.map((r) => {
+    const target = alias.get(r.centreCode);
+    return target ? { ...r, centreCode: target.code, centreLabel: target.name } : r;
+  });
+});
 const generalLinesOf = cache(async (importId: number) =>
   db
     .select()
@@ -72,13 +84,42 @@ export const loadCentreKinds = cache(async function loadCentreKinds(
   entityId: number
 ): Promise<(centreCode: string) => CentreKind> {
   const rows = await db
-    .select({ code: tables.centres.code, kind: tables.centres.kind })
+    .select({ code: tables.centres.code, kind: tables.centres.kind, aliasOf: tables.centres.aliasOf })
     .from(tables.centres)
     .where(eq(tables.centres.entityId, entityId));
   const overrides = new Map<string, CentreKind>();
-  for (const r of rows) if (r.kind) overrides.set(r.code, r.kind as CentreKind);
-  return (centreCode: string) =>
-    overrides.get(centreCode) ?? classifyCentre(centreCode);
+  const alias = new Map<string, string>();
+  for (const r of rows) {
+    if (r.kind) overrides.set(r.code, r.kind as CentreKind);
+    if (r.aliasOf) alias.set(r.code, r.aliasOf);
+  }
+  // Un centre fantôme suit la classification du centre qu'il remplace.
+  return (centreCode: string) => {
+    const code = alias.get(centreCode) ?? centreCode;
+    return overrides.get(code) ?? classifyCentre(code);
+  };
+});
+
+/**
+ * Centres fantômes de l'entité → vrai centre (code et intitulé). Vide dans le
+ * cas général : la table ne porte un alias que là où Cegid a créé un centre sur
+ * une faute de frappe et où l'on a identifié le chantier visé.
+ */
+const loadCentreAliases = cache(async function loadCentreAliases(
+  entityId: number
+): Promise<Map<string, { code: string; name: string }>> {
+  const rows = await db
+    .select({ code: tables.centres.code, name: tables.centres.name, aliasOf: tables.centres.aliasOf })
+    .from(tables.centres)
+    .where(eq(tables.centres.entityId, entityId));
+  const byCode = new Map(rows.map((r) => [r.code, r]));
+  const out = new Map<string, { code: string; name: string }>();
+  for (const r of rows) {
+    if (!r.aliasOf) continue;
+    const target = byCode.get(r.aliasOf);
+    out.set(r.code, { code: r.aliasOf, name: target?.name ?? r.aliasOf });
+  }
+  return out;
 });
 
 // ── Imports validés ──────────────────────────────────────────────────────────
@@ -1630,15 +1671,7 @@ export async function getAccountDetail(
     const byCentre = new Map<string, AccountDetail["ventilation"][number]>();
     const monthsOfYear = await analytiqueImportsOfYear(entity.id, ana.fiscalYearStart, ana.period);
     for (const [month, importId] of monthsOfYear) {
-      const rows = await db
-        .select()
-        .from(tables.analyticLines)
-        .where(
-          and(
-            eq(tables.analyticLines.importId, importId),
-            eq(tables.analyticLines.account, account)
-          )
-        );
+      const rows = (await analyticLinesOf(importId)).filter((l) => l.account === account);
       for (const r of rows) {
         const v = byCentre.get(r.centreCode) ?? {
           centreCode: r.centreCode,

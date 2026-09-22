@@ -455,9 +455,10 @@ async function generateAlerts(importId: number) {
       .where(eq(tables.analyticLines.importId, importId));
     // Référentiel complet : le vrai chantier peut ne pas avoir bougé ce mois-ci.
     const connus = await db
-      .select({ code: tables.centres.code, name: tables.centres.name })
+      .select({ code: tables.centres.code, name: tables.centres.name, aliasOf: tables.centres.aliasOf })
       .from(tables.centres)
       .where(eq(tables.centres.entityId, imp.entityId));
+    const aliasOf = new Map(connus.filter((c) => c.aliasOf).map((c) => [c.code, c.aliasOf!]));
     const fantomes = detectAsciiCentres(
       anaLines.map((l) => ({
         centreCode: l.centreCode,
@@ -481,16 +482,24 @@ async function generateAlerts(importId: number) {
           : unique
             ? `Chantier probable : ${unique.code} · ${unique.name}.`
             : `Chantiers possibles : ${f.jumeaux.map((j) => `${j.code} · ${j.name}`).join(", ")}.`;
+      // Rattaché par l'application (centres.alias_of) : les écrans sont justes,
+      // la correction dans Cegid reste souhaitable pour la comptabilité elle-même.
+      const rattache = aliasOf.get(f.code);
       alerts.push({
         entityId: imp.entityId,
         importId,
         type: "centre_import_ascii",
-        severity: "warn",
-        title: `Centre créé par import ASCII : ${f.code}${unique ? ` → probablement ${unique.code}` : ""}`,
+        severity: rattache ? "info" : "warn",
+        title: rattache
+          ? `Centre créé par import ASCII : ${f.code}, lu comme ${rattache} par l'application`
+          : `Centre créé par import ASCII : ${f.code}${unique ? ` → probablement ${unique.code}` : ""}`,
         description:
           `${montants || "Aucun montant"} imputé(s) à un centre que Cegid a créé à la volée ` +
-          `(${f.lignes} ligne${f.lignes > 1 ? "s" : ""}). ${jumeau} ` +
-          `Faire corriger le code centre dans Cegid : tant qu'il subsiste, ces montants manquent au bon chantier.`,
+          `(${f.lignes} ligne${f.lignes > 1 ? "s" : ""}). ` +
+          (rattache
+            ? `L'application rattache ces montants au chantier ${rattache} : les écrans sont justes. ` +
+              `La correction du code centre dans Cegid reste à faire pour la comptabilité.`
+            : `${jumeau} Faire corriger le code centre dans Cegid : tant qu'il subsiste, ces montants manquent au bon chantier.`),
         // La colonne « account » porte ici le code du centre fantôme : c'est la
         // clé de déduplication de ce type d'alerte.
         account: f.code,

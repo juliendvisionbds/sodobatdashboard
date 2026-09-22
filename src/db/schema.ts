@@ -45,6 +45,10 @@ export const centres = pgTable(
     // Surcharge manuelle de la classification déduite du code (classifyCentre) :
     // null = déduite, sinon force le routage chantier / frais généraux.
     kind: text("kind", { enum: ["chantier", "structure"] }),
+    // Centre fantôme créé par Cegid sur une faute de frappe (52MF pour 52) :
+    // code du vrai centre auquel ses écritures sont rattachées à la lecture.
+    // Les lignes importées restent telles quelles ; seul le calcul le suit.
+    aliasOf: text("alias_of"),
   },
   (t) => [uniqueIndex("centres_entity_code").on(t.entityId, t.code)]
 );

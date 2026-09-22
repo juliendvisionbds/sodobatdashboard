@@ -227,9 +227,10 @@ async function main() {
         let A = 0;
         const off: { centre: string; d: number; a: number }[] = [];
         for (const [code, { centres, row }] of daf) {
-          // Le dépôt est un centre de structure dans l'application : il figure
-          // dans le contrôle de périmètre, pas dans la comparaison des blocs.
-          if (code === "DEPOT" || code === "SAV") continue;
+          // DEPOT et SAV sont suivis comme des chantiers par la DAF ; s'ils sont
+          // classés en structure dans l'application, ils sortent de la
+          // comparaison et sont signalés en périmètre.
+          if ((code === "DEPOT" || code === "SAV") && !app.has(code)) continue;
           const d = bloc.daf(row);
           const a = appOf(centres, bloc.app);
           D += d;
@@ -262,7 +263,7 @@ async function main() {
     }
 
     const depot = daf.get("DEPOT");
-    if (depot && Math.abs(n(depot.row[COL.totalCharges])) > TOL)
+    if (depot && !app.has("DEPOT") && Math.abs(n(depot.row[COL.totalCharges])) > TOL)
       console.log(`  périmètre : la DAF suit le DEPOT dans le TG chantier (charges ${eur(n(depot.row[COL.totalCharges])).trim()}), l'application le classe en structure`);
     if (horsTg.length)
       console.log(`  périmètre : chantiers mouvementés dans l'application, absents de l'onglet : ${horsTg.join(", ")}`);

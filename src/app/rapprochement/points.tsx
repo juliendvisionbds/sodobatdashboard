@@ -116,21 +116,23 @@ export const POINTS: Point[] = [
               <tr><td>Mars</td><td>1030A → 1029C (achats)</td><td>12 033</td></tr>
               <tr><td>Mars</td><td>1044C ↔ 1026C · 52 ↔ 1025C · 1043B ↔ 1007E</td><td>530 · 480 · 215</td></tr>
               <tr><td>Mars</td><td>non appariés : 1031C −2 157 · 1036A +1 687 · 1027B +814 · 53 −344</td><td>1 € net</td></tr>
-              <tr><td>Avril</td><td>1043B → 944B · 1047E → 1047A</td><td>914 · 389</td></tr>
-              <tr><td>Avril</td><td>906E → 923E (produits)</td><td>5 295</td></tr>
-              <tr><td>Mai</td><td>1034B → 1034E · 1047A → 1047E</td><td>3 934 · 858 + 1 646</td></tr>
+              <tr><td>Avril</td><td>1043B → 944B</td><td>914</td></tr>
+              <tr><td>Avril</td><td>906E → 923E (produits) · 906E honoraires ↔ salaires</td><td>5 295 · 2 100</td></tr>
+              <tr><td>Mai</td><td>943E sous-traitance, révisée après votre export</td><td>7 255</td></tr>
             </tbody>
           </table>
         </div>
         <p>
-          Les centres <N>1034B</N>, <N>1047A</N>, <N>1036C</N>{" "}et <N>52MF</N>{" "}ont été créés à la
-          volée par Cegid lors d&apos;un import ASCII. L&apos;application les signale déjà en
-          alerte comme probables fautes de frappe de 1034E, 1047E, 1036A et 52 : tant
-          qu&apos;ils subsistent, les montants manquent au bon chantier.
+          Quatre centres ont été créés à la volée par Cegid lors d&apos;un import ASCII, sur une
+          faute de frappe : <N>1034B</N>, <N>1047A</N>, <N>1036C</N> et <N>52MF</N>. Depuis le 22
+          septembre, l&apos;application les lit comme 1034E, 1047E, 1036A et 52 : les écrans
+          sont justes, et 52MF portait <N>70 871</N> de facturation en juin et juillet qui
+          manquaient au chantier 52. Les écritures restent telles quelles en base ; l&apos;alerte
+          le signale désormais comme « lu comme 52 par l&apos;application ».
         </p>
       </>
     ),
-    ask: "Ces imputations sont-elles corrigées en comptabilité, ou faut-il que l'application tienne une table de correspondance de centres (1034B = 1034E, etc.) ?",
+    ask: "Pouvez-vous faire corriger ces quatre codes centre dans Cegid, pour que la comptabilité elle-même soit juste ? Et les reclassements d'un chantier à l'autre sont-ils passés en comptabilité, ou restent-ils propres à votre tableau ?",
   },
   {
     key: "c4",
@@ -168,147 +170,159 @@ export const POINTS: Point[] = [
   {
     key: "c6",
     n: 6,
-    title: "Le DEPOT et le SAV : chantiers ou structure ?",
-    stake: "à trancher en premier — trois écrans en dépendent",
-    tone: "stop",
+    title: "Le DEPOT et le SAV sont classés en chantier, comme dans votre tableau",
+    stake: "appliqué le 22 septembre — à confirmer",
+    tone: "warn",
     body: (
       <>
         <p>
-          Vous suivez le DEPOT comme une ligne du tableau chantiers ; l&apos;application le classe
-          en frais généraux. Charges du DEPOT dans votre fichier : 23 976 en novembre-décembre,
-          puis 11 718, 19 123, 13 096, 7 463 et 7 971. Vos reports d&apos;ouverture n&apos;ont pas
-          été repris : DEPOT <N>7 943,05</N>{" "}de facturation et <N>−860 440,63</N>{" "}de résultat ;
-          SAV <N>−1 051,27</N>{" "}et <N>−1 363,54</N>.
+          Vous suivez le DEPOT et le SAV comme des lignes du tableau chantiers ; l&apos;application
+          les classait en frais généraux. C&apos;était la cause unique de quatre écarts de frais
+          généraux (masse salariale du siège, crédits-baux, petit outillage, carburant) et du
+          compte d&apos;intérim « sans ligne » du point 9 : 20 812 des 21 407 € étaient sur le
+          DEPOT.
         </p>
         <p>
-          Depuis que la Synthèse répartit les charges entre chantiers et siège, cette question ne
-          joue plus seulement sur la vue Chantiers : elle commande aussi les lignes de charges de
-          la Synthèse et trois lignes de frais généraux. Et les chiffres désignent clairement le
-          périmètre des centres, non le rattachement des comptes.
+          Nous avons donc repris votre périmètre. Le DEPOT et le SAV apparaissent dans la vue
+          Chantiers avec vos reports d&apos;ouverture — DEPOT <N>7 943,05</N> de facturation et{" "}
+          <N>−860 440,63</N> de résultat, SAV <N>−1 051,27</N> et <N>−1 363,54</N> — et le cumul
+          du DEPOT à fin décembre tombe sur le vôtre : <N>−884 416,46</N>.
         </p>
         <div className="doc-tbl-wrap">
           <table className="doc-tbl">
             <tbody>
-              <tr><th>Janvier 2026 — part imputée au siège</th><th>Votre fichier</th><th>Application</th><th>Écart</th></tr>
-              <tr><td>Entretien / réparation / maintenance</td><td>13 995</td><td>13 995</td><td className="ok">0</td></tr>
-              <tr><td>Petit outillage, fournitures</td><td>42</td><td>2 184</td><td>2 142</td></tr>
-              <tr><td>Masse salariale du siège</td><td>15 877</td><td>19 342</td><td>3 465</td></tr>
-              <tr><td>Carburant, péages, déplacements</td><td>7 002</td><td>7 634</td><td>632</td></tr>
+              <tr><th>Janvier 2026 — frais généraux</th><th>Votre fichier</th><th>Application</th><th>Écart</th></tr>
+              <tr><td>Crédits-baux / LLD</td><td>2 574</td><td>2 574</td><td className="ok">0</td></tr>
+              <tr><td>Petit outillage, fournitures</td><td>42</td><td>42</td><td className="ok">0</td></tr>
+              <tr><td>Masse salariale du siège</td><td>15 877</td><td>15 991</td><td>114</td></tr>
+              <tr><td>GNR, péages, déplacements</td><td>7 002</td><td>7 634</td><td>632</td></tr>
             </tbody>
           </table>
         </div>
         <p className="doc-note">
-          Sur l&apos;entretien, les deux lectures tombent sur le même euro : les comptes sont donc
-          rattachés correctement. Sur les trois autres lignes, mêmes comptes et montants
-          différents — l&apos;application sort des chantiers des centres que vous y laissez. Dans
-          l&apos;autre sens, les comptes jamais imputés au siège — sous-traitance, intérims,
-          déchets — sont identiques tous les mois, sans exception.
+          Les 114 € sont la formation continue et la taxe d&apos;apprentissage du siège, que vous
+          rangez en impôts ; les 632 €, la géolocalisation et les réceptions, que vous rangez en
+          téléphonie et autres charges (point 8). Sur les charges d&apos;exploitation et de
+          personnel des chantiers, DEPOT compris, le total du mois est identique au vôtre de
+          novembre à avril.
         </p>
       </>
     ),
-    ask: "Le DEPOT doit-il apparaître dans la vue Chantiers ? Et le SAV ? Le classement se règle centre par centre, sans toucher au rattachement des comptes.",
+    ask: "Confirmez-vous ce classement du DEPOT et du SAV en chantier ? Il se règle centre par centre et se défait aussi vite.",
   },
   {
     key: "c7",
     n: 7,
-    title: "Quelques montants changent de bloc, sans changer le total",
-    stake: "total des charges inchangé",
-    tone: "warn",
+    title: "Déplacements et réceptions de chantier : rangés avec les honoraires, comme chez vous",
+    stake: "rien à trancher",
+    tone: "ok",
     body: (
-      <ul>
-        <li>
-          Novembre-décembre : vos déchets (<N>46 353</N>, 11 chantiers) sont dans « Location » ;
-          l&apos;application les isole en « Déchets ».
-        </li>
-        <li>
-          Honoraires ↔ Eau / EDF / carburant : 1 640 en novembre-décembre, 365 en janvier, 794 en
-          février, 1 039 en mars, 19 en avril, 22 en mai. Toujours les mêmes chantiers : 1000E,
-          985B, 994E, 951D, 1019E, 1027B, 1049E.
-        </li>
-        <li>906E : 2 100 passent des honoraires aux salaires en février, et dans l&apos;autre sens en avril.</li>
-        <li>943E : 2 055 en salaires en novembre-décembre ; 1024A : 632 en janvier.</li>
-      </ul>
+      <>
+        <p>
+          Votre colonne « Honoraires chantier - Gardiennage » couvre la plage de comptes 62261
+          à 6282 : elle prend donc aussi les déplacements, péages et réceptions (6251, 6257,
+          6264) imputés à un chantier, que la maquette rangeait avec le carburant. C&apos;était
+          l&apos;origine des écarts « honoraires ↔ eau / EDF / carburant » de chaque mois (1 640,
+          365, 794, 1 039, 19, 22). L&apos;application suit désormais votre colonne : les deux
+          blocs sont identiques tous les mois.
+        </p>
+        <ul>
+          <li>
+            Dans la Synthèse, ces montants forment une ligne à part, « Déplacements / Réceptions
+            / Péages chantier », juste sous les honoraires ; leur part siège reste sur la ligne
+            GNR / péages de structure, comme dans votre bloc « Autres charges ».
+          </li>
+          <li>
+            Novembre-décembre : vos déchets (<N>47 770</N>, 12 chantiers) sont dans « Location » ;
+            à partir de janvier vous les isolez, comme l&apos;application. Rien à changer.
+          </li>
+          <li>
+            Les « autres droits » (compte 63580000 : 943E 2 055 en novembre, 1024A 632 en
+            janvier) sont dans vos salaires et dans nos charges affectées : même total.
+          </li>
+        </ul>
+      </>
     ),
-    ask: "Quel compte rangez-vous en « Eau / EDF / carburant » que la maquette classe en honoraires chantier ?",
+    ask: "Rien à trancher : à regarder ensemble sur l'écran Chantiers, colonne « Honoraire chantier / Gardiennage / Déplacements ».",
   },
   {
     key: "c8",
     n: 8,
-    title: "Frais généraux : des totaux proches, des périmètres de lignes différents",
-    stake: "2 906 à 18 201 € par mois",
+    title: "Frais généraux : vos lignes se retrouvent à l'euro, trois conventions restent",
+    stake: "à choisir : 13 038 € d'indemnités, le lissage des amortissements, un libellé",
     tone: "warn",
     body: (
       <>
-        <p>Vos lignes de l&apos;onglet « Synthese 2026 » en regard des nôtres, de janvier à avril.</p>
+        <p>
+          Vos lignes de l&apos;onglet « Synthese 2026 », de novembre à mai, en regard des nôtres
+          une fois le DEPOT classé comme chez vous (point 6).
+        </p>
         <div className="doc-tbl-wrap">
           <table className="doc-tbl">
             <tbody>
-              <tr><th>Ligne (vous / application)</th><th>Janvier</th><th>Février</th><th>Mars</th><th>Avril</th></tr>
-              <tr><td>Assurances</td><td className="ok">17 629 / 17 629</td><td>43 107 / 43 498</td><td className="ok">−24 686 / −24 686</td><td className="ok">−1 580 / −1 580</td></tr>
-              <tr><td>Location SCI / immobilier</td><td className="ok">11 053 / 11 053</td><td className="ok">11 053 / 11 053</td><td className="ok">14 121 / 14 121</td><td className="ok">11 053 / 11 053</td></tr>
-              <tr><td>EDF / Eau</td><td className="ok">203 / 203</td><td className="ok">275 / 275</td><td className="ok">−1 100 / −1 100</td><td className="ok">0 / 0</td></tr>
-              <tr><td>Honoraires NJW · SDG</td><td>115 700 / 118 085</td><td>115 700 / 115 840</td><td>115 700 / 111 506</td><td>115 700 / 115 775</td></tr>
-              <tr><td>Masse salariale du siège</td><td className="warn">15 877 / 19 342</td><td className="warn">7 466 / 11 757</td><td className="warn">12 910 / 16 797</td><td className="warn">12 725 / 16 475</td></tr>
-              <tr><td>Crédit-bail, LLD, véhicules</td><td className="warn">2 574 / 4 775</td><td className="warn">2 574 / 9 755</td><td className="warn">2 574 / 5 345</td><td>2 574 / 3 316</td></tr>
-              <tr><td>Carburant, péages, déplacements</td><td>7 002 / 7 634</td><td>7 712 / 9 344</td><td>7 849 / 9 912</td><td>9 712 / 11 158</td></tr>
-              <tr><td>Tél., banque, intérêts, cotisations</td><td>6 211 / 7 559</td><td>1 599 / 5 610</td><td className="warn">−9 400 / 3 629</td><td>7 221 / 7 511</td></tr>
-              <tr><td>Petit outillage, fournitures</td><td>42 / 2 184</td><td>475 / 2 286</td><td>0 / 1 730</td><td>5 814 / 7 088</td></tr>
-              <tr><td>Amortissements</td><td className="warn">3 973 / 0</td><td className="warn">3 594 / 0</td><td className="warn">3 993 / 0</td><td className="warn">3 872 / 0</td></tr>
-              <tr><td>Refacturation FX</td><td>2 385 / —</td><td>7 026 / —</td><td>−2 994 / —</td><td>75 / —</td></tr>
-              <tr className="sum"><td>Total autres charges</td><td>203 953 / 206 859</td><td>211 012 / 223 193</td><td>128 132 / 146 333</td><td>177 644 / 181 524</td></tr>
+              <tr><th>Ligne</th><th>Vous, nov. → mai</th><th>Application</th><th>Écart</th></tr>
+              <tr><td>Crédits-baux / LLD</td><td>19 711</td><td>19 711</td><td className="ok">0</td></tr>
+              <tr><td>GNR / Essence</td><td>41 428</td><td>41 428</td><td className="ok">0</td></tr>
+              <tr><td>EDF / Eau siège</td><td>−3 270</td><td>−3 270</td><td className="ok">0</td></tr>
+              <tr><td>Impôts</td><td>5 582</td><td>5 582</td><td className="ok">0</td></tr>
+              <tr><td>Masse salariale du siège</td><td>83 994</td><td>83 976</td><td>−18</td></tr>
+              <tr><td>Petit outillage, fournitures</td><td>6 477</td><td>6 483</td><td>6</td></tr>
+              <tr><td>Entretien, réparation, maintenance</td><td>36 674</td><td>36 393</td><td>−281</td></tr>
+              <tr><td>Loyer SCI Capitou</td><td>81 844</td><td>80 917</td><td>−926</td></tr>
+              <tr><td>Honoraires NJW (vous) · management 62263000 (nous)</td><td>809 900</td><td>810 624</td><td>724</td></tr>
+              <tr><td>Assurances</td><td>76 339</td><td>89 049</td><td className="warn">12 711</td></tr>
+              <tr><td>Amortissements</td><td>28 936</td><td>24 915</td><td className="warn">−4 021</td></tr>
             </tbody>
           </table>
         </div>
         <ul>
           <li>
-            <strong>Les libellés des honoraires semblent inversés.</strong>{" "}Ce que vous nommez
-            « Honoraires NJW » correspond à ce que l&apos;application nomme « Honoraires SDG
-            (holding) », pour un montant presque identique de novembre à mai : <N>809 900</N>{" "}chez
-            vous, <N>810 688</N>{" "}chez nous.
+            <strong>Les indemnités de sinistre viennent en déduction de vos assurances</strong> :
+            13 038 € de novembre à mai (7 191, 391 et 5 456), que l&apos;application classe en
+            produits. Les retirer ramène l&apos;écart d&apos;assurances à 327 €.
           </li>
           <li>
-            <strong>Les indemnités de sinistre viennent en déduction de vos assurances</strong>,
-            d&apos;où vos montants négatifs de mars et d&apos;avril. L&apos;application les classe
-            en produits. De novembre à mai, votre ligne vaut <N>76 339</N>{" "}et la nôtre{" "}
-            <N>89 049</N>, dont <N>13 038</N>{" "}d&apos;indemnités isolées : les retirer ramène
-            l&apos;écart à <N>328 €</N>.
+            <strong>Vous lissez les amortissements</strong> à 3 600 – 4 000 € par mois, avec un
+            retraitement en bas de tableau ; la comptabilité ne passe les dotations qu&apos;en mai
+            (24 915) et en juin (28 332). Le résultat mensuel de l&apos;application est donc le
+            vôtre avant lissage.
           </li>
           <li>
-            Masse salariale du siège : l&apos;application porte 3 500 à 4 300 € de plus chaque
-            mois. Soit des centres que vous laissez en chantier (point 6), soit des comptes de la
-            classe 64 rangés ailleurs.
+            <strong>Le compte 62263000 « Honoraires management »</strong> porte les 115 700 € que
+            vous nommez « Honoraires NJW ». L&apos;application l&apos;affiche en management, puis
+            ventile NJW / SDG d&apos;après une saisie : dites-nous la part de chacun.
           </li>
-          <li>Amortissements : vous étalez 3 600 à 4 000 € par mois ; la comptabilité ne passe les dotations qu&apos;en mai (27 344) et en juin (31 147).</li>
-          <li>« Refacturation FX » n&apos;a pas de ligne équivalente dans la maquette.</li>
           <li>
-            Sur l&apos;ensemble novembre-mai, votre bloc « Autres charges » totalise{" "}
-            <N>1 271 227 €</N>{" "}contre <N>1 353 336 €</N>{" "}pour le nôtre, soit 6 % d&apos;écart.
-            Trois lignes tombent juste ou presque : crédits-baux 19 711 des deux côtés, EDF-eau
-            −3 270 des deux côtés, entretien 36 674 contre 36 731.
+            Le reste tient à des lignes de rangement : les 926 € du Tiguan en location de
+            véhicules chez nous, avec le loyer chez vous ; la géolocalisation (232 € par mois)
+            et les réceptions du siège avec les péages chez nous, en téléphonie et autres charges
+            chez vous ; la formation continue du siège en masse salariale chez nous, en impôts
+            chez vous.
           </li>
         </ul>
       </>
     ),
-    ask: "Trois demandes : la liste des comptes de vos lignes « Masse Salariale », « Crédits Baux », « Tél / frais bancaires » et « Petit outillage » ; le bon libellé des honoraires, NJW ou SDG ; et la convention à retenir pour les indemnités d'assurance, en déduction de la charge ou en produit.",
+    ask: "Trois choix : les indemnités d'assurance en déduction de la charge ou en produit ; les amortissements lissés ou tels que comptabilisés ; et la part NJW / SDG du compte 62263000.",
   },
   {
     key: "c9",
     n: 9,
-    title: "Quatre comptes sans ligne prévue là où ils sont imputés",
-    stake: "23 506,64 € hors des totaux",
+    title: "Deux comptes sans ligne prévue là où ils sont imputés",
+    stake: "3 776 € hors des totaux",
     tone: "warn",
     body: (
       <p>
-        <N>62110000</N>{" "}Personnel intérimaire (21 406,64) et <N>62261000</N>{" "}Honoraires chantiers
-        (2 100,00) sont imputés sur des centres de structure, où la maquette des frais généraux
-        n&apos;a pas de ligne pour les recevoir. Ils remontent en alerte et restent hors des
-        totaux : l&apos;application ne les range jamais d&apos;office. À l&apos;inverse, en
+        Sur le centre FX, <N>62110000</N> Personnel intérimaire (595,45 en décembre) et{" "}
+        <N>62261000</N> Honoraires chantiers (1 970,00 en décembre et janvier) n&apos;ont pas de
+        ligne dans la maquette des frais généraux : ils remontent en alerte et restent hors des
+        totaux, l&apos;application ne les range jamais d&apos;office. Le reste de l&apos;intérim
+        signalé jusqu&apos;ici était sur le DEPOT, réglé par le point 6. À l&apos;inverse, en
         novembre, deux produits sont imputés sur des chantiers sans ligne prévue :{" "}
-        <N>75870000</N>{" "}Indemnités d&apos;assurances (1 120,00) et <N>75800000</N>{" "}Produits divers
+        <N>75870000</N> Indemnités d&apos;assurances (1 120,00) et <N>75800000</N> Produits divers
         (90,86).
       </p>
     ),
-    ask: "Pour l'intérim et les honoraires : erreur d'imputation à corriger en comptabilité, ou charges du siège à ajouter aux frais généraux ? Pour les deux produits de novembre : dans quelle ligne chantier les rangez-vous ?",
+    ask: "Pour l'intérim et les honoraires du siège : erreur d'imputation à corriger en comptabilité, ou charges du siège à ajouter aux frais généraux ? Pour les deux produits de novembre : dans quelle ligne chantier les rangez-vous ?",
   },
   {
     key: "c10",
@@ -320,7 +334,13 @@ export const POINTS: Point[] = [
       <ul>
         <li>Novembre-décembre, 50 102 € : la quote-part de bénéfice SEP de <N>50 011,03</N>{" "}passée en décembre, plus 90,86 de produits divers en novembre.</li>
         <li>Avril, 52 € : les intérêts d&apos;emprunts pour <N>51,82</N>.</li>
-        <li>Mai, 62 886 € : révisions multiples — provisions 74 906, sous-traitance, assurances, intéressement 6 848. À recontrôler après le ré-export de mai.</li>
+        <li>
+          Mai, 62 886 € : révisions multiples — provisions 74 906, sous-traitance, assurances,
+          intéressement 6 848. Votre ligne « Résultat » de mai (−198 667) est, elle, juste : elle
+          ne diffère de la Synthèse (−194 818) que du lissage des amortissements (3 899). C&apos;est
+          votre ligne « BG comptable » (−257 704) qui datait d&apos;avant les révisions, ce que
+          votre contrôle affichait déjà (62 936).
+        </li>
       </ul>
     ),
     ask: "Confirmez-vous que votre tableau de mai a été bâti avant ces écritures ? Un tableau à jour de juin et juillet permettrait de refermer ce contrôle.",
@@ -426,9 +446,15 @@ export const POINTS: Point[] = [
           donc être rattachée à aucun chantier, et le résultat chantiers de juin ressort à
           −1 039 529.
         </p>
+        <p>
+          <strong>Juillet</strong> : la balance analytique ne porte aucune écriture sur le compte
+          71331000, ni reprise de la provision de juin, ni provision du mois. Le résultat
+          chantiers de juillet (<N>+671 174</N>) est donc un résultat sans provision, et la
+          provision de juin (1 054 701) n&apos;a pas été reprise.
+        </p>
       </>
     ),
-    ask: "Cette imputation sur FX est-elle volontaire ? Si la provision doit revenir aux chantiers, faut-il une écriture de reclassement en comptabilité, ou la saisir chantier par chantier dans l'application ?",
+    ask: "Cette imputation sur FX est-elle volontaire ? Si la provision doit revenir aux chantiers, faut-il une écriture de reclassement en comptabilité, ou la saisir chantier par chantier dans l'application ? Et pour juillet, les provisions sont-elles à venir dans un export corrigé ?",
   },
 ];
 
@@ -451,6 +477,13 @@ export const FICHIERS = [
     pourquoi:
       "Pour chiffrer compte par compte les écarts de masse salariale, crédit-bail, téléphonie et fournitures.",
     tag: "point 8",
+    tone: "warn" as Tone,
+  },
+  {
+    nom: "Les objectifs annuels du dirigeant, validés",
+    pourquoi:
+      "L'écran Objectifs porte aujourd'hui vos ratios réalisés 2025/26, saisis en brouillon, et non les objectifs. La colonne « OBJECTIF FRED » de votre synthèse (achats 15 %, location externe 10 %, EasyMat 7 %, salaires production 8 %, sédentaires 7 %, sous-traitants 41 %, intérim 15 %, eau 1 %) est saisie en cinq minutes une fois confirmée.",
+    tag: "objectifs",
     tone: "warn" as Tone,
   },
   {

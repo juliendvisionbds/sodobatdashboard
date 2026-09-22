@@ -72,9 +72,9 @@ export default async function RapprochementPage() {
               </span>
             </div>
             <div className="doc-state-cell">
-              <span className="doc-state-value warn">92 %</span>
+              <span className="doc-state-value warn">93 %</span>
               <span className="doc-state-label">
-                Des 2 282 valeurs chantier comparées sont identiques à l&apos;euro
+                Des 2 326 valeurs chantier comparées sont identiques à l&apos;euro
               </span>
             </div>
             <div className="doc-state-cell">
@@ -173,19 +173,21 @@ export default async function RapprochementPage() {
                 <table className="doc-tbl">
                   <tbody>
                     <tr><th>Onglet</th><th>Valeurs identiques</th><th>Charges, vous</th><th>Charges, application</th><th>Résultat, vous</th><th>Résultat, application</th></tr>
-                    <tr><td>TG 11-12 2025</td><td>323 / 363</td><td>2 586 805</td><td className="ok">2 586 805</td><td>279 280</td><td className="ok">279 280</td></tr>
-                    <tr><td>TG 01 2026</td><td>358 / 370</td><td>1 254 448</td><td className="ok">1 254 448</td><td>215 325</td><td className="warn">185 325</td></tr>
-                    <tr><td>TG 02 2026</td><td>365 / 376</td><td>1 584 975</td><td className="ok">1 584 975</td><td>222 960</td><td className="ok">222 960</td></tr>
-                    <tr><td>TG 03 2026</td><td>348 / 392</td><td>1 373 290</td><td>1 373 291</td><td>137 863</td><td>137 862</td></tr>
-                    <tr><td>TG 04 2026</td><td>379 / 399</td><td>1 498 914</td><td>1 498 916</td><td>75 394</td><td>75 392</td></tr>
-                    <tr><td>TG 05 2026</td><td>325 / 382</td><td>1 250 557</td><td className="warn">1 243 302</td><td>6 323</td><td className="warn">−61 328</td></tr>
-                    <tr className="sum"><td>Total</td><td>2 098 / 2 282 — 92 %</td><td colSpan={4} /></tr>
+                    <tr><td>TG 11-12 2025</td><td>334 / 372</td><td>2 610 781</td><td className="ok">2 610 781</td><td>255 304</td><td className="ok">255 305</td></tr>
+                    <tr><td>TG 01 2026</td><td>371 / 377</td><td>1 266 166</td><td className="ok">1 266 166</td><td>203 607</td><td className="warn">173 607</td></tr>
+                    <tr><td>TG 02 2026</td><td>377 / 384</td><td>1 604 098</td><td className="ok">1 604 098</td><td>203 837</td><td className="ok">203 837</td></tr>
+                    <tr><td>TG 03 2026</td><td>360 / 400</td><td>1 386 386</td><td>1 386 387</td><td>124 767</td><td>124 766</td></tr>
+                    <tr><td>TG 04 2026</td><td>384 / 405</td><td>1 506 377</td><td className="ok">1 506 377</td><td>67 931</td><td className="ok">67 931</td></tr>
+                    <tr><td>TG 05 2026</td><td>336 / 388</td><td>1 258 528</td><td className="warn">1 251 266</td><td>−1 648</td><td className="warn">−69 293</td></tr>
+                    <tr className="sum"><td>Total</td><td>2 162 / 2 326 — 93 %</td><td colSpan={4} /></tr>
                   </tbody>
                 </table>
               </div>
               <p className="doc-note">
-                Sous-traitance, intérims, déchets, locations et facturation du mois : écart nul,
-                tous les mois. Les deux écarts de résultat renvoient aux points 2 et 1.
+                Comparaison au 22 septembre, DEPOT et SAV compris (point 6). Sous-traitance,
+                intérims, déchets, locations, eau / EDF / carburant, honoraires et facturation du
+                mois : écart nul, tous les mois. Les deux écarts de résultat renvoient aux
+                points 2 et 1 ; ce qui reste sont vos reclassements manuels du point 3.
               </p>
             </div>
 
@@ -206,6 +208,33 @@ export default async function RapprochementPage() {
                 </table>
               </div>
             </div>
+
+            <div className="doc-block">
+              <h3>6. Le résultat mensuel est celui de votre tableau</h3>
+              <p>
+                Votre ligne « Résultat » lisse les amortissements (3 600 à 4 000 € par mois, ligne
+                « Retraitement DAP ») là où la comptabilité les passe en mai et en juin. Ce
+                lissage neutralisé, le résultat net de la Synthèse est le vôtre.
+              </p>
+              <div className="doc-tbl-wrap">
+                <table className="doc-tbl">
+                  <tbody>
+                    <tr><th>Mois</th><th>Votre « Résultat »</th><th>Votre lissage DAP</th><th>Vous, hors lissage</th><th>Application</th><th>Écart</th></tr>
+                    <tr><td>Novembre + décembre 2025</td><td>−64 163</td><td>−9 604</td><td>−54 559</td><td>29 543</td><td className="warn">84 102</td></tr>
+                    <tr><td>Janvier 2026</td><td>−30 346</td><td>−3 973</td><td>−26 373</td><td>−26 373</td><td className="ok">0</td></tr>
+                    <tr><td>Février 2026</td><td>−3 781</td><td>−3 594</td><td>−187</td><td>−189</td><td className="ok">−2</td></tr>
+                    <tr><td>Mars 2026</td><td>41 611</td><td>−3 993</td><td>45 604</td><td>45 604</td><td className="ok">0</td></tr>
+                    <tr><td>Avril 2026</td><td>−51 113</td><td>−3 872</td><td>−47 241</td><td>−47 292</td><td>−51</td></tr>
+                    <tr><td>Mai 2026</td><td>−198 667</td><td>−3 899</td><td>−194 768</td><td>−194 818</td><td>−50</td></tr>
+                  </tbody>
+                </table>
+              </div>
+              <p className="doc-note">
+                Novembre-décembre : les 84 102 € sont la quote-part SEP (50 011), la cession
+                d&apos;immobilisation (34 000) et 91 € de produits divers, passés après votre
+                export. Avril : les intérêts d&apos;emprunt de 51,82 €.
+              </p>
+            </div>
           </section>
 
           {/* ── B · alignements livrés ─────────────────────────────────────── */}
@@ -214,8 +243,8 @@ export default async function RapprochementPage() {
               <span className="doc-part-tag">Partie B</span>
               <h2>Ce qui a été aligné sur vos fichiers</h2>
               <p>
-                Cinq ajustements livrés depuis le dernier point. Aucun compte n&apos;a changé de
-                rattachement.
+                Huit ajustements livrés. Les trois derniers datent du 22 septembre et reprennent
+                vos conventions ; ils se défont aussi simplement qu&apos;ils se posent.
               </p>
             </div>
             <div className="doc-steps">
@@ -277,6 +306,39 @@ export default async function RapprochementPage() {
                     Le CA mensuel de janvier à mai est désormais identique au vôtre au chiffre
                     près : 1 439 773, 1 807 935, 1 511 153, 1 574 308 et 1 256 880. Le résultat
                     net, lui, est inchangé : la répartition se déplace, rien ne se perd.
+                  </p>
+                </div>
+              </article>
+              <article className="doc-step">
+                <div className="doc-step-num">06</div>
+                <div>
+                  <h3>Le DEPOT et le SAV suivent votre périmètre chantier</h3>
+                  <p>
+                    Classés en chantier, avec vos reports d&apos;ouverture. Quatre lignes de frais
+                    généraux tombent identiques aux vôtres et le compte d&apos;intérim « sans
+                    ligne » disparaît. À confirmer au point 6.
+                  </p>
+                </div>
+              </article>
+              <article className="doc-step">
+                <div className="doc-step-num">07</div>
+                <div>
+                  <h3>Les centres créés par Cegid sont lus comme leur vrai chantier</h3>
+                  <p>
+                    1034B, 1047A, 1036C et 52MF sont rattachés à 1034E, 1047E, 1036A et 52 à la
+                    lecture, sans toucher aux écritures importées. La correction dans Cegid reste
+                    à faire (point 3).
+                  </p>
+                </div>
+              </article>
+              <article className="doc-step">
+                <div className="doc-step-num">08</div>
+                <div>
+                  <h3>Déplacements et réceptions de chantier rejoignent les honoraires</h3>
+                  <p>
+                    Comme votre colonne « Honoraires chantier - Gardiennage », qui couvre les
+                    comptes 62261 à 6282. Le bloc honoraires de la vue Chantiers est désormais
+                    identique au vôtre tous les mois (point 7).
                   </p>
                 </div>
               </article>

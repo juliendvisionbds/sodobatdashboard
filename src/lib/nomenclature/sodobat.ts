@@ -47,12 +47,19 @@ const FX = {
 // Un compte partagé entre la vue chantier et la vue FX est routé par l'axe
 // analytique ; le partage est donc explicite ici plutôt que dupliqué à la main.
 
-/** Code I — Carburant / GNR / Déplacements / Réception */
-const CARBURANT_DEPLACEMENTS = [
-  "60614000", "60615000", "60616000", "62510000", "62510010", "62510100",
-  "62510200", "62560000", "62570000", "62570002", "62570005", "62570010",
-  "62640000",
+/** Code I — Carburant / GNR (6061x). */
+const CARBURANT_GNR = ["60614000", "60615000", "60616000"];
+/**
+ * Code I — Déplacements, péages, réceptions, géolocalisation (625x, 6264).
+ * Sur un chantier, le tableau de gestion de la DAF les range dans sa colonne
+ * « Honoraires chantier - Gardiennage », qui couvre la plage 62261 → 6282 ;
+ * au siège, dans sa ligne « Péages / Déplacement / Invitation ».
+ */
+const DEPLACEMENTS_RECEPTIONS = [
+  "62510000", "62510010", "62510100", "62510200", "62560000", "62570000",
+  "62570002", "62570005", "62570010", "62640000",
 ];
+const CARBURANT_DEPLACEMENTS = [...CARBURANT_GNR, ...DEPLACEMENTS_RECEPTIONS];
 
 /** Code B — Locations matériels / engins, éclaté pour les objectifs dirigeant. */
 const LOCATION_MATERIEL_EXTERNE = ["61350500", "61350510"];
@@ -374,10 +381,21 @@ export const synthese: NomenclatureLine[] = [
     structureTo: "syn_fx_carburant_structure",
     view: "synthese",
     section: SYN.exploitation,
-    label: "Carburant / GNR / Déplacements / Réception",
+    label: "Carburant / GNR chantier",
     kind: "poste",
-    accounts: CARBURANT_DEPLACEMENTS,
+    accounts: CARBURANT_GNR,
     notes: "Code I — absent de la maquette Synthèse",
+  },
+  {
+    code: "syn_deplacements",
+    structureTo: "syn_fx_carburant_structure",
+    view: "synthese",
+    section: SYN.exploitation,
+    label: "Déplacements / Réceptions / Péages chantier",
+    kind: "poste",
+    accounts: DEPLACEMENTS_RECEPTIONS,
+    notes:
+      "Code I — comptés avec les honoraires chantier dans le tableau de gestion (plage 62261 → 6282) ; la part siège rejoint la ligne GNR / Péages de structure",
   },
   {
     code: "syn_honoraires_chantier",
@@ -402,6 +420,7 @@ export const synthese: NomenclatureLine[] = [
         { code: "syn_st_location_entretien", sign: 1 },
         { code: "syn_edf_eau_chantier", sign: 1 },
         { code: "syn_carburant", sign: 1 },
+        { code: "syn_deplacements", sign: 1 },
         { code: "syn_honoraires_chantier", sign: 1 },
       ],
     },
@@ -986,9 +1005,9 @@ export const chantier: NomenclatureLine[] = [
     code: "cha_carburant",
     view: "chantier",
     section: CHA.exploitation,
-    label: "Carburant / GNR / Déplacements / Réception",
+    label: "Carburant / GNR",
     kind: "poste",
-    accounts: CARBURANT_DEPLACEMENTS,
+    accounts: CARBURANT_GNR,
     notes: "Code I — présent aussi en frais généraux, arbitré par l'axe analytique",
   },
   {
@@ -1150,14 +1169,14 @@ export const chantier: NomenclatureLine[] = [
     code: "cha_honoraires",
     view: "chantier",
     section: CHA.personnel,
-    label: "Honoraire chantier / Gardiennage",
+    label: "Honoraire chantier / Gardiennage / Déplacements",
     kind: "poste",
     accounts: [
       "62261000", "62820000", "62260000", "62262000", "62263000", "62270000",
-      "62280000", "62280100",
+      "62280000", "62280100", ...DEPLACEMENTS_RECEPTIONS,
     ],
     notes:
-      "Code J — les honoraires divers (V) et de management (U) imputés à un chantier sont rattachés ici",
+      "Code J — la colonne « Honoraires chantier - Gardiennage » du tableau de gestion couvre la plage 62261 → 6282 : honoraires divers (V), management (U), déplacements et réceptions (I) imputés à un chantier",
   },
   {
     code: "cha_total_personnel",
