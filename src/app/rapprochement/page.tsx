@@ -29,6 +29,11 @@ export default async function RapprochementPage() {
   const decisions = new Map(rows.map((r) => [r.pointKey, r]));
 
   const ouverts = POINTS.filter((p) => p.tone !== "ok");
+  const enLettres = [
+    "zéro", "un", "deux", "trois", "quatre", "cinq", "six", "sept", "huit",
+    "neuf", "dix", "onze", "douze", "treize", "quatorze", "quinze", "seize",
+  ];
+  const combien = enLettres[ouverts.length] ?? String(ouverts.length);
   const repondus = ouverts.filter((p) => (decisions.get(p.key)?.answer ?? "").trim()).length;
 
   return (
@@ -39,7 +44,7 @@ export default async function RapprochementPage() {
           <h1>Rapprochement avec votre tableau de gestion</h1>
           <p>
             Où en est l&apos;application par rapport à vos fichiers : ce qui est déjà contrôlé, ce
-            qui a été aligné sur votre présentation, et les douze points qui appellent votre
+            qui a été aligné sur votre présentation, et les {combien} points qui appellent votre
             décision. Chaque point porte une zone de réponse — elle est enregistrée et visible de
             tous.
           </p>

@@ -26,15 +26,16 @@ export const POINTS: Point[] = [
   {
     key: "c1",
     n: 1,
-    title: "Les balances analytiques de mai et juin sont antérieures aux révisions",
+    title: "La balance analytique de mai est antérieure aux révisions",
     stake: "résultat de mai : 67 651 € d'écart",
     tone: "stop",
     body: (
       <>
         <p>
-          Les balances de novembre à avril et celle de juillet nous sont parvenues dans leur
-          version révisée. Celles de mai et de juin datent d&apos;avant les corrections du
-          cabinet. Quatre conséquences mesurées :
+          Chaque balance analytique est recoupée avec la balance générale du même mois, sur les
+          totaux des classes 6 et 7. Huit mois sur neuf tombent à <N>0,00</N>{" "}des deux côtés,
+          juin compris : ces exports sont à jour. Mai est le seul en écart, et date d&apos;avant
+          les corrections du cabinet. Trois conséquences mesurées :
         </p>
         <ul>
           <li>
@@ -45,16 +46,14 @@ export const POINTS: Point[] = [
           <li>Mai : 23 comptes ont été révisés depuis, dont la sous-traitance auto-liquidée pour −49 240 et le chantier 943E pour 7 255.</li>
           <li>
             La VNC de <N>35 592</N>{" "}figure à la fois dans l&apos;export de mai et dans celui de
-            juin : elle compte deux fois dans le cumul des frais généraux.
-          </li>
-          <li>
-            Juin : la provision de <N>1 033 201</N>{" "}est comptabilisée en bloc sur le centre FX et
-            non chantier par chantier. Le résultat chantiers de juin ressort à −1 039 529.
+            juin, alors que la balance générale ne la porte qu&apos;en juin : elle compte donc
+            deux fois dans le cumul des frais généraux, et c&apos;est l&apos;export de mai qui la
+            porte en trop.
           </li>
         </ul>
       </>
     ),
-    ask: "Pouvez-vous ré-exporter les balances analytiques de mai et de juin 2026, au même format que les autres mois ?",
+    ask: "Pouvez-vous ré-exporter la balance analytique de mai 2026, au même format que les autres mois ? Celle de juin est à jour : elle n'est pas à refaire.",
   },
   {
     key: "c2",
@@ -393,19 +392,51 @@ export const POINTS: Point[] = [
     ),
     ask: "Pouvez-vous exporter la balance analytique des exercices 2024/25 et 2023/24 ? Un fichier par exercice suffit : la comparaison N / N-1 des frais généraux deviendrait juste.",
   },
+  {
+    key: "c14",
+    n: 14,
+    title: "La provision de juin est portée sur le centre FX",
+    stake: "1 033 201 € hors chantiers",
+    tone: "stop",
+    body: (
+      <>
+        <p>
+          L&apos;export de juin est à jour — il recoupe la balance générale à l&apos;euro. Ce
+          n&apos;est donc pas un problème de fichier : c&apos;est ainsi que l&apos;écriture a été
+          passée. Sur les neuf mois de l&apos;exercice, juin est le seul dans ce cas.
+        </p>
+        <div className="doc-tbl-wrap">
+          <table className="doc-tbl">
+            <tbody>
+              <tr><th>Compte 71331000</th><th>Annulation M-1 (débit)</th><th>Provision (crédit)</th><th>dont centre FX</th></tr>
+              <tr><td>Novembre 2025</td><td>528 500</td><td>0</td><td>—</td></tr>
+              <tr><td>Décembre 2025</td><td>0</td><td>−883 000</td><td>—</td></tr>
+              <tr><td>Janvier 2026</td><td>240 000</td><td>−138 000</td><td>—</td></tr>
+              <tr><td>Février 2026</td><td>81 495</td><td>−473 669</td><td>—</td></tr>
+              <tr><td>Mars 2026</td><td>201 646</td><td>−11 800</td><td>—</td></tr>
+              <tr><td>Avril 2026</td><td>213 733</td><td>−188 700</td><td>—</td></tr>
+              <tr><td>Mai 2026</td><td>0</td><td>0</td><td>—</td></tr>
+              <tr><td>Juin 2026</td><td>1 054 701</td><td>−1 054 701</td><td className="warn">−1 033 201</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p className="doc-note">
+          L&apos;annulation de juin est bien ventilée chantier par chantier. C&apos;est la
+          provision du mois qui part sur FX, à hauteur de 1 033 201 sur 1 054 701 : elle ne peut
+          donc être rattachée à aucun chantier, et le résultat chantiers de juin ressort à
+          −1 039 529.
+        </p>
+      </>
+    ),
+    ask: "Cette imputation sur FX est-elle volontaire ? Si la provision doit revenir aux chantiers, faut-il une écriture de reclassement en comptabilité, ou la saisir chantier par chantier dans l'application ?",
+  },
 ];
 
 export const FICHIERS = [
   {
     nom: "Balance analytique de mai 2026, ré-exportée",
     pourquoi:
-      "Referme l'écart de 67 651 € sur le résultat de mai et retire la VNC comptée deux fois.",
-    tag: "bloquant · point 1",
-    tone: "stop" as Tone,
-  },
-  {
-    nom: "Balance analytique de juin 2026, ré-exportée",
-    pourquoi: "Avec les provisions de juin ventilées par chantier, et non en bloc sur le centre FX.",
+      "Le seul mois qui ne recoupe pas la balance générale. Referme l'écart de 67 651 € sur le résultat de mai et retire la VNC comptée deux fois.",
     tag: "bloquant · point 1",
     tone: "stop" as Tone,
   },
