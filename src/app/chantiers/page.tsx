@@ -1,6 +1,6 @@
 import Link from "next/link";
 import AppHeader from "@/components/AppHeader";
-import { getChantiers, getEntityByCode, listAnalytiquePeriods } from "@/lib/finance";
+import { getChantiers, getEntityByCode, listAnalytiquePeriods } from "@/lib/views";
 import { getSession, canWrite } from "@/lib/auth";
 import { fiscalYearOf } from "@/lib/parsers";
 import { fmtEurAuto, monthLabelLong } from "@/lib/format";
@@ -18,11 +18,13 @@ export default async function ChantiersPage({
   const entity = await getEntityByCode("sodobat");
   if (!entity) return null;
 
-  const periods = await listAnalytiquePeriods(entity.id);
-  const { mois } = await searchParams;
+  const [periods, { mois }, session] = await Promise.all([
+    listAnalytiquePeriods(entity),
+    searchParams,
+    getSession(),
+  ]);
   const period = mois && periods.includes(mois) ? mois : undefined;
   const data = await getChantiers(entity, { period });
-  const session = await getSession();
   // Saisies (provision TEC, notes) réservées au dernier mois : un mois passé est consultable
   // mais figé, on ne réécrit pas l'histoire d'une période déjà clôturée.
   const isLatestPeriod = !data || data.period === periods[0];

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import AppHeader from "@/components/AppHeader";
-import { getAccountDetail, getEntityByCode } from "@/lib/finance";
+import { getAccountDetail, getEntityByCode } from "@/lib/views";
 import { fmtEur, monthLabel, monthLabelLong } from "@/lib/format";
 
 export const dynamic = "force-dynamic";

@@ -2,11 +2,7 @@ import Link from "next/link";
 import { and, desc, eq } from "drizzle-orm";
 import { db, tables } from "@/db";
 import AppHeader from "@/components/AppHeader";
-import {
-  getEntityByCode,
-  getSynthese,
-  listVentileePeriods,
-} from "@/lib/finance";
+import { getEntityByCode, getSynthese, listVentileePeriods } from "@/lib/views";
 import { fmtEurAuto, fmtPct, monthLabel, monthLabelLong, splitAutoEur } from "@/lib/format";
 import MonthSelect from "@/components/MonthSelect";
 import SyntheseTable from "./SyntheseTable";
@@ -21,10 +17,17 @@ export default async function SynthesePage({
   const entity = await getEntityByCode("sodobat");
   if (!entity) return null;
 
-  const periods = await listVentileePeriods(entity.id);
-  const { mois } = await searchParams;
+  const [periods, { mois }] = await Promise.all([listVentileePeriods(entity), searchParams]);
   const period = mois && periods.includes(mois) ? mois : undefined;
-  const data = await getSynthese(entity, { period });
+  const [data, openAlerts] = await Promise.all([
+    getSynthese(entity, { period }),
+    db
+      .select()
+      .from(tables.alerts)
+      .where(and(eq(tables.alerts.entityId, entity.id), eq(tables.alerts.status, "open")))
+      .orderBy(desc(tables.alerts.severity), desc(tables.alerts.createdAt))
+      .limit(6),
+  ]);
   const isLatestPeriod = !data || data.period === periods[0];
 
   if (!data) {
@@ -48,13 +51,6 @@ export default async function SynthesePage({
       </>
     );
   }
-
-  const openAlerts = await db
-    .select()
-    .from(tables.alerts)
-    .where(and(eq(tables.alerts.entityId, entity.id), eq(tables.alerts.status, "open")))
-    .orderBy(desc(tables.alerts.severity), desc(tables.alerts.createdAt))
-    .limit(6);
 
   const shown = data.monthsWithData;
   const nbMois = shown.length;

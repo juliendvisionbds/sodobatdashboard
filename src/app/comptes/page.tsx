@@ -1,6 +1,6 @@
 import Link from "next/link";
 import AppHeader from "@/components/AppHeader";
-import { getEntityByCode, listAccounts } from "@/lib/finance";
+import { getEntityByCode, listAccounts } from "@/lib/views";
 import AccountSearch from "./AccountSearch";
 
 export const dynamic = "force-dynamic";

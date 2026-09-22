@@ -1,6 +1,6 @@
 import Link from "next/link";
 import AppHeader from "@/components/AppHeader";
-import { getEntityByCode, getFx, getFxMensuel, listAnalytiquePeriods } from "@/lib/finance";
+import { getEntityByCode, getFx, getFxMensuel, listAnalytiquePeriods } from "@/lib/views";
 import { fiscalYearOf } from "@/lib/parsers";
 import { fmtEurAuto, fmtPct, monthLabelLong, splitAutoEur } from "@/lib/format";
 import MonthSelect from "@/components/MonthSelect";
@@ -17,12 +17,13 @@ export default async function FxPage({
   const entity = await getEntityByCode("sodobat");
   if (!entity) return null;
 
-  const periods = await listAnalytiquePeriods(entity.id);
-  const { mois, vue } = await searchParams;
+  const [periods, { mois, vue }] = await Promise.all([listAnalytiquePeriods(entity), searchParams]);
   const mensuel = vue === "mensuel";
   const period = mois && periods.includes(mois) ? mois : undefined;
-  const data = await getFx(entity, { period });
-  const mensuelData = mensuel ? await getFxMensuel(entity, { period }) : null;
+  const [data, mensuelData] = await Promise.all([
+    getFx(entity, { period }),
+    mensuel ? getFxMensuel(entity, { period }) : null,
+  ]);
 
   if (!data) {
     return (

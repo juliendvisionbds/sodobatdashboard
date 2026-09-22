@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { and, desc, eq, lt } from "drizzle-orm";
 import { db, tables } from "@/db";
 import { CentreKind, classifyCentre, fiscalMonths, poleOf } from "./parsers";
@@ -34,6 +35,22 @@ const num = (v: string | number | null | undefined) => {
 
 const round2 = (n: number) => Math.round(n * 100) / 100;
 
+// ── Mémoïsation par requête ──────────────────────────────────────────────────
+// Une même page relit plusieurs fois les mêmes lignes de balance (cumul de
+// l'exercice, exercices antérieurs, CA de référence…). `cache` de React garde
+// le résultat le temps d'une requête serveur, puis l'oublie ; hors requête
+// (scripts), il ne mémorise rien. Les résultats partagés ne sont jamais modifiés
+// par leurs lecteurs.
+const analyticLinesOf = cache(async (importId: number) =>
+  db.select().from(tables.analyticLines).where(eq(tables.analyticLines.importId, importId))
+);
+const generalLinesOf = cache(async (importId: number) =>
+  db
+    .select()
+    .from(tables.generalBalanceLines)
+    .where(eq(tables.generalBalanceLines.importId, importId))
+);
+
 export type Entity = { id: number; code: string; name: string; active: boolean };
 
 export async function getEntityByCode(code: string): Promise<Entity | null> {
@@ -51,7 +68,7 @@ export async function getEntityByCode(code: string): Promise<Entity | null> {
  * (centres.kind) l'emporte sur la déduction faite à partir du code.
  * Un centre absent du référentiel est classé par son code.
  */
-export async function loadCentreKinds(
+export const loadCentreKinds = cache(async function loadCentreKinds(
   entityId: number
 ): Promise<(centreCode: string) => CentreKind> {
   const rows = await db
@@ -62,7 +79,7 @@ export async function loadCentreKinds(
   for (const r of rows) if (r.kind) overrides.set(r.code, r.kind as CentreKind);
   return (centreCode: string) =>
     overrides.get(centreCode) ?? classifyCentre(centreCode);
-}
+});
 
 // ── Imports validés ──────────────────────────────────────────────────────────
 
@@ -71,16 +88,31 @@ export async function latestValidatedImport(
   type: "ventilee" | "analytique",
   opts?: { fiscalYearStart?: number; beforePeriod?: string; atPeriod?: string }
 ) {
+  return latestValidatedImportMemo(
+    entityId,
+    type,
+    opts?.fiscalYearStart ?? null,
+    opts?.beforePeriod ?? null,
+    opts?.atPeriod ?? null
+  );
+}
+
+// Clé de mémoïsation sur des valeurs simples : un objet d'options serait neuf à chaque appel.
+const latestValidatedImportMemo = cache(async function latestValidatedImportMemo(
+  entityId: number,
+  type: "ventilee" | "analytique",
+  fiscalYearStart: number | null,
+  beforePeriod: string | null,
+  atPeriod: string | null
+) {
   const conds = [
     eq(tables.imports.entityId, entityId),
     eq(tables.imports.type, type),
     eq(tables.imports.status, "validated"),
   ];
-  if (opts?.fiscalYearStart != null)
-    conds.push(eq(tables.imports.fiscalYearStart, opts.fiscalYearStart));
-  if (opts?.beforePeriod)
-    conds.push(lt(tables.imports.period, opts.beforePeriod));
-  if (opts?.atPeriod) conds.push(eq(tables.imports.period, opts.atPeriod));
+  if (fiscalYearStart != null) conds.push(eq(tables.imports.fiscalYearStart, fiscalYearStart));
+  if (beforePeriod) conds.push(lt(tables.imports.period, beforePeriod));
+  if (atPeriod) conds.push(eq(tables.imports.period, atPeriod));
   const rows = await db
     .select()
     .from(tables.imports)
@@ -88,7 +120,7 @@ export async function latestValidatedImport(
     .orderBy(desc(tables.imports.period), desc(tables.imports.id))
     .limit(1);
   return rows[0] ?? null;
-}
+});
 
 /** Périodes des imports validés d'un type, plus récentes en premier. */
 async function listValidatedPeriods(
@@ -222,7 +254,7 @@ function aggregateByCategory(
  * positives), comme ceux de la ventilée.
  */
 async function structurePartParMois(
-  entity: Entity,
+  entity: Pick<Entity, "id">,
   fiscalYearStart: number,
   mapper: Awaited<ReturnType<typeof loadMapper>>,
   months: string[],
@@ -250,16 +282,26 @@ export async function getSynthese(
   entity: Entity,
   opts?: { fiscalYearStart?: number; period?: string }
 ): Promise<SyntheseData | null> {
-  const imp = await latestValidatedImport(entity.id, "ventilee", {
-    fiscalYearStart: opts?.fiscalYearStart,
-  });
+  return syntheseMemo(entity.id, entity.code, opts?.fiscalYearStart ?? null, opts?.period ?? null);
+}
+
+// Une même page demande plusieurs fois la Synthèse (CA de référence de chaque
+// exercice pour les frais généraux, objectifs) : calculée une fois par requête.
+const syntheseMemo = cache(async function syntheseMemo(
+  entityId: number,
+  entityCode: string,
+  fiscalYearStart: number | null,
+  period: string | null
+): Promise<SyntheseData | null> {
+  const entity = { id: entityId, code: entityCode };
+  const opts = { fiscalYearStart: fiscalYearStart ?? undefined, period: period ?? undefined };
+  const [imp, mapper] = await Promise.all([
+    latestValidatedImport(entity.id, "ventilee", { fiscalYearStart: opts.fiscalYearStart }),
+    loadMapper("synthese", entity.id, entity.code),
+  ]);
   if (!imp) return null;
 
-  const mapper = await loadMapper("synthese", entity.id, entity.code);
-  let lines = await db
-    .select()
-    .from(tables.generalBalanceLines)
-    .where(eq(tables.generalBalanceLines.importId, imp.id));
+  let lines = await generalLinesOf(imp.id);
 
   // Arrêté mensuel : on tronque le dernier import au mois demandé (les révisions
   // du cabinet sur les mois passés restent donc prises en compte).
@@ -335,10 +377,7 @@ export async function getSynthese(
   const prevYtd = new Map<string, number>();
   const prevFull = new Map<string, number>();
   if (prevImp) {
-    const prevLines = await db
-      .select()
-      .from(tables.generalBalanceLines)
-      .where(eq(tables.generalBalanceLines.importId, prevImp.id));
+    const prevLines = await generalLinesOf(prevImp.id);
     const prevMonths = fiscalMonths(prevImp.fiscalYearStart);
     // Même nombre de mois écoulés que sur l'exercice en cours.
     const rank = monthsWithData.length;
@@ -492,7 +531,7 @@ export async function getSynthese(
     prevCaTotal,
     importId: imp.id,
   };
-}
+});
 
 /**
  * Résultat de la balance générale : produits (classe 7) − charges (classes 6, 69),
@@ -658,10 +697,7 @@ async function lifetimeCumul(
 
   const acc = new Map<string, Map<string, number>>();
   for (const importId of importByMonth.values()) {
-    const rows = await db
-      .select()
-      .from(tables.analyticLines)
-      .where(eq(tables.analyticLines.importId, importId));
+    const rows = await analyticLinesOf(importId);
     for (const [centre, byCat] of foldSnapshot(rows, mapper, kindOf).byCentre) {
       const target = acc.get(centre) ?? new Map<string, number>();
       acc.set(centre, target);
@@ -681,33 +717,20 @@ export async function getChantiers(
   if (!imp) return null;
   // Mois précédent importé : il ne sert plus au calcul du mois, seulement à dire
   // jusqu'où remontent les reports de cumul.
-  const prevImp = await latestValidatedImport(entity.id, "analytique", {
-    beforePeriod: imp.period,
-  });
-
-  const mapper = await loadMapper("chantier", entity.id, entity.code);
-  const kindOf = await loadCentreKinds(entity.id);
-
-  const currentLines = await db
-    .select()
-    .from(tables.analyticLines)
-    .where(eq(tables.analyticLines.importId, imp.id));
+  const [prevImp, mapper, kindOf, currentLines] = await Promise.all([
+    latestValidatedImport(entity.id, "analytique", { beforePeriod: imp.period }),
+    loadMapper("chantier", entity.id, entity.code),
+    loadCentreKinds(entity.id),
+    analyticLinesOf(imp.id),
+  ]);
 
   const currentFold = foldSnapshot(currentLines, mapper, kindOf);
   const currentMonth = currentFold.byCentre;
   // Reports : tout ce qui a été importé avant le mois affiché.
-  const lifeBefore = await lifetimeCumul(
-    entity,
-    { period: imp.period, inclusive: false },
-    mapper,
-    kindOf
-  );
-  const lifeNow = await lifetimeCumul(
-    entity,
-    { period: imp.period, inclusive: true },
-    mapper,
-    kindOf
-  );
+  const [lifeBefore, lifeNow] = await Promise.all([
+    lifetimeCumul(entity, { period: imp.period, inclusive: false }, mapper, kindOf),
+    lifetimeCumul(entity, { period: imp.period, inclusive: true }, mapper, kindOf),
+  ]);
 
   const labels = new Map<string, string>();
   for (const l of currentLines) if (!labels.has(l.centreCode)) labels.set(l.centreCode, l.centreLabel);
@@ -988,14 +1011,11 @@ export type FxData = {
 };
 
 /** Mouvements du mois par compte, sur les centres de structure d'une balance analytique. */
-async function structureSoldes(
+const structureSoldes = cache(async function structureSoldes(
   importId: number,
   kindOf: (code: string) => CentreKind
 ): Promise<Map<string, { label: string; solde: number }>> {
-  const rows = await db
-    .select()
-    .from(tables.analyticLines)
-    .where(eq(tables.analyticLines.importId, importId));
+  const rows = await analyticLinesOf(importId);
   const out = new Map<string, { label: string; solde: number }>();
   for (const l of rows) {
     // Les dotations et la VNC remontent en FX même depuis un centre chantier.
@@ -1008,13 +1028,13 @@ async function structureSoldes(
     });
   }
   return out;
-}
+});
 
 /**
  * Imports analytiques validés d'un exercice, un par mois (le plus récent
  * l'emporte), jusqu'à `upTo` inclus.
  */
-async function analytiqueImportsOfYear(
+const analytiqueImportsOfYear = cache(async function analytiqueImportsOfYear(
   entityId: number,
   fiscalYearStart: number,
   upTo?: string
@@ -1034,7 +1054,7 @@ async function analytiqueImportsOfYear(
   const byMonth = new Map<string, number>();
   for (const r of rows) if (!upTo || r.period <= upTo) byMonth.set(r.period, r.id);
   return byMonth;
-}
+});
 
 /** Cumul des centres de structure sur plusieurs mois : la somme des fichiers mensuels. */
 async function structureCumul(
@@ -1079,10 +1099,7 @@ async function priorYear(
   const ventilee = await latestValidatedImport(entity.id, "ventilee", { fiscalYearStart });
   if (!ventilee) return { soldes: new Map(), source: "absent" };
 
-  const lines = await db
-    .select()
-    .from(tables.generalBalanceLines)
-    .where(eq(tables.generalBalanceLines.importId, ventilee.id));
+  const lines = await generalLinesOf(ventilee.id);
   const soldes = new Map<string, number>();
   for (const l of lines) {
     if (!fxAccounts.has(l.account)) continue;
@@ -1113,42 +1130,39 @@ export async function getFx(
     atPeriod: opts?.period,
   });
   if (!imp) return null;
-  const kindOf = await loadCentreKinds(entity.id);
-  const mapper = await loadMapper("fx", entity.id, entity.code);
+  const [kindOf, mapper, ruleRows] = await Promise.all([
+    loadCentreKinds(entity.id),
+    loadMapper("fx", entity.id, entity.code),
+    // On reconstitue le jeu de comptes de la vue à partir des règles actives.
+    db
+      .select({ pattern: tables.accountRules.pattern, categoryId: tables.accountRules.categoryId })
+      .from(tables.accountRules)
+      .where(eq(tables.accountRules.active, true)),
+  ]);
 
   const fxAccounts = new Set<string>();
-  for (const cat of mapper.categories) {
-    // On reconstitue le jeu de comptes de la vue à partir des règles actives.
-    void cat;
-  }
-  const ruleRows = await db
-    .select({ pattern: tables.accountRules.pattern, categoryId: tables.accountRules.categoryId })
-    .from(tables.accountRules)
-    .where(eq(tables.accountRules.active, true));
   const fxCategoryIds = new Set(mapper.categories.map((c) => c.id));
   for (const r of ruleRows) if (fxCategoryIds.has(r.categoryId)) fxAccounts.add(r.pattern);
 
   // ── Exercice en cours ──────────────────────────────────────────────────────
   // N = somme des mois importés de l'exercice, jusqu'au mois affiché ; la colonne
   // de travail « mois » reprend le seul fichier du mois.
-  const current = await structureCumul(
-    (await analytiqueImportsOfYear(entity.id, imp.fiscalYearStart, imp.period)).values(),
-    kindOf
-  );
-  const moisSoldes = await structureSoldes(imp.id, kindOf);
-
-  const { soldes: n1Soldes, source: n1Source } = await priorYear(
-    entity,
-    imp.fiscalYearStart - 1,
-    kindOf,
-    fxAccounts
-  );
-  const { soldes: n2Soldes, source: n2Source } = await priorYear(
-    entity,
-    imp.fiscalYearStart - 2,
-    kindOf,
-    fxAccounts
-  );
+  // Les trois exercices et le CA de référence de chacun se lisent indépendamment.
+  const [current, moisSoldes, n1, n2, caN] = await Promise.all([
+    analytiqueImportsOfYear(entity.id, imp.fiscalYearStart, imp.period).then((imports) =>
+      structureCumul(imports.values(), kindOf)
+    ),
+    structureSoldes(imp.id, kindOf),
+    priorYear(entity, imp.fiscalYearStart - 1, kindOf, fxAccounts),
+    priorYear(entity, imp.fiscalYearStart - 2, kindOf, fxAccounts),
+    caOfYear(entity, imp.fiscalYearStart, imp.period),
+  ]);
+  const { soldes: n1Soldes, source: n1Source } = n1;
+  const { soldes: n2Soldes, source: n2Source } = n2;
+  const [caN1, caN2] = await Promise.all([
+    n1Source === "absent" ? null : caOfYear(entity, imp.fiscalYearStart - 1),
+    n2Source === "absent" ? null : caOfYear(entity, imp.fiscalYearStart - 2),
+  ]);
 
   // ── Agrégation par poste ───────────────────────────────────────────────────
   const leaves = new Map<string, Vector>();
@@ -1196,11 +1210,7 @@ export async function getFx(
   }
 
   // ── CA de référence, un par exercice ───────────────────────────────────────
-  const caReference: Record<FxColumn, number | null> = {
-    n: await caOfYear(entity, imp.fiscalYearStart, imp.period),
-    n1: n1Source === "absent" ? null : await caOfYear(entity, imp.fiscalYearStart - 1),
-    n2: n2Source === "absent" ? null : await caOfYear(entity, imp.fiscalYearStart - 2),
-  };
+  const caReference: Record<FxColumn, number | null> = { n: caN, n1: caN1, n2: caN2 };
   const provided = new Map<string, Vector>([
     [FX_CODES.caReference, { ...caReference, [MOIS_COLUMN]: null }],
   ]);
@@ -1331,8 +1341,10 @@ export async function getFxMensuel(
   for (const i of imports) if (months.includes(i.period)) importByMonth.set(i.period, i.id);
   const missing = months.filter((m) => !importByMonth.has(m));
 
-  const kindOf = await loadCentreKinds(entity.id);
-  const mapper = await loadMapper("fx", entity.id, entity.code);
+  const [kindOf, mapper] = await Promise.all([
+    loadCentreKinds(entity.id),
+    loadMapper("fx", entity.id, entity.code),
+  ]);
   const columns = [...months, TOTAL_COLUMN];
 
   const blank = (): Vector =>
@@ -1449,9 +1461,11 @@ export async function getObjectifs(
   entity: Entity,
   opts?: { period?: string }
 ): Promise<ObjectifsData | null> {
-  const synthese = await getSynthese(entity, { period: opts?.period });
+  const [synthese, fx] = await Promise.all([
+    getSynthese(entity, { period: opts?.period }),
+    getFx(entity, { period: opts?.period }),
+  ]);
   if (!synthese) return null;
-  const fx = await getFx(entity, { period: opts?.period });
 
   // Les objectifs sont annuels : ils sont rangés sur le premier mois de
   // l'exercice, ce qui les rend indépendants du mois consulté.
@@ -1566,10 +1580,7 @@ export async function listAccounts(
 ): Promise<{ account: string; label: string; total: number }[]> {
   const imp = await latestValidatedImport(entity.id, "ventilee");
   if (!imp) return [];
-  const rows = await db
-    .select()
-    .from(tables.generalBalanceLines)
-    .where(eq(tables.generalBalanceLines.importId, imp.id));
+  const rows = await generalLinesOf(imp.id);
   const out = new Map<string, { account: string; label: string; total: number }>();
   for (const r of rows) {
     const prev = out.get(r.account);
@@ -1589,12 +1600,7 @@ export async function getAccountDetail(
   const imp = await latestValidatedImport(entity.id, "ventilee");
   if (!imp) return null;
 
-  const lines = (
-    await db
-      .select()
-      .from(tables.generalBalanceLines)
-      .where(eq(tables.generalBalanceLines.importId, imp.id))
-  ).filter((l) => l.account === account);
+  const lines = (await generalLinesOf(imp.id)).filter((l) => l.account === account);
 
   const months = fiscalMonths(imp.fiscalYearStart);
   const monthly: Record<string, number> = Object.fromEntries(months.map((m) => [m, 0]));

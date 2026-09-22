@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { and, eq, inArray, isNull, or } from "drizzle-orm";
 import { db, tables } from "@/db";
 
@@ -38,7 +39,9 @@ export type Mapper = {
   resolve: (account: string) => Category | null;
 };
 
-export async function loadMapper(
+// Mémoïsé par requête : chaque vue, et la Synthèse à travers les frais généraux
+// et les objectifs, relit la même nomenclature.
+export const loadMapper = cache(async function loadMapper(
   view: View,
   entityId: number,
   entityCode: string
@@ -119,4 +122,4 @@ export async function loadMapper(
   };
 
   return { categories: postes, lines: inScope, resolve };
-}
+});

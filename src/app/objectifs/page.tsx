@@ -1,6 +1,6 @@
 import Link from "next/link";
 import AppHeader from "@/components/AppHeader";
-import { getEntityByCode, getObjectifs } from "@/lib/finance";
+import { getEntityByCode, getObjectifs } from "@/lib/views";
 import { getSession, canWrite } from "@/lib/auth";
 import { fmtEurAuto, fmtPct, monthLabelLong } from "@/lib/format";
 import ObjectifsTable from "./ObjectifsTable";
@@ -11,9 +11,8 @@ export default async function ObjectifsPage() {
   const entity = await getEntityByCode("sodobat");
   if (!entity) return null;
 
-  const session = await getSession();
+  const [session, data] = await Promise.all([getSession(), getObjectifs(entity)]);
   const writer = session ? canWrite(session) : false;
-  const data = await getObjectifs(entity);
 
   if (!data) {
     return (

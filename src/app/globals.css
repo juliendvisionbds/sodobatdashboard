@@ -23,6 +23,9 @@
   --amber-lt: #FEF3E2;
   /* Colonnes de totaux (Chantiers) : teinte neutre chaude, distincte du bleu des
      intitulés de section et de l'ambre des statuts « À surveiller ». */
+  /* Filet de séparation entre les lignes d'un tableau : assez présent pour
+     guider l'œil sur une ligne longue, assez discret pour ne pas quadriller. */
+  --rule-row: rgba(17,19,24,0.07);
   --total-col:      #FAF6EC;
   --total-col-head: #F0E8D5;
   --shadow-sm: 0 1px 3px rgba(17,19,24,0.06), 0 1px 2px rgba(17,19,24,0.04);
@@ -354,7 +357,7 @@ body {
   position: sticky; top: 0; z-index: 5; background: var(--gray5);
 }
 .ct thead th.left { text-align: left; }
-.ct tbody tr { border-bottom: 1px solid var(--gray5); transition: background 0.1s; background: var(--white); }
+.ct tbody tr { transition: background 0.1s; background: var(--white); }
 .ct tbody tr:hover { background: var(--blue-hover); }
 .ct td { padding: 10px 14px; font-size: 12px; color: var(--gray1); text-align: right; white-space: nowrap; }
 .ct td.left { text-align: left; }
@@ -395,6 +398,13 @@ td.muted { color: var(--gray3); }
 .ct tbody tr.subtotal-row:hover,
 .ct tbody tr.total-row,
 .ct tbody tr.total-row:hover { background: transparent !important; }
+
+/* Filet entre les lignes, sur tous les tableaux. Il est posé sur les cellules et
+   non sur le <tr> : avec border-collapse: separate, une bordure de <tr> n'est
+   jamais rendue — c'est pourquoi celle qui était déclarée ne se voyait pas.
+   La dernière ligne n'en porte pas, pour ne pas doubler le bord du tableau. */
+.ct tbody td { border-bottom: 1px solid var(--rule-row); }
+.ct tbody tr:last-child td { border-bottom: none; }
 
 /* Synthèse : colonne « Intitulé » élargie, les libellés de catégories étant longs. */
 .synthese-ct thead th.left,
@@ -748,4 +758,26 @@ td.muted { color: var(--gray3); }
   background: var(--gray5);
   color: var(--gray3);
   cursor: default;
+}
+
+/* ── ÉCRAN D'ATTENTE (loading.tsx) ── */
+.skeleton {
+  display: block;
+  border-radius: 6px;
+  background: linear-gradient(90deg, var(--gray5) 25%, var(--gray4) 50%, var(--gray5) 75%);
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.4s ease-in-out infinite;
+}
+.skeleton-title { width: 320px; height: 28px; margin-bottom: 14px; }
+.skeleton-text { height: 12px; margin-bottom: 10px; }
+.skeleton-kpi { width: 150px; height: 34px; margin: 4px 0 12px; }
+.skeleton-row { height: 14px; margin: 12px 0; }
+.skeleton-avatar { width: 34px; height: 34px; border-radius: 50%; }
+.skeleton-hint { margin-top: 14px; font-size: 12px; color: var(--gray3); }
+@keyframes skeleton-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .skeleton { animation: none; }
 }

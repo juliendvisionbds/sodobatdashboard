@@ -1,28 +1,20 @@
+"use client";
+
 import Link from "next/link";
-import { getSession, canWrite } from "@/lib/auth";
-import { fiscalYearLabel } from "@/lib/format";
-import UserMenu from "@/components/UserMenu";
+import { usePathname } from "next/navigation";
 import EntityMenu from "@/components/EntityMenu";
 import { NAV_TABS } from "@/components/nav-tabs";
 
-export default async function AppHeader({
-  active,
-  fiscalYearStart,
-}: {
-  active:
-    | "synthese"
-    | "chantiers"
-    | "fx"
-    | "objectifs"
-    | "rapprochement"
-    | "comptes"
-    | "imports"
-    | "mapping"
-    | "assistant";
-  fiscalYearStart?: number;
-}) {
-  const session = await getSession();
-  const writer = session ? canWrite(session) : false;
+/**
+ * En-tête affiché pendant qu'une vue se calcule : même barre que AppHeader,
+ * sans la session (qui se lit côté serveur), l'onglet actif déduit de l'URL
+ * pour que rien ne saute quand la vraie page arrive.
+ */
+export default function HeaderSkeleton() {
+  const pathname = usePathname();
+  const active =
+    NAV_TABS.find((t) => t.href !== "/" && pathname.startsWith(t.href))?.key ??
+    (pathname === "/" ? "synthese" : null);
 
   return (
     <header className="header">
@@ -62,16 +54,7 @@ export default async function AppHeader({
           ))}
         </nav>
         <div className="header-right">
-          {fiscalYearStart != null && (
-            <span className="header-meta">Exercice {fiscalYearLabel(fiscalYearStart)}</span>
-          )}
-          {session && (
-            <UserMenu
-              name={session.name}
-              role={session.role}
-              showAdminLinks={writer}
-            />
-          )}
+          <span className="skeleton skeleton-avatar" aria-hidden />
         </div>
       </div>
     </header>
