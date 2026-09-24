@@ -28,6 +28,13 @@ export type ImportSummary = {
   classChecks?: { class: string; fileTotal: number | null; computedTotal: number; ok: boolean }[];
   unmapped: { account: string; label: string; total: number; views: string[] }[];
   replaces: { id: number; fileName: string; period: string } | null;
+  /**
+   * Balance analytique d'un exercice clos entier, importée en une fois sur le
+   * dernier mois de l'exercice. Elle sert aux comparaisons N-1 / N-2 des frais
+   * généraux, pas au cycle mensuel : elle n'apparaît pas dans le choix du mois
+   * et n'entre pas dans les cumuls des chantiers.
+   */
+  annual?: boolean;
 };
 
 // ── Création (statut preview) ────────────────────────────────────────────────
@@ -39,6 +46,8 @@ export async function createImportPreview(opts: {
   createdBy: string;
   /** requis pour l'analytique (le fichier ne contient pas sa période) */
   periodOverride?: string;
+  /** balance analytique d'un exercice clos entier (voir ImportSummary.annual) */
+  annual?: boolean;
 }): Promise<{ importId: number; summary: ImportSummary }> {
   const { entity, buffer, fileName, createdBy } = opts;
   const parsed = parseBalanceFile(buffer);
@@ -102,6 +111,7 @@ export async function createImportPreview(opts: {
     replaces: replaced
       ? { id: replaced.id, fileName: replaced.fileName, period: replaced.period }
       : null,
+    ...(opts.annual && parsed.type === "analytique" ? { annual: true } : {}),
   };
 
   const [imp] = await db

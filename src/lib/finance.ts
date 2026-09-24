@@ -1,5 +1,5 @@
 import { cache } from "react";
-import { and, desc, eq, lt } from "drizzle-orm";
+import { and, desc, eq, lt, sql } from "drizzle-orm";
 import { db, tables } from "@/db";
 import { CentreKind, classifyCentre, fiscalMonths, poleOf } from "./parsers";
 import { Category, loadMapper, type View } from "./mapping";
@@ -124,6 +124,25 @@ const loadCentreAliases = cache(async function loadCentreAliases(
 
 // ── Imports validés ──────────────────────────────────────────────────────────
 
+// Une balance analytique d'exercice clos (import « annuel ») ne fait pas partie
+// du cycle mensuel : elle n'est ni un mois affichable, ni un mois précédent, ni
+// un terme des cumuls de chantier. Elle ne sert qu'aux exercices N-1 et N-2.
+const notAnnual = sql`coalesce(${tables.imports.summary}->>'annual', '') <> 'true'`;
+
+/** Identifiants des imports annuels de l'entité. */
+const annualImportIds = cache(async function annualImportIds(entityId: number): Promise<Set<number>> {
+  const rows = await db
+    .select({ id: tables.imports.id })
+    .from(tables.imports)
+    .where(
+      and(
+        eq(tables.imports.entityId, entityId),
+        sql`${tables.imports.summary}->>'annual' = 'true'`
+      )
+    );
+  return new Set(rows.map((r) => r.id));
+});
+
 export async function latestValidatedImport(
   entityId: number,
   type: "ventilee" | "analytique",
@@ -150,6 +169,7 @@ const latestValidatedImportMemo = cache(async function latestValidatedImportMemo
     eq(tables.imports.entityId, entityId),
     eq(tables.imports.type, type),
     eq(tables.imports.status, "validated"),
+    notAnnual,
   ];
   if (fiscalYearStart != null) conds.push(eq(tables.imports.fiscalYearStart, fiscalYearStart));
   if (beforePeriod) conds.push(lt(tables.imports.period, beforePeriod));
@@ -175,7 +195,8 @@ async function listValidatedPeriods(
       and(
         eq(tables.imports.entityId, entityId),
         eq(tables.imports.type, type),
-        eq(tables.imports.status, "validated")
+        eq(tables.imports.status, "validated"),
+        notAnnual
       )
     )
     .orderBy(desc(tables.imports.period));
@@ -302,7 +323,13 @@ async function structurePartParMois(
   upTo?: string
 ): Promise<{ byCat: Map<string, Record<string, number>>; moisSansAnalytique: string[] }> {
   const kindOf = await loadCentreKinds(entity.id);
-  const imports = await analytiqueImportsOfYear(entity.id, fiscalYearStart, upTo);
+  // Un import annuel ne dit pas la part siège de chaque mois : on ne l'utilise
+  // pas ici, l'exercice reste sans découpage (signalé par moisSansAnalytique).
+  // Copie filtrée : la Map vient d'un cache partagé avec les frais généraux.
+  const annual = await annualImportIds(entity.id);
+  const imports = new Map(
+    [...(await analytiqueImportsOfYear(entity.id, fiscalYearStart, upTo))].filter(([, id]) => !annual.has(id))
+  );
   const byCat = new Map<string, Record<string, number>>();
   for (const [month, importId] of imports) {
     for (const [account, v] of await structureSoldes(importId, kindOf)) {
@@ -734,7 +761,8 @@ async function lifetimeCumul(
       and(
         eq(tables.imports.entityId, entity.id),
         eq(tables.imports.type, "analytique"),
-        eq(tables.imports.status, "validated")
+        eq(tables.imports.status, "validated"),
+        notAnnual
       )
     )
     .orderBy(tables.imports.id);

@@ -3,6 +3,11 @@
 //
 //   npm run import:file -- "<fichier ventilée>"
 //   npm run import:file -- "<fichier analytique>" --period 2026-06
+//   npm run import:file -- "<analytique d'un exercice clos>" --period 2024-10 --annuel
+//
+// --annuel : balance analytique d'un exercice entier, importée en une fois sur
+// son dernier mois. Elle nourrit les colonnes N-1 / N-2 des frais généraux et
+// reste hors du cycle mensuel (pas dans le choix du mois, pas dans les cumuls).
 //
 // Préfixer par DOTENV_CONFIG_PATH=.env.prod.local pour viser la production.
 // La période est obligatoire pour une balance analytique : le fichier ne la porte
@@ -29,6 +34,11 @@ async function main() {
     process.exit(1);
   }
   const period = arg("--period");
+  const annual = process.argv.includes("--annuel");
+  if (annual && !period) {
+    console.error("--annuel demande la période du dernier mois de l'exercice : --period 2024-10.");
+    process.exit(1);
+  }
   if (period && !/^\d{4}-\d{2}$/.test(period)) {
     console.error(`Période « ${period} » invalide : format attendu AAAA-MM, par exemple 2026-06.`);
     process.exit(1);
@@ -46,12 +56,13 @@ async function main() {
     fileName: basename(file),
     createdBy: "import-cli",
     periodOverride: period ? `${period}-01` : undefined,
+    annual,
   });
 
   const nature =
     summary.type === "ventilee"
       ? `ventilée · exercice ${summary.fiscalYearStart}/${summary.fiscalYearStart + 1} · jusqu'à ${summary.period.slice(0, 7)}`
-      : `analytique · snapshot ${summary.period.slice(0, 7)} · ${summary.centreCount} centres`;
+      : `analytique · ${summary.annual ? `exercice ${summary.fiscalYearStart}/${summary.fiscalYearStart + 1} entier` : `snapshot ${summary.period.slice(0, 7)}`} · ${summary.centreCount} centres`;
   console.log(`Nature  : ${nature} · ${summary.lineCount} lignes`);
   if (summary.replaces)
     console.log(`Remplace : ${summary.replaces.fileName} (${summary.replaces.period.slice(0, 7)})`);
