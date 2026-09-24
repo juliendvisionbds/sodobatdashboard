@@ -376,37 +376,37 @@ export const POINTS: Point[] = [
   {
     key: "c13",
     n: 13,
-    title: "Frais généraux : N-2 est désormais comparable, N-1 attend le bon export",
-    stake: "2024/25 reçu sous forme de grand livre, sans axe analytique",
-    tone: "warn",
+    title: "Frais généraux : N-1 et N-2 sont désormais comparables à N",
+    stake: "réglé le 24 septembre",
+    tone: "ok",
     body: (
       <>
         <p>
-          Votre balance analytique de l&apos;exercice 2023/24 est en base : la colonne N-2 des
-          frais généraux se lit désormais sur le périmètre des centres de structure, comme N.
-          Le fichier 2024/25, lui, est un grand livre — les écritures compte par compte, avec
-          date, journal et pièce, mais sans centre analytique — : il ne permet pas le découpage
-          chantiers / siège. N-1 reste donc reconstituée depuis la balance ventilée, chantiers
-          compris, et l&apos;écart affiché reste trompeur.
+          Vos balances analytiques des exercices 2023/24 et 2024/25 sont en base. Les colonnes
+          N-2 et N-1 des frais généraux se lisent désormais sur le périmètre des centres de
+          structure, comme N, au lieu d&apos;être reconstituées depuis la balance ventilée,
+          chantiers compris. Elles ne servent qu&apos;à cette comparaison : elles ne sont ni un
+          mois affichable, ni un terme des cumuls de chantier.
         </p>
         <div className="doc-tbl-wrap">
           <table className="doc-tbl">
             <tbody>
-              <tr><th>Ligne</th><th>N-2 (analytique)</th><th>N-1 (ventilée)</th><th>N à fin juillet (analytique)</th></tr>
-              <tr><td>Total masse salariale + frais généraux</td><td className="ok">1 762 090</td><td className="warn">8 332 673</td><td>1 847 654</td></tr>
-              <tr><td>Masse salariale sédentaire</td><td className="ok">178 833</td><td className="warn">1 519 008</td><td>150 178</td></tr>
+              <tr><th>Ligne</th><th>N-2 (2023/24)</th><th>N-1 (2024/25)</th><th>N à fin juillet</th></tr>
+              <tr><td>Total masse salariale + frais généraux</td><td>1 762 090</td><td>2 343 271</td><td>1 847 654</td></tr>
+              <tr><td>Masse salariale sédentaire</td><td>178 833</td><td>143 148</td><td>150 178</td></tr>
+              <tr><td>Dotations aux amortissements</td><td>60 180</td><td>57 293</td><td>31 147</td></tr>
             </tbody>
           </table>
         </div>
         <p className="doc-note">
-          Dans le fichier 2023/24, 22 lignes sont sans centre (« (Aucun) », créées par transfert
-          en comptabilité) : elles sont lues comme des lignes de structure, et celles qui n&apos;y
-          ont pas de ligne d&apos;accueil (sous-traitance intracom 107 125, prestations bâtiment
-          −215 581) restent hors des totaux, signalées en alerte.
+          Les deux fichiers recoupent la balance générale de leur exercice sur la classe 7 ;
+          sur la classe 6, il leur manque 129 732 (2023/24) et 87 531 (2024/25), des écritures
+          sans centre. Quelques lignes sans centre ou sans ligne d&apos;accueil (quotes-parts de
+          SEP, sous-traitance intracom) restent hors des totaux, signalées en alerte.
         </p>
       </>
     ),
-    ask: "Pouvez-vous exporter la balance analytique 2024/25 au même format que celle de 2023/24 (Centre, Intitulé du centre, Compte, Débit, Crédit, Solde) ?",
+    ask: "Rien à trancher : à regarder ensemble sur l'écran Frais généraux, colonnes N-1 et N-2.",
   },
   {
     key: "c14",
@@ -456,13 +456,6 @@ export const POINTS: Point[] = [
 ];
 
 export const FICHIERS = [
-  {
-    nom: "Balance analytique 2024/25, par centre",
-    pourquoi:
-      "Le fichier reçu le 23 septembre est un grand livre, sans axe analytique. Au format de celui de 2023/24, il rend la colonne N-1 des frais généraux comparable à N.",
-    tag: "point 13",
-    tone: "warn" as Tone,
-  },
   {
     nom: "Balance ventilée d'août 2026",
     pourquoi:

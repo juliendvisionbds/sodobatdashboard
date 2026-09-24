@@ -56,7 +56,7 @@ export default async function RapprochementPage() {
           {/* ── Bandeau d'état ─────────────────────────────────────────────── */}
           <div className="doc-state">
             <div className="doc-state-cell">
-              <span className="doc-state-value">16 / 16</span>
+              <span className="doc-state-value">17 / 17</span>
               <span className="doc-state-label">
                 Fichiers repris en base à l&apos;identique, au centime et à la ligne
               </span>
@@ -111,7 +111,7 @@ export default async function RapprochementPage() {
                     <tr><td>Balances ventilées, exercices 2021/22 à 2024/25</td><td>4</td><td>3 692</td><td className="ok">0,00</td></tr>
                     <tr><td>Balance ventilée 2025/26, arrêtée à juillet 2026</td><td>1</td><td>701</td><td className="ok">0,00</td></tr>
                     <tr><td>Balances analytiques, novembre 2025 à août 2026</td><td>10</td><td>5 437</td><td className="ok">0,00</td></tr>
-                    <tr><td>Balance analytique de l&apos;exercice 2023/24</td><td>1</td><td>1 470</td><td className="ok">0,00</td></tr>
+                    <tr><td>Balances analytiques des exercices 2023/24 et 2024/25</td><td>2</td><td>2 817</td><td className="ok">0,00</td></tr>
                   </tbody>
                 </table>
               </div>
