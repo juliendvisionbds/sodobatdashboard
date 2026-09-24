@@ -17,7 +17,7 @@ export const seedEntities = [
 export const seedUsers: {
   email: string;
   name: string;
-  role: "admin" | "daf" | "lecteur";
+  role: "admin" | "daf" | "saisie" | "lecteur";
 }[] = [
   { email: "admin@visionbds.com", name: "Admin", role: "admin" },
   { email: "daf@visionbds.com", name: "DAF", role: "daf" },

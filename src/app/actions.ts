@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { and, eq, isNull } from "drizzle-orm";
 import { db, tables } from "@/db";
-import { canWrite, getSession, login, logout } from "@/lib/auth";
+import { canFiger, canSaisir, canWrite, getSession, login, logout, ownsEntity } from "@/lib/auth";
 import { getEntityByCode } from "@/lib/finance";
 import type { ManualField } from "@/lib/nomenclature/types";
 import {
@@ -212,14 +212,29 @@ export async function reactivateRuleAction(formData: FormData) {
 
 // ── Saisies manuelles (brouillon / figé) ─────────────────────────────────────
 
+/** Champs que les entités saisissent elles-mêmes (rôle saisie) : la vue Chantiers. */
+const CHAMPS_ENTITE = new Set<ManualField>(["tec_provision", "note", "statut"]);
+
 export async function saveManualEntryAction(formData: FormData) {
-  const { session, entity } = await requireWriter();
+  const session = await getSession();
+  if (!session) throw new Error("Accès en écriture refusé.");
+  const entity = await getEntityByCode(ENTITY);
+  if (!entity) throw new Error("Entité introuvable.");
   const period = String(formData.get("period") ?? "");
   const centreCode = String(formData.get("centreCode") ?? "") || null;
   const field = String(formData.get("field") ?? "") as ManualField;
   // Discriminant secondaire : indicateur visé (objectifs) ou part ventilée (SDG/NJW).
   const subKey = String(formData.get("subKey") ?? "") || null;
   const status = String(formData.get("status") ?? "draft") as "draft" | "final";
+
+  // Droits : l'entité saisit ses prévisions, notes et statuts en brouillon ; la
+  // DAF (ou l'admin) fige, rouvre, et reste seule sur les autres champs
+  // (objectifs, ventilations, reports).
+  if (!ownsEntity(session, entity.id)) throw new Error("Accès en écriture refusé : autre entité.");
+  const droit = CHAMPS_ENTITE.has(field) ? canSaisir(session) : canWrite(session);
+  if (!droit) throw new Error("Accès en écriture refusé.");
+  if (status === "final" && !canFiger(session))
+    throw new Error("Seule la DAF peut figer une saisie.");
   const valueNumRaw = String(formData.get("valueNum") ?? "").replace(",", ".").trim();
   const valueText = String(formData.get("valueText") ?? "") || null;
   if (!period || !field) return;
@@ -247,8 +262,10 @@ export async function saveManualEntryAction(formData: FormData) {
     );
 
   if (existing[0]) {
-    if (existing[0].status === "final" && status !== "final") {
-      throw new Error("Enregistrement figé : modification impossible avant le mois suivant.");
+    // Rouvrir un enregistrement figé (retour en brouillon) est réservé à la DAF ;
+    // une entité ne modifie pas une valeur figée.
+    if (existing[0].status === "final" && status !== "final" && !canFiger(session)) {
+      throw new Error("Enregistrement figé : seule la DAF peut le rouvrir.");
     }
     await db
       .update(tables.manualEntries)

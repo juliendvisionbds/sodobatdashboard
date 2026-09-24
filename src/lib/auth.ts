@@ -9,11 +9,15 @@ const COOKIE = "sdg_session";
 const secret = () =>
   new TextEncoder().encode(process.env.AUTH_SECRET ?? "dev-secret-sodobat");
 
+export type Role = "admin" | "daf" | "saisie" | "lecteur";
+
 export type Session = {
   userId: number;
   email: string;
   name: string;
-  role: "admin" | "daf" | "lecteur";
+  role: Role;
+  /** entité du compte ; null ou absent = toutes */
+  entityId?: number | null;
 };
 
 export async function login(
@@ -33,6 +37,7 @@ export async function login(
     email: user.email,
     name: user.name,
     role: user.role,
+    entityId: user.entityId ?? null,
   };
   const token = await new SignJWT(session)
     .setProtectedHeader({ alg: "HS256" })
@@ -72,9 +77,27 @@ export async function requireSession(): Promise<Session> {
   return s;
 }
 
-/** admin et daf peuvent écrire (imports, mapping, saisies) ; lecteur non */
+/** admin et daf peuvent écrire (imports, mapping, saisies, décisions) ; saisie et lecteur non */
 export function canWrite(s: Session) {
   return s.role === "admin" || s.role === "daf";
+}
+
+/**
+ * Saisir la prévision, la note et le statut d'un chantier : les entités
+ * (rôle saisie) le font elles-mêmes ; admin et daf aussi.
+ */
+export function canSaisir(s: Session) {
+  return canWrite(s) || s.role === "saisie";
+}
+
+/** Figer une saisie, ou la rouvrir : la DAF garde la main sur la validation. */
+export function canFiger(s: Session) {
+  return canWrite(s);
+}
+
+/** Un compte rattaché à une entité n'agit que sur elle. */
+export function ownsEntity(s: Session, entityId: number) {
+  return s.entityId == null || s.entityId === entityId;
 }
 
 /** Garde de page : redirige les lecteurs vers l'accueil (imports, mapping). */

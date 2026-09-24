@@ -26,7 +26,12 @@ export const users = pgTable("users", {
   email: text("email").notNull().unique(),
   name: text("name").notNull(),
   passwordHash: text("password_hash").notNull(),
-  role: text("role", { enum: ["admin", "daf", "lecteur"] }).notNull(),
+  // admin et daf : tout, sur toutes les entités. saisie : la prévision, la note
+  // et le statut de la vue Chantiers de son entité, sans pouvoir figer.
+  // lecteur : consultation seule.
+  role: text("role", { enum: ["admin", "daf", "saisie", "lecteur"] }).notNull(),
+  // Entité du compte ; null = toutes (comptes de la holding).
+  entityId: integer("entity_id").references(() => entities.id),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
