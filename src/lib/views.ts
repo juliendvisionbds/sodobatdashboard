@@ -46,6 +46,13 @@ export const dataVersion = cache(async (entityId: number): Promise<string> => {
 // expirer d'elles-mêmes au bout d'un jour.
 const TTL_SECONDS = 24 * 3600;
 
+// Le code qui calcule les vues fait aussi partie de la clé : un tri ou une
+// ligne de nomenclature modifiés dans finance.ts doivent invalider le cache
+// autant qu'un import. Sur Vercel, c'est le commit déployé ; ailleurs, l'instant
+// où ce module est chargé (chaque redémarrage ou rechargement à chaud).
+const CODE_VERSION =
+  process.env.VERCEL_GIT_COMMIT_SHA ?? process.env.NEXT_BUILD_ID ?? String(Date.now());
+
 /**
  * Enveloppe une fonction de finance.ts : son résultat est conservé entre les
  * requêtes, sous une clé qui comprend l'empreinte des données. Les arguments
@@ -57,7 +64,7 @@ function cached<A extends unknown[], R>(
 ): (entity: Entity, ...args: A) => Promise<R> {
   const inner = unstable_cache(
     (_version: string, entity: Entity, ...args: A) => fn(entity, ...args),
-    ["views", name],
+    ["views", name, CODE_VERSION],
     { revalidate: TTL_SECONDS, tags: ["views"] }
   );
   return async (entity, ...args) => inner(await dataVersion(entity.id), entity, ...args);
@@ -65,7 +72,10 @@ function cached<A extends unknown[], R>(
 
 /** L'entité ne change qu'à sa création : conservée une heure, hors empreinte. */
 export const getEntityByCode = cache(
-  unstable_cache(finance.getEntityByCode, ["views", "entity"], { revalidate: 3600, tags: ["views"] })
+  unstable_cache(finance.getEntityByCode, ["views", "entity", CODE_VERSION], {
+    revalidate: 3600,
+    tags: ["views"],
+  })
 );
 
 export const getSynthese = cached("synthese", finance.getSynthese);
