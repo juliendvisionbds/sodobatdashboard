@@ -78,7 +78,7 @@ export const POINTS: Point[] = [
         </p>
       </>
     ),
-    ask: "Ces provisions seront-elles passées en comptabilité, ou préférez-vous les saisir directement dans l'application ? Les colonnes « Provision » et « Annulation M-1 » de l'écran Chantiers sont prévues pour cela.",
+    ask: "Ces provisions seront-elles passées en comptabilité, ou préférez-vous les saisir directement dans l'application ? Les lignes « Prévision M » et « Annulation M-1 » de l'écran Chantiers sont prévues pour cela, et chaque entité peut désormais y saisir ses prévisions, que vous figez.",
   },
   {
     key: "c3",
@@ -292,7 +292,7 @@ export const POINTS: Point[] = [
     key: "c9",
     n: 9,
     title: "Deux comptes sans ligne prévue là où ils sont imputés",
-    stake: "3 776 € hors des totaux",
+    stake: "4 446 € hors des totaux",
     tone: "warn",
     body: (
       <p>
@@ -300,13 +300,13 @@ export const POINTS: Point[] = [
         <N>62261000</N> Honoraires chantiers (1 970,00 en décembre et janvier) n&apos;ont pas de
         ligne dans la maquette des frais généraux : ils remontent en alerte et restent hors des
         totaux, l&apos;application ne les range jamais d&apos;office. Le reste de l&apos;intérim
-        signalé jusqu&apos;ici était sur le DEPOT, réglé par le point 6. À l&apos;inverse, en
-        novembre, deux produits sont imputés sur des chantiers sans ligne prévue :{" "}
-        <N>75870000</N> Indemnités d&apos;assurances (1 120,00) et <N>75800000</N> Produits divers
-        (90,86).
+        signalé jusqu&apos;ici était sur le DEPOT, réglé par le point 6. À l&apos;inverse, deux
+        produits sont imputés sur des chantiers sans ligne prévue : <N>75870000</N> Indemnités
+        d&apos;assurances (1 120,00 en novembre sur 882A, 670,00 en août sur 766D) et{" "}
+        <N>75800000</N> Produits divers (90,86 en novembre).
       </p>
     ),
-    ask: "Pour l'intérim et les honoraires du siège : erreur d'imputation à corriger en comptabilité, ou charges du siège à ajouter aux frais généraux ? Pour les deux produits de novembre : dans quelle ligne chantier les rangez-vous ?",
+    ask: "Pour l'intérim et les honoraires du siège : erreur d'imputation à corriger en comptabilité, ou charges du siège à ajouter aux frais généraux ? Pour les indemnités d'assurance et les produits divers d'un chantier : dans quelle ligne les rangez-vous ?",
   },
   {
     key: "c10",

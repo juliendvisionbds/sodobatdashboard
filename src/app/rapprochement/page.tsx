@@ -251,8 +251,9 @@ export default async function RapprochementPage() {
               <span className="doc-part-tag">Partie B</span>
               <h2>Ce qui a été aligné sur vos fichiers</h2>
               <p>
-                Huit ajustements livrés. Les trois derniers datent du 22 septembre et reprennent
-                vos conventions ; ils se défont aussi simplement qu&apos;ils se posent.
+                Neuf ajustements livrés. Les quatre derniers datent des 22 et 24 septembre et
+                reprennent vos conventions et vos remarques ; ils se défont aussi simplement
+                qu&apos;ils se posent.
               </p>
             </div>
             <div className="doc-steps">
@@ -347,6 +348,23 @@ export default async function RapprochementPage() {
                     Comme votre colonne « Honoraires chantier - Gardiennage », qui couvre les
                     comptes 62261 à 6282. Le bloc honoraires de la vue Chantiers est désormais
                     identique au vôtre tous les mois (point 7).
+                  </p>
+                </div>
+              </article>
+              <article className="doc-step">
+                <div className="doc-step-num">09</div>
+                <div>
+                  <h3>Vos remarques du 23 septembre</h3>
+                  <p>
+                    « Prévision » remplace « Provision » dans la Synthèse et les Chantiers. La
+                    vue Chantiers est retournée : les postes en lignes, un chantier par colonne,
+                    par pôle et par numéro croissant. La sous-traitance est scindée entre
+                    paiement direct (compte 60412100) et paiement Sodobat, et les deux objectifs
+                    « Sous-traitants 1 » et « 2 » ont chacun leur réalisé. Séparateur de
+                    milliers plus lisible, filets verticaux sur tous les tableaux, pourcentages
+                    et écarts sans couleur de signe. L&apos;assistant propose les questions les
+                    plus posées, communes à tous. Un rôle « saisie » permet à chaque entité
+                    d&apos;entrer ses prévisions ; vous seule les figez.
                   </p>
                 </div>
               </article>
