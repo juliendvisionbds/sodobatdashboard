@@ -78,7 +78,7 @@ export default async function SynthesePage({
       : null;
   const pctNet =
     data.caTotal.total !== 0 ? (data.resultatNet.total / data.caTotal.total) * 100 : null;
-  const st = data.byCode["syn_sous_traitance"]?.total ?? 0;
+  const st = data.byCode["syn_st_sous_traitance"]?.total ?? 0;
   const personnel = data.totalChargesPersonnel.total;
 
   const caSplit = splitAutoEur(data.caTotal.total);

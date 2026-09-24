@@ -109,9 +109,13 @@ const MASSE_SALARIALE = [
 const TRANSFERTS_CHARGES = ["79100000", "79110900", "79120000", "79142000"];
 
 /** Code C + D — Sous-traitance (toutes natures) */
-const SOUS_TRAITANCE = [
-  "60400000", "60400020", "60400900", "60412000", "61100000", "60412100",
-];
+/**
+ * Codes C et D — Sous-traitance, en deux familles suivies par le dirigeant :
+ * le paiement direct (le maître d'ouvrage règle le sous-traitant, compte
+ * dédié 60412100) et le paiement par Sodobat (tout le reste).
+ */
+const SOUS_TRAITANCE_PAIEMENT_DIRECT = ["60412100"];
+const SOUS_TRAITANCE_SODOBAT = ["60400000", "60400020", "60400900", "60412000", "61100000"];
 
 /** Code H — EDF / Eau de chantier */
 const EDF_EAU_CHANTIER = [
@@ -189,13 +193,13 @@ export const synthese: NomenclatureLine[] = [
     kind: "manual",
     sign: -1,
     formula: { op: "manual", field: "annulation_m1" },
-    notes: "Reprise de la provision du mois précédent — brouillon → figé",
+    notes: "Reprise de la prévision du mois précédent — brouillon → figé",
   },
   {
     code: "syn_tec_provision",
     view: "synthese",
     section: SYN.produits,
-    label: "Provision M",
+    label: "Prévision M",
     kind: "poste",
     sign: -1,
     accounts: ["71331000"],
@@ -263,13 +267,22 @@ export const synthese: NomenclatureLine[] = [
     },
   },
   {
-    code: "syn_sous_traitance",
+    code: "syn_sous_traitance_sodobat",
     view: "synthese",
     section: SYN.exploitation,
-    label: "Sous-traitance (TVA 20% / 0% / EXO LQ / Paiement direct)",
+    label: "Sous-traitance paiement Sodobat (TVA 20% / 0% / EXO LQ)",
     kind: "poste",
-    accounts: SOUS_TRAITANCE,
-    notes: "Codes C et D — absent de la maquette, requis par le sous-total",
+    accounts: SOUS_TRAITANCE_SODOBAT,
+    notes: "Codes C et D — objectif « Sous-traitants 2 »",
+  },
+  {
+    code: "syn_sous_traitance_direct",
+    view: "synthese",
+    section: SYN.exploitation,
+    label: "Sous-traitance paiement direct",
+    kind: "poste",
+    accounts: SOUS_TRAITANCE_PAIEMENT_DIRECT,
+    notes: "Code D — compte 60412100, objectif « Sous-traitants 1 »",
   },
   {
     code: "syn_st_sous_traitance",
@@ -277,7 +290,13 @@ export const synthese: NomenclatureLine[] = [
     section: SYN.exploitation,
     label: "Sous-total Sous-traitance",
     kind: "subtotal",
-    formula: { op: "sum", operands: [{ code: "syn_sous_traitance", sign: 1 }] },
+    formula: {
+      op: "sum",
+      operands: [
+        { code: "syn_sous_traitance_sodobat", sign: 1 },
+        { code: "syn_sous_traitance_direct", sign: 1 },
+      ],
+    },
   },
   // La maquette n'affiche qu'une ligne de locations ; les objectifs dirigeant
   // suivent en revanche « Location matériel externe » et « Location EasyMat »
@@ -869,7 +888,7 @@ export const chantier: NomenclatureLine[] = [
     code: "cha_provision",
     view: "chantier",
     section: CHA.produits,
-    label: "Provision M (travaux en cours à facturer)",
+    label: "Prévision M (travaux en cours à facturer)",
     kind: "poste",
     // Sur l'axe analytique, la provision ouverte est un solde DÉBITEUR par
     // chantier (la contrepartie créditrice est portée par le centre de structure).
@@ -882,7 +901,7 @@ export const chantier: NomenclatureLine[] = [
     code: "cha_annulation_m1",
     view: "chantier",
     section: CHA.produits,
-    label: "Annulation M-1 (reprise provision)",
+    label: "Annulation M-1 (reprise prévision)",
     kind: "manual",
     sign: -1,
     formula: { op: "manual", field: "annulation_m1" },
@@ -996,10 +1015,19 @@ export const chantier: NomenclatureLine[] = [
     code: "cha_sous_traitance",
     view: "chantier",
     section: CHA.exploitation,
-    label: "Sous-traitance TVA 20% / TVA 0% / EXO LQ / Paiement Direct",
+    label: "Sous-traitance paiement Sodobat (TVA 20% / 0% / EXO LQ)",
     kind: "poste",
-    accounts: SOUS_TRAITANCE,
-    notes: "Codes C et D",
+    accounts: SOUS_TRAITANCE_SODOBAT,
+    notes: "Codes C et D — colonne « Sous traitance » du tableau de gestion",
+  },
+  {
+    code: "cha_sous_traitance_direct",
+    view: "chantier",
+    section: CHA.exploitation,
+    label: "Sous-traitance paiement direct",
+    kind: "poste",
+    accounts: SOUS_TRAITANCE_PAIEMENT_DIRECT,
+    notes: "Code D — compte 60412100, colonne « Sous traitance PD » du tableau de gestion",
   },
   {
     code: "cha_carburant",
@@ -1053,6 +1081,7 @@ export const chantier: NomenclatureLine[] = [
         { code: "cha_locations", sign: 1 },
         { code: "cha_dechets", sign: 1 },
         { code: "cha_sous_traitance", sign: 1 },
+        { code: "cha_sous_traitance_direct", sign: 1 },
         { code: "cha_carburant", sign: 1 },
         { code: "cha_edf_eau", sign: 1 },
         { code: "cha_entretien", sign: 1 },

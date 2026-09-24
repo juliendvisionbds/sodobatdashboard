@@ -91,7 +91,7 @@ export function buildAssistantTools(entity: Entity) {
     chantiers: tool({
       description:
         "Activité chantier du dernier mois importé : par chantier, facturation, travaux en cours " +
-        "(provision/annulation), achats, sous-traitance, autres charges et résultat du mois. " +
+        "(prévision/annulation), achats, sous-traitance, autres charges et résultat du mois. " +
         "Source : balance analytique du mois (chaque fichier porte les mouvements de son mois). Montants en euros.",
       inputSchema: z.object({
         pole: z

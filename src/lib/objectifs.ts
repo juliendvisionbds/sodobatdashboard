@@ -72,18 +72,17 @@ export const OBJECTIFS: ObjectifDef[] = [
   },
   {
     key: "sous_traitants_1",
-    label: "Sous-traitants 1",
-    source: { view: "manuel" },
-    controle: false,
-    notes:
-      "Le plan comptable Sodobat ne distingue pas les deux familles de sous-traitance : à ventiler manuellement ou à obtenir par un sous-compte dédié.",
+    label: "Sous-traitants 1 (paiement direct)",
+    source: { view: "synthese", code: "syn_sous_traitance_direct" },
+    controle: true,
+    notes: "Compte 60412100 : le maître d'ouvrage règle directement le sous-traitant",
   },
   {
     key: "sous_traitants_2",
-    label: "Sous-traitants 2 (hors gros œuvre / exceptionnel)",
-    source: { view: "synthese", code: "syn_sous_traitance" },
+    label: "Sous-traitants 2 (paiement Sodobat, hors gros œuvre / exceptionnel)",
+    source: { view: "synthese", code: "syn_sous_traitance_sodobat" },
     controle: true,
-    notes: "Toute la sous-traitance, faute de sous-compte distinguant les deux familles",
+    notes: "Toute la sous-traitance réglée par Sodobat : autoliquidation, TVA 20 %, intracom",
   },
   {
     key: "dechets",

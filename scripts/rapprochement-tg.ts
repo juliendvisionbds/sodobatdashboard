@@ -78,7 +78,11 @@ const BLOCS: Bloc[] = [
   },
   { label: "TOTAL PRODUITS", daf: (r) => n(r[COL.totalProduits]), app: [CHANTIER_CODES.caTotal] },
   { label: "Achats MP / REP / emballages", daf: (r) => n(r[COL.achats]), app: ["cha_st_achats"] },
-  { label: "Sous-traitance", daf: (r) => n(r[COL.sousTraitance]), app: ["cha_sous_traitance"] },
+  {
+    label: "Sous-traitance",
+    daf: (r) => n(r[COL.sousTraitance]),
+    app: ["cha_sous_traitance", "cha_sous_traitance_direct"],
+  },
   {
     label: "Eau / EDF / carburant",
     daf: (r) => n(r[COL.eauEdfCarburant]),
