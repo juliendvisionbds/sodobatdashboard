@@ -5,7 +5,9 @@ import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import type { FrequentQuestion } from "@/lib/assistant-questions";
 
+// Exemples proposés tant que le journal ne contient pas assez de questions.
 const SUGGESTIONS = [
   "Quel est le CA cumulé de l'exercice et le résultat net ?",
   "La masse salariale pèse combien vs le CA ?",
@@ -22,7 +24,15 @@ const TOOL_LABELS: Record<string, string> = {
   "tool-imports_disponibles": "Imports",
 };
 
-export default function Chat() {
+export default function Chat({
+  frequent,
+  recent,
+}: {
+  /** questions les plus posées, toutes personnes confondues */
+  frequent: FrequentQuestion[];
+  /** dernières questions posées, par qui que ce soit */
+  recent: string[];
+}) {
   const [input, setInput] = useState("");
   const { messages, sendMessage, status, error } = useChat({
     transport: new DefaultChatTransport({ api: "/api/assistant" }),
@@ -41,21 +51,71 @@ export default function Chat() {
     setInput("");
   };
 
+  // Les questions fréquentes prennent la place des exemples dès qu'il y en a ;
+  // les exemples complètent jusqu'à cinq propositions.
+  const frequentTexts = new Set(frequent.map((f) => f.question));
+  const examples = SUGGESTIONS.filter((s) => !frequentTexts.has(s)).slice(
+    0,
+    Math.max(0, 5 - frequent.length)
+  );
+  const recentOnly = recent.filter((q) => !frequentTexts.has(q));
+
   return (
     <div className="chat">
       <div className="chat-thread">
         {messages.length === 0 && (
           <div className="chat-empty">
-            <div className="card-label" style={{ border: "none", padding: 0 }}>
-              Exemples de questions
-            </div>
-            <div className="chat-suggestions">
-              {SUGGESTIONS.map((s) => (
-                <button key={s} className="chat-chip" onClick={() => ask(s)}>
-                  {s}
-                </button>
-              ))}
-            </div>
+            {frequent.length > 0 && (
+              <>
+                <div className="card-label" style={{ border: "none", padding: 0 }}>
+                  Questions les plus posées
+                </div>
+                <div className="chat-suggestions">
+                  {frequent.map((f) => (
+                    <button
+                      key={f.question}
+                      className="chat-chip"
+                      onClick={() => ask(f.question)}
+                      title={`Posée ${f.count} fois`}
+                    >
+                      {f.question}
+                      {f.count > 1 && <span className="chat-chip-count">×{f.count}</span>}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+            {recentOnly.length > 0 && (
+              <>
+                <div className="card-label" style={{ border: "none", padding: 0, marginTop: 18 }}>
+                  Dernières questions posées
+                </div>
+                <div className="chat-suggestions">
+                  {recentOnly.map((q) => (
+                    <button key={q} className="chat-chip" onClick={() => ask(q)}>
+                      {q}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+            {examples.length > 0 && (
+              <>
+                <div
+                  className="card-label"
+                  style={{ border: "none", padding: 0, marginTop: frequent.length ? 18 : 0 }}
+                >
+                  {frequent.length ? "Autres exemples" : "Exemples de questions"}
+                </div>
+                <div className="chat-suggestions">
+                  {examples.map((s) => (
+                    <button key={s} className="chat-chip" onClick={() => ask(s)}>
+                      {s}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
           </div>
         )}
 
@@ -109,6 +169,22 @@ export default function Chat() {
         )}
         <div ref={bottomRef} />
       </div>
+
+      {messages.length > 0 && frequent.length > 0 && (
+        <div className="chat-quick" aria-label="Questions les plus posées">
+          {frequent.slice(0, 4).map((f) => (
+            <button
+              key={f.question}
+              className="chat-chip chat-chip-sm"
+              onClick={() => ask(f.question)}
+              disabled={busy}
+              title={`Posée ${f.count} fois`}
+            >
+              {f.question}
+            </button>
+          ))}
+        </div>
+      )}
 
       <form
         className="chat-inputbar"

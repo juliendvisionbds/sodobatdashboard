@@ -1,5 +1,6 @@
 import AppHeader from "@/components/AppHeader";
 import { getEntityByCode, latestValidatedImport } from "@/lib/finance";
+import { getFrequentQuestions, getRecentQuestions } from "@/lib/assistant-questions";
 import { monthLabelLong } from "@/lib/format";
 import Chat from "./Chat";
 
@@ -7,9 +8,13 @@ export const dynamic = "force-dynamic";
 
 export default async function AssistantPage() {
   const entity = await getEntityByCode("sodobat");
-  const lastImport = entity
-    ? await latestValidatedImport(entity.id, "ventilee")
-    : null;
+  // Les questions déjà posées, par tout le monde : les plus fréquentes et les
+  // dernières. Relues à chaque affichage, le journal bouge à chaque question.
+  const [lastImport, frequent, recent] = await Promise.all([
+    entity ? latestValidatedImport(entity.id, "ventilee") : null,
+    entity ? getFrequentQuestions(entity.id) : [],
+    entity ? getRecentQuestions(entity.id) : [],
+  ]);
 
   return (
     <>
@@ -35,7 +40,7 @@ export default async function AssistantPage() {
             </p>
           </div>
         ) : (
-          <Chat />
+          <Chat frequent={frequent} recent={recent} />
         )}
       </div>
     </>
