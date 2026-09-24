@@ -1,7 +1,7 @@
 import Link from "next/link";
 import AppHeader from "@/components/AppHeader";
 import { getChantiers, getEntityByCode, listAnalytiquePeriods } from "@/lib/views";
-import { getSession, canWrite } from "@/lib/auth";
+import { getSession, canFiger, canSaisir } from "@/lib/auth";
 import { fiscalYearOf } from "@/lib/parsers";
 import { fmtEurAuto, monthLabelLong } from "@/lib/format";
 import MonthSelect from "@/components/MonthSelect";
@@ -25,10 +25,12 @@ export default async function ChantiersPage({
   ]);
   const period = mois && periods.includes(mois) ? mois : undefined;
   const data = await getChantiers(entity, { period });
-  // Saisies (provision TEC, notes) réservées au dernier mois : un mois passé est consultable
-  // mais figé, on ne réécrit pas l'histoire d'une période déjà clôturée.
+  // Saisies (prévision TEC, notes) réservées au dernier mois : un mois passé est consultable
+  // mais figé, on ne réécrit pas l'histoire d'une période déjà clôturée. L'entité
+  // saisit (rôle saisie), la DAF fige.
   const isLatestPeriod = !data || data.period === periods[0];
-  const writer = !!session && canWrite(session) && isLatestPeriod;
+  const writer = !!session && canSaisir(session) && isLatestPeriod;
+  const freezer = !!session && canFiger(session) && isLatestPeriod;
 
   if (!data) {
     return (
@@ -94,12 +96,13 @@ export default async function ChantiersPage({
           poles={data.poles}
           period={data.period}
           canEdit={writer}
+          canFreeze={freezer}
         />
         <p style={{ marginTop: 10, fontSize: 11, color: "var(--gray3)" }}>
           Résultat chantier = CA HT total − charges d&apos;exploitation − charges de
-          personnel affectées. Les centres de structure (FX, dépôt, siège) sont exclus :
-          voir Frais généraux. La colonne Provision (TEC) et le statut brouillon / figé
-          sont éditables par la DAF sur le dernier mois importé.
+          personnel affectées. Les centres de structure (FX, siège) sont exclus : voir
+          Frais généraux. La ligne Prévision (TEC) et la note se saisissent sur le dernier
+          mois importé ; le statut brouillon / figé est du ressort de la DAF.
         </p>
       </div>
     </>

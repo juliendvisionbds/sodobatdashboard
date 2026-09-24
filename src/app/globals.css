@@ -406,52 +406,70 @@ td.muted { color: var(--gray3); }
 .ct tbody td { border-bottom: 1px solid var(--rule-row); }
 .ct tbody tr:last-child td { border-bottom: none; }
 
+/* Filet vertical entre les colonnes, du même gris, sur tous les tableaux : on
+   suit une colonne sans se perdre. La dernière colonne n'en porte pas, les
+   intitulés de section non plus ; les colonnes figées de la vue Chantiers
+   gardent leur démarcation plus marquée (--gray4, règles plus spécifiques). */
+.ct thead th, .ct tbody td { border-right: 1px solid var(--rule-row); }
+.ct thead th:last-child, .ct tbody td:last-child { border-right: none; }
+.ct .section-row td { border-right: none; }
+
 /* Synthèse : colonne « Intitulé » élargie, les libellés de catégories étant longs. */
 .synthese-ct thead th.left,
 .synthese-ct td.label-cell { min-width: 320px; }
 
-/* Chantiers : colonnes Réf. + Chantier élargies et figées au défilement
-   horizontal. Largeurs en border-box pour que le décalage `left` de la 2e
-   colonne corresponde exactement à la largeur de la 1re. */
-.chantiers-ct th:nth-child(1),
-.chantiers-ct th:nth-child(2),
-.chantiers-ct td.code-cell,
-.chantiers-ct td.label-cell { box-sizing: border-box; }
-.chantiers-ct th:nth-child(1),
-.chantiers-ct td.code-cell { width: 100px; min-width: 100px; }
-.chantiers-ct th:nth-child(2),
-.chantiers-ct td.label-cell { width: 300px; min-width: 300px; max-width: 300px; }
-
-.chantiers-ct th:nth-child(1),
-.chantiers-ct th:nth-child(2) { position: sticky; z-index: 6; }
-.chantiers-ct th:nth-child(1) { left: 0; }
-.chantiers-ct th:nth-child(2) { left: 100px; }
-
-/* Les cellules figées doivent être opaques : le contenu non positionné des
-   autres colonnes passerait sinon dessous. */
-.chantiers-ct tbody td.code-cell,
-.chantiers-ct tbody td.label-cell,
-.chantiers-ct tbody tr.total-row td:first-child {
-  position: sticky; z-index: 3; background-color: var(--white);
+/* Chantiers : les postes en lignes, un chantier par colonne, regroupés par
+   pôle. L'intitulé (à gauche) et le total (à droite) restent figés au
+   défilement horizontal ; les deux rangées d'en-tête au défilement vertical. */
+.chantiers-ct th, .chantiers-ct td { box-sizing: border-box; }
+.chantiers-ct thead tr:first-child th { height: 34px; padding-top: 8px; padding-bottom: 8px; }
+.chantiers-ct thead tr:nth-child(2) th { top: 34px; }
+.chantiers-ct thead th.pole-head {
+  text-align: center; background: var(--blue-lt); color: var(--blue);
+  border-left: 1px solid var(--white);
 }
-.chantiers-ct tbody td.code-cell,
-.chantiers-ct tbody tr.total-row td:first-child { left: 0; }
-.chantiers-ct tbody td.label-cell { left: 100px; }
+.chantiers-ct thead th.col-head { text-align: right; min-width: 136px; max-width: 170px; vertical-align: bottom; }
+.chantiers-ct .col-code { display: block; font-size: 10px; color: var(--gray3); }
+.chantiers-ct .col-name {
+  display: block; font-size: 11px; font-weight: 500; color: var(--gray1);
+  text-transform: none; letter-spacing: 0; white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis; max-width: 142px; margin-left: auto;
+}
 
-/* Le survol teinte la ligne via un fond translucide, invisible sous une cellule
-   opaque : on le recompose en calque au-dessus du blanc. */
-.chantiers-ct tbody tr:hover td.code-cell,
+.chantiers-ct thead th.left,
+.chantiers-ct td.label-cell {
+  width: 300px; min-width: 300px; max-width: 300px;
+  position: sticky; left: 0; border-right: 1px solid var(--gray4);
+}
+.chantiers-ct thead th.left { z-index: 7; vertical-align: bottom; }
+.chantiers-ct tbody td.label-cell { z-index: 3; background-color: var(--white); font-size: 12.5px; }
+.chantiers-ct .section-row td.label-cell { background: var(--blue-lt) !important; }
 .chantiers-ct tbody tr:hover td.label-cell {
   background-image: linear-gradient(var(--blue-hover), var(--blue-hover));
 }
 
-/* Chantiers : colonnes de totaux, sous-totaux, ratios et résultats sur un fond
-   propre. Volontairement pas --blue-lt, réservé aux intitulés de section. */
-.chantiers-ct thead th.tot-col { background: var(--total-col-head); }
-.chantiers-ct td.tot-col { background-color: var(--total-col); }
+/* Colonne Total : fond des totaux, figée à droite. */
+.chantiers-ct thead th.tot-col {
+  background: var(--total-col-head); position: sticky; right: 0; z-index: 7;
+  border-left: 1px solid var(--gray4); vertical-align: bottom;
+}
+.chantiers-ct td.tot-col {
+  background-color: var(--total-col); position: sticky; right: 0; z-index: 3;
+  border-left: 1px solid var(--gray4); font-weight: 500;
+}
+.chantiers-ct .section-row td:last-child { background: var(--blue-lt) !important; }
 .chantiers-ct tbody tr:hover td.tot-col {
   background-image: linear-gradient(var(--blue-hover), var(--blue-hover));
 }
+
+/* Saisies dans une colonne chantier : provision, note, statut. */
+.chantiers-ct .cell-edit { display: inline-flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+.chantiers-ct .cell-edit .inline-num { width: 96px; }
+.chantiers-ct .cell-note { font-size: 11px; color: var(--gray2); white-space: normal; display: block; max-width: 150px; }
+.chantiers-ct .cell-note-input { width: 130px; text-align: left; }
+.chantiers-ct .cell-trace { font-size: 10px; color: var(--gray3); white-space: nowrap; }
+.chantiers-ct .cell-unfreeze { margin-left: 6px; border: none; cursor: pointer; background: var(--gray5); color: var(--gray2); font-size: 10px; padding: 2px 8px; }
+.chantiers-ct .cell-unfreeze:hover { background: var(--blue-lt); color: var(--blue); }
 
 /* Frais généraux mensuels : la colonne Cumul reprend le fond des totaux Chantiers. */
 .fx-mensuel-ct thead th.left,
@@ -467,11 +485,6 @@ td.muted { color: var(--gray3); }
 .view-switch a, .view-switch button { padding: 7px 14px; font-size: 13px; font-family: inherit; color: var(--gray2); background: var(--white); text-decoration: none; border: none; cursor: pointer; }
 .view-switch a + a, .view-switch button + button { border-left: 1px solid var(--gray4); }
 .view-switch a.active, .view-switch button.active { background: var(--blue-lt); color: var(--blue); font-weight: 500; }
-
-/* Démarcation entre le bloc figé et les colonnes qui défilent. */
-.chantiers-ct th:nth-child(2),
-.chantiers-ct tbody td.label-cell,
-.chantiers-ct tbody tr.total-row td:first-child { border-right: 1px solid var(--gray4); }
 
 /* ── TAGS / BADGES ── */
 .tag { display: inline-flex; align-items: center; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 500; }
@@ -517,6 +530,14 @@ td.muted { color: var(--gray3); }
   border-radius: 20px; box-shadow: var(--shadow-sm); transition: all 0.15s;
 }
 .chat-chip:hover { border-color: var(--blue); color: var(--blue); background: var(--blue-lt); }
+.chat-chip:disabled { opacity: 0.5; cursor: default; }
+.chat-chip-count {
+  margin-left: 8px; padding: 1px 6px; border-radius: 10px;
+  background: var(--gray5); color: var(--gray3); font-size: 10px; font-weight: 600;
+}
+.chat-chip:hover .chat-chip-count { background: var(--white); color: var(--blue); }
+.chat-quick { display: flex; flex-wrap: wrap; gap: 6px; margin-top: -4px; }
+.chat-chip-sm { padding: 5px 10px; font-size: 11.5px; }
 .chat-msg { display: flex; flex-direction: column; max-width: 85%; }
 .chat-msg.user { align-self: flex-end; align-items: flex-end; }
 .chat-msg.assistant { align-self: flex-start; align-items: flex-start; }

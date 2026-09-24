@@ -14,7 +14,7 @@ function pctBadge(pct: number | null) {
   return pct == null ? (
     <span className="muted">-</span>
   ) : (
-    <span className={`pct-badge${pct < 0 ? " neg" : ""}`}>{fmtPct(pct)}</span>
+    <span className="pct-badge">{fmtPct(pct)}</span>
   );
 }
 
@@ -225,7 +225,7 @@ function SectionRows({
               {cell(r.prevTotal)}
             </td>
             <td className="pct-col">{pctBadge(r.pctPrev)}</td>
-            <td className={r.ecart != null ? negClass(r.ecart) : "muted"}>
+            <td className={r.ecart != null ? "" : "muted"}>
               {cell(r.ecart)}
             </td>
           </tr>

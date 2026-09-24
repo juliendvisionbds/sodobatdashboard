@@ -550,7 +550,7 @@ async function generateAlerts(importId: number) {
 }
 
 function fmt(n: number) {
-  return new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 0 }).format(n);
+  return new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 0 }).format(n).replace(/\u202f/g, "\u00a0");
 }
 
 // ── Résolution d'un compte non mappé (écran admin) ──────────────────────────

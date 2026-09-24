@@ -599,8 +599,9 @@ function bgResult(
 
 // ── Vue Chantiers ────────────────────────────────────────────────────────────
 //
-// Un chantier = une ligne, les postes de la maquette = les colonnes (disposition
-// du tableau de gestion Excel de Sodobat).
+// Un chantier = une colonne, les postes de la maquette = les lignes (disposition
+// demandée par la DAF ; les données sont produites par chantier, l'écran les
+// transpose).
 //
 // Chaque balance analytique porte les mouvements de SON mois : ses totaux de
 // classe 6 et 7 recoupent, au centime, la colonne du même mois de la balance
@@ -621,7 +622,13 @@ export type ChantierRow = {
   /** valeur de chaque ligne de la nomenclature, par code */
   values: ChantierValues;
   /** provision saisie manuellement, qui se substitue au compte 71331000 */
-  previsionManuelle: { value: number; status: "draft" | "final" } | null;
+  previsionManuelle: {
+    value: number;
+    status: "draft" | "final";
+    /** qui a saisi, et quand (JJ/MM/AAAA) — pour la relecture par la DAF */
+    by: string | null;
+    at: string | null;
+  } | null;
   note: string | null;
   statut: "draft" | "final";
   /** le chantier a-t-il bougé sur la période ? */
@@ -792,7 +799,7 @@ export async function getChantiers(
         eq(tables.manualEntries.period, imp.period)
       )
     );
-  const provisions = new Map<string, { value: number; status: "draft" | "final" }>();
+  const provisions = new Map<string, ChantierRow["previsionManuelle"] & object>();
   const annulations = new Map<string, number>();
   const notes = new Map<string, string>();
   const statuts = new Map<string, "draft" | "final">();
@@ -802,6 +809,8 @@ export async function getChantiers(
       provisions.set(m.centreCode, {
         value: num(m.valueNum),
         status: m.status as "draft" | "final",
+        by: m.updatedBy,
+        at: m.updatedAt ? new Date(m.updatedAt).toLocaleDateString("fr-FR") : null,
       });
     if (m.field === "annulation_m1" && m.valueNum != null)
       annulations.set(m.centreCode, num(m.valueNum));
@@ -840,10 +849,16 @@ export async function getChantiers(
   // ── Colonnes = centres retenus ─────────────────────────────────────────────
   // Un chantier sans mouvement ce mois-ci reste listé : ses cumuls continuent de
   // compter dans le suivi, comme dans le tableau de gestion.
+  // Par pôle, puis par numéro de chantier croissant — c'est l'ordre chronologique
+  // d'ouverture (872A avant 1003A), qu'un tri alphabétique inverserait.
+  const numero = (code: string) => Number(code.match(/^\d+/)?.[0] ?? Infinity);
   const centres = [
     ...new Set([...currentMonth.keys(), ...lifeBefore.keys(), ...ouvertures.keys()]),
   ].sort(
-    (a, b) => (poleOf(a) ?? "ZZ").localeCompare(poleOf(b) ?? "ZZ") || a.localeCompare(b)
+    (a, b) =>
+      (poleOf(a) ?? "ZZ").localeCompare(poleOf(b) ?? "ZZ") ||
+      numero(a) - numero(b) ||
+      a.localeCompare(b)
   );
   const TOTAL = TOTAL_COLUMN;
   const columns = [...centres, TOTAL];

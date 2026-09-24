@@ -1,3 +1,9 @@
+// Intl sépare les milliers d'une espace fine insécable (U+202F), presque
+// invisible à l'écran : « 1 511 234 » se lit comme un bloc. On la remplace par
+// une espace insécable ordinaire, nettement plus large, sur tous les nombres.
+const THIN_SPACE = /\u202f/g;
+const group = (formatted: string) => formatted.replace(THIN_SPACE, "\u00a0");
+
 const MONTH_LABELS = [
   "Jan", "Fév", "Mar", "Avr", "Mai", "Jun",
   "Jul", "Aoû", "Sep", "Oct", "Nov", "Déc",
@@ -21,20 +27,20 @@ export function monthLabelLong(iso: string): string {
 
 export function fmtEur(n: number, opts?: { decimals?: number }): string {
   return (
-    new Intl.NumberFormat("fr-FR", {
+    group(new Intl.NumberFormat("fr-FR", {
       maximumFractionDigits: opts?.decimals ?? 0,
       minimumFractionDigits: 0,
-    }).format(n) + " €"
+    }).format(n)) + " €"
   );
 }
 
 export function fmtNum(n: number): string {
-  return new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 0 }).format(n);
+  return group(new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 0 }).format(n));
 }
 
 /** 1511234 → "1 511 k€" */
 export function fmtKEur(n: number): string {
-  return new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 0 }).format(n / 1000) + " k€";
+  return group(new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 0 }).format(n / 1000)) + " k€";
 }
 
 /**
@@ -52,15 +58,15 @@ export function splitAutoEur(n: number): { amount: string; unit: string } {
     // (1 812 k€ → 1,812 M€, pas de perte d'info par rapport au k€).
     const decimals = abs >= 10_000_000 ? 1 : 3;
     return {
-      amount: new Intl.NumberFormat("fr-FR", {
+      amount: group(new Intl.NumberFormat("fr-FR", {
         maximumFractionDigits: decimals,
         minimumFractionDigits: decimals,
-      }).format(abs / 1_000_000),
+      }).format(abs / 1_000_000)),
       unit: "M€",
     };
   }
   return {
-    amount: new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 0 }).format(abs / 1000),
+    amount: group(new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 0 }).format(abs / 1000)),
     unit: "k€",
   };
 }
@@ -74,10 +80,10 @@ export function fmtEurAuto(n: number): string {
 export function fmtPct(n: number | null, decimals = 1): string {
   if (n == null) return "-";
   return (
-    new Intl.NumberFormat("fr-FR", {
+    group(new Intl.NumberFormat("fr-FR", {
       maximumFractionDigits: decimals,
       minimumFractionDigits: decimals,
-    }).format(n) + " %"
+    }).format(n)) + " %"
   );
 }
 

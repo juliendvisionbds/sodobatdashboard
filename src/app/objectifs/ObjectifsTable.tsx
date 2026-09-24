@@ -137,7 +137,7 @@ function ObjectifTr({
         )}
       </td>
       <td className="pct-col">{numCell("objectif_annuel", row.objectif)}</td>
-      <td className={`pct-col${row.ecart != null && row.ecart > 0 ? " neg" : ""}`}>
+      <td className="pct-col">
         {row.ecart == null ? <span className="muted">-</span> : fmtPct(row.ecart)}
       </td>
       <td>

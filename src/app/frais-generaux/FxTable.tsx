@@ -15,7 +15,7 @@ function pctBadge(pct: number | null) {
   return pct == null ? (
     <span className="muted">-</span>
   ) : (
-    <span className={`pct-badge${pct < 0 ? " neg" : ""}`}>{fmtPct(pct)}</span>
+    <span className="pct-badge">{fmtPct(pct)}</span>
   );
 }
 
@@ -138,7 +138,7 @@ function Section({ name, rows, nbMois }: { name: string; rows: FxRow[]; nbMois: 
             </td>
             <td className="pct-col">{pctBadge(r.pct.n)}</td>
             <td className="muted">{nbMois}</td>
-            <td className={negClass(r.ecart)}>{money(r.ecart)}</td>
+            <td>{money(r.ecart)}</td>
             <td className="pct-col">{pctBadge(r.ecartPct)}</td>
           </tr>
         );

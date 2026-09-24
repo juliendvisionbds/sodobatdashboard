@@ -13,7 +13,7 @@ function pctBadge(pct: number | null) {
   return pct == null ? (
     <span className="muted">-</span>
   ) : (
-    <span className={`pct-badge${pct < 0 ? " neg" : ""}`}>{fmtPct(pct)}</span>
+    <span className="pct-badge">{fmtPct(pct)}</span>
   );
 }
 
