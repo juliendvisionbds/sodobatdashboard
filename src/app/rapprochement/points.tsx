@@ -26,34 +26,18 @@ export const POINTS: Point[] = [
   {
     key: "c1",
     n: 1,
-    title: "La balance analytique de mai est antérieure aux révisions",
-    stake: "résultat de mai : 67 651 € d'écart",
-    tone: "stop",
+    title: "La balance analytique de mai a été ré-exportée : écart nul",
+    stake: "réglé le 23 septembre",
+    tone: "ok",
     body: (
-      <>
-        <p>
-          Chaque balance analytique est recoupée avec la balance générale du même mois, sur les
-          totaux des classes 6 et 7. Huit mois sur neuf tombent à <N>0,00</N>{" "}des deux côtés,
-          juin compris : ces exports sont à jour. Mai est le seul en écart, et date d&apos;avant
-          les corrections du cabinet. Trois conséquences mesurées :
-        </p>
-        <ul>
-          <li>
-            Mai : l&apos;analytique dépasse la ventilée de <N>55 630,80</N>{" "}en charges et lui
-            manque <N>74 906,00</N>{" "}de produits — les provisions de mai, passées après
-            l&apos;export.
-          </li>
-          <li>Mai : 23 comptes ont été révisés depuis, dont la sous-traitance auto-liquidée pour −49 240 et le chantier 943E pour 7 255.</li>
-          <li>
-            La VNC de <N>35 592</N>{" "}figure à la fois dans l&apos;export de mai et dans celui de
-            juin, alors que la balance générale ne la porte qu&apos;en juin : elle compte donc
-            deux fois dans le cumul des frais généraux, et c&apos;est l&apos;export de mai qui la
-            porte en trop.
-          </li>
-        </ul>
-      </>
+      <p>
+        Votre ré-export de mai recoupe la balance générale à l&apos;euro sur les classes 6 et 7,
+        comme les autres mois. Il porte les prévisions chantier par chantier, la sous-traitance
+        révisée de 943E, et ne compte plus la VNC de juin. Le résultat chantiers de mai est
+        désormais le vôtre : <N>−1 648</N> des deux côtés, 378 valeurs sur 383 identiques.
+      </p>
     ),
-    ask: "Pouvez-vous ré-exporter la balance analytique de mai 2026, au même format que les autres mois ? Celle de juin est à jour : elle n'est pas à refaire.",
+    ask: "Rien à faire : le point est refermé.",
   },
   {
     key: "c2",
@@ -392,29 +376,37 @@ export const POINTS: Point[] = [
   {
     key: "c13",
     n: 13,
-    title: "Frais généraux : N-1 et N-2 ne sont pas comparables à N",
-    stake: "écart affiché : −78 %",
+    title: "Frais généraux : N-2 est désormais comparable, N-1 attend le bon export",
+    stake: "2024/25 reçu sous forme de grand livre, sans axe analytique",
     tone: "warn",
     body: (
       <>
         <p>
-          Faute de balances analytiques pour les exercices antérieurs, les colonnes N-1 et N-2 sont
-          reconstituées depuis la balance ventilée, qui ne porte pas l&apos;axe analytique : elles
-          contiennent donc aussi la part imputée aux chantiers. L&apos;écran le signale, mais les
-          chiffres restent trompeurs.
+          Votre balance analytique de l&apos;exercice 2023/24 est en base : la colonne N-2 des
+          frais généraux se lit désormais sur le périmètre des centres de structure, comme N.
+          Le fichier 2024/25, lui, est un grand livre — les écritures compte par compte, avec
+          date, journal et pièce, mais sans centre analytique — : il ne permet pas le découpage
+          chantiers / siège. N-1 reste donc reconstituée depuis la balance ventilée, chantiers
+          compris, et l&apos;écart affiché reste trompeur.
         </p>
         <div className="doc-tbl-wrap">
           <table className="doc-tbl">
             <tbody>
-              <tr><th>Ligne</th><th>N-2 (ventilée)</th><th>N-1 (ventilée)</th><th>N à fin juillet (analytique)</th></tr>
-              <tr><td>Total masse salariale + frais généraux</td><td>9 338 630 · 33,3 %</td><td>8 332 673 · 37,9 %</td><td>1 837 290 · 12,5 %</td></tr>
-              <tr><td>Masse salariale sédentaire</td><td>1 439 329</td><td>1 519 008</td><td>163 167</td></tr>
+              <tr><th>Ligne</th><th>N-2 (analytique)</th><th>N-1 (ventilée)</th><th>N à fin juillet (analytique)</th></tr>
+              <tr><td>Total masse salariale + frais généraux</td><td className="ok">1 762 090</td><td className="warn">8 332 673</td><td>1 847 654</td></tr>
+              <tr><td>Masse salariale sédentaire</td><td className="ok">178 833</td><td className="warn">1 519 008</td><td>150 178</td></tr>
             </tbody>
           </table>
         </div>
+        <p className="doc-note">
+          Dans le fichier 2023/24, 22 lignes sont sans centre (« (Aucun) », créées par transfert
+          en comptabilité) : elles sont lues comme des lignes de structure, et celles qui n&apos;y
+          ont pas de ligne d&apos;accueil (sous-traitance intracom 107 125, prestations bâtiment
+          −215 581) restent hors des totaux, signalées en alerte.
+        </p>
       </>
     ),
-    ask: "Pouvez-vous exporter la balance analytique des exercices 2024/25 et 2023/24 ? Un fichier par exercice suffit : la comparaison N / N-1 des frais généraux deviendrait juste.",
+    ask: "Pouvez-vous exporter la balance analytique 2024/25 au même format que celle de 2023/24 (Centre, Intitulé du centre, Compte, Débit, Crédit, Solde) ?",
   },
   {
     key: "c14",
@@ -451,10 +443,11 @@ export const POINTS: Point[] = [
           −1 039 529.
         </p>
         <p>
-          <strong>Juillet</strong> : la balance analytique ne porte aucune écriture sur le compte
-          71331000, ni reprise de la provision de juin, ni provision du mois. Le résultat
-          chantiers de juillet (<N>+671 174</N>) est donc un résultat sans provision, et la
-          provision de juin (1 054 701) n&apos;a pas été reprise.
+          <strong>Juillet et août</strong> : ni la balance de juillet — le ré-export « V2 » du 23
+          septembre est identique au précédent — ni celle d&apos;août ne portent d&apos;écriture sur
+          le compte 71331000 : ni reprise de la provision de juin, ni provision du mois. Les
+          résultats chantiers de juillet (<N>+671 174</N>) et d&apos;août sont donc des résultats
+          sans provision, et la provision de juin (1 054 701) n&apos;a pas été reprise.
         </p>
       </>
     ),
@@ -464,11 +457,18 @@ export const POINTS: Point[] = [
 
 export const FICHIERS = [
   {
-    nom: "Balance analytique de mai 2026, ré-exportée",
+    nom: "Balance analytique 2024/25, par centre",
     pourquoi:
-      "Le seul mois qui ne recoupe pas la balance générale. Referme l'écart de 67 651 € sur le résultat de mai et retire la VNC comptée deux fois.",
-    tag: "bloquant · point 1",
-    tone: "stop" as Tone,
+      "Le fichier reçu le 23 septembre est un grand livre, sans axe analytique. Au format de celui de 2023/24, il rend la colonne N-1 des frais généraux comparable à N.",
+    tag: "point 13",
+    tone: "warn" as Tone,
+  },
+  {
+    nom: "Balance ventilée d'août 2026",
+    pourquoi:
+      "La balance analytique d'août est en base ; sans la ventilée du même mois, la Synthèse s'arrête à juillet et août n'est pas recoupé.",
+    tag: "point 12",
+    tone: "warn" as Tone,
   },
   {
     nom: "Vos réponses aux points de la partie C",
@@ -482,13 +482,6 @@ export const FICHIERS = [
     pourquoi:
       "L'écran Objectifs porte aujourd'hui vos ratios réalisés 2025/26, saisis en brouillon, et non les objectifs. La colonne « OBJECTIF FRED » de votre synthèse (achats 15 %, location externe 10 %, EasyMat 7 %, salaires production 8 %, sédentaires 7 %, sous-traitants 41 %, intérim 15 %, eau 1 %) est saisie en cinq minutes une fois confirmée.",
     tag: "objectifs",
-    tone: "warn" as Tone,
-  },
-  {
-    nom: "Balances analytiques des exercices 2024/25 et 2023/24",
-    pourquoi:
-      "Un export par exercice clos. Rend comparables les colonnes N-1 et N-2 des frais généraux.",
-    tag: "point 13",
     tone: "warn" as Tone,
   },
 ];

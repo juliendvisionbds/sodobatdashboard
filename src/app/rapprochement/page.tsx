@@ -56,7 +56,7 @@ export default async function RapprochementPage() {
           {/* ── Bandeau d'état ─────────────────────────────────────────────── */}
           <div className="doc-state">
             <div className="doc-state-cell">
-              <span className="doc-state-value">14 / 14</span>
+              <span className="doc-state-value">16 / 16</span>
               <span className="doc-state-label">
                 Fichiers repris en base à l&apos;identique, au centime et à la ligne
               </span>
@@ -74,9 +74,9 @@ export default async function RapprochementPage() {
               </span>
             </div>
             <div className="doc-state-cell">
-              <span className="doc-state-value warn">93 %</span>
+              <span className="doc-state-value">95 %</span>
               <span className="doc-state-label">
-                Des 2 326 valeurs chantier comparées sont identiques à l&apos;euro
+                Des 2 321 valeurs chantier comparées sont identiques à l&apos;euro
               </span>
             </div>
             <div className="doc-state-cell">
@@ -110,7 +110,8 @@ export default async function RapprochementPage() {
                     <tr><th>Fichiers</th><th>Nombre</th><th>Lignes</th><th>Écart</th></tr>
                     <tr><td>Balances ventilées, exercices 2021/22 à 2024/25</td><td>4</td><td>3 692</td><td className="ok">0,00</td></tr>
                     <tr><td>Balance ventilée 2025/26, arrêtée à juillet 2026</td><td>1</td><td>701</td><td className="ok">0,00</td></tr>
-                    <tr><td>Balances analytiques, novembre 2025 à juillet 2026</td><td>9</td><td>5 035</td><td className="ok">0,00</td></tr>
+                    <tr><td>Balances analytiques, novembre 2025 à août 2026</td><td>10</td><td>5 437</td><td className="ok">0,00</td></tr>
+                    <tr><td>Balance analytique de l&apos;exercice 2023/24</td><td>1</td><td>1 470</td><td className="ok">0,00</td></tr>
                   </tbody>
                 </table>
               </div>
@@ -128,13 +129,17 @@ export default async function RapprochementPage() {
                   <tbody>
                     <tr><th>Mois</th><th>Écart classe 6</th><th>Écart classe 7</th></tr>
                     <tr><td>Novembre 2025 à avril 2026 (6 mois)</td><td className="ok">0,00</td><td className="ok">0,00</td></tr>
-                    <tr><td>Mai 2026 — export antérieur aux révisions</td><td className="warn">55 630,80</td><td className="warn">74 906,00</td></tr>
+                    <tr><td>Mai 2026 — ré-exportée le 23 septembre</td><td className="ok">0,00</td><td className="ok">0,00</td></tr>
                     <tr><td>Juin 2026</td><td className="ok">0,00</td><td className="ok">0,00</td></tr>
                     <tr><td>Juillet 2026</td><td className="ok">0,00</td><td className="ok">0,00</td></tr>
+                    <tr><td>Août 2026 — balance ventilée non reçue</td><td className="muted">—</td><td className="muted">—</td></tr>
                   </tbody>
                 </table>
               </div>
-              <p className="doc-note">Le seul écart, celui de mai, est l&apos;objet du point 1.</p>
+              <p className="doc-note">
+                Le premier export de mai était antérieur aux révisions du cabinet (point 1, refermé).
+                Août sera recoupé dès réception de sa balance ventilée.
+              </p>
             </div>
 
             <div className="doc-block">
@@ -180,16 +185,17 @@ export default async function RapprochementPage() {
                     <tr><td>TG 02 2026</td><td>377 / 384</td><td>1 604 098</td><td className="ok">1 604 098</td><td>203 837</td><td className="ok">203 837</td></tr>
                     <tr><td>TG 03 2026</td><td>360 / 400</td><td>1 386 386</td><td>1 386 387</td><td>124 767</td><td>124 766</td></tr>
                     <tr><td>TG 04 2026</td><td>384 / 405</td><td>1 506 377</td><td className="ok">1 506 377</td><td>67 931</td><td className="ok">67 931</td></tr>
-                    <tr><td>TG 05 2026</td><td>336 / 388</td><td>1 258 528</td><td className="warn">1 251 266</td><td>−1 648</td><td className="warn">−69 293</td></tr>
-                    <tr className="sum"><td>Total</td><td>2 162 / 2 326 — 93 %</td><td colSpan={4} /></tr>
+                    <tr><td>TG 05 2026</td><td>378 / 383</td><td>1 258 528</td><td className="ok">1 258 528</td><td>−1 648</td><td className="ok">−1 648</td></tr>
+                    <tr className="sum"><td>Total</td><td>2 204 / 2 321 — 95 %</td><td colSpan={4} /></tr>
                   </tbody>
                 </table>
               </div>
               <p className="doc-note">
-                Comparaison au 22 septembre, DEPOT et SAV compris (point 6). Sous-traitance,
-                intérims, déchets, locations, eau / EDF / carburant, honoraires et facturation du
-                mois : écart nul, tous les mois. Les deux écarts de résultat renvoient aux
-                points 2 et 1 ; ce qui reste sont vos reclassements manuels du point 3.
+                Comparaison au 24 septembre, DEPOT et SAV compris (point 6), mai ré-exporté
+                (point 1). Sous-traitance, intérims, déchets, locations, eau / EDF / carburant,
+                honoraires et facturation du mois : écart nul, tous les mois. Le seul écart de
+                résultat, janvier, renvoie au point 2 ; ce qui reste sont vos reclassements
+                manuels du point 3.
               </p>
             </div>
 
