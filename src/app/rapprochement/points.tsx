@@ -107,27 +107,35 @@ export const POINTS: Point[] = [
   {
     key: "c5",
     n: 5,
-    title: "Les cumuls des chantiers : repartir de la comptabilité analytique depuis novembre 2023 ?",
-    stake: "à confirmer — change les cumuls des chantiers anciens",
-    tone: "warn",
+    title: "Les cumuls des chantiers : la comptabilité analytique partout où elle existe",
+    stake: "réglé le 25 septembre",
+    tone: "ok",
     body: (
       <>
         <p>
-          Vous voulez reprendre l&apos;analytique depuis le début du chantier, et repartir de la
-          base comptable plutôt que des tableaux (point 10). Les deux vont ensemble : les cumuls
-          repartiraient des balances analytiques 2023/24 et 2024/25 plus les mois importés, sans
-          les reports d&apos;ouverture repris de votre onglet « TG 11-12 2025 ».
+          Vous voulez reprendre l&apos;analytique depuis le début du chantier et repartir de la base
+          comptable (point 10). C&apos;est la règle retenue, avec sa seule limite : la comptabilité
+          analytique dont nous disposons commence en novembre 2023 (vos deux balances annuelles,
+          puis les mois). Pour tout chantier ouvert depuis, le cumul est celui de l&apos;analytique,
+          et nous l&apos;avons vérifié : il coïncide avec vos reports à 500 € près sur les 26
+          chantiers concernés.
         </p>
         <p>
-          Ce que ça change, mesuré : pour les 26 chantiers ouverts après novembre 2023, rien, les
-          deux sources coïncident à 500 € près. Pour les 45 chantiers plus anciens (951D, 52,
-          985B, 919D, le DEPOT…), le cumul ne couvrirait plus que ce qui est postérieur à
-          novembre 2023, l&apos;écran l&apos;indiquant (« cumul depuis nov. 2023 »). Et 53 chantiers
-          terminés que votre tableau ne suivait plus réapparaîtraient avec leur cumul.
+          Pour les 52 chantiers ouverts avant novembre 2023, dont 34 encore actifs cette année
+          (985B, 994E, 1003B, 1000E, 52, 951D, le DEPOT…), l&apos;analytique ne peut pas remonter
+          au début du chantier : votre report d&apos;ouverture au 31 octobre 2025 reste la source
+          de ce qui précède, et l&apos;analytique prend le relais ensuite. C&apos;est ce que fait
+          l&apos;application. Les 18 autres sont sans mouvement depuis novembre : leur cumul est
+          figé.
+        </p>
+        <p className="doc-note">
+          L&apos;ajustement entre vos onglets « TG 11-12 2025 » et « TG 01 2026 » (1012A
+          +74 468, quatre autres chantiers pour moins de 5 000) n&apos;est pas repris, conformément
+          au point 10 : l&apos;application est partie du premier onglet et n&apos;y revient pas.
         </p>
       </>
     ),
-    ask: "Confirmez-vous ce principe : cumuls sur la seule comptabilité analytique depuis novembre 2023, sans reports d'ouverture, avec la mention « depuis nov. 2023 » pour les chantiers plus anciens ?",
+    ask: "Rien à trancher : si un report d'ouverture vous paraît faux pour un chantier ancien, dites-le, il se corrige à l'unité.",
   },
   {
     key: "c6",
@@ -401,10 +409,10 @@ export const FICHIERS = [
     tone: "warn" as Tone,
   },
   {
-    nom: "Vos réponses aux points 3, 5 et 8",
+    nom: "Vos réponses aux points 3 et 8",
     pourquoi:
-      "Le verdict des factures sur les reclassements, le principe des cumuls depuis novembre 2023, la règle de lissage des amortissements.",
-    tag: "points 3, 5, 8",
+      "Le verdict des factures sur les reclassements, et la règle de lissage des amortissements.",
+    tag: "points 3 et 8",
     tone: "warn" as Tone,
   },
 ];
