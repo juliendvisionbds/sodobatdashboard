@@ -251,9 +251,9 @@ export default async function RapprochementPage() {
               <span className="doc-part-tag">Partie B</span>
               <h2>Ce qui a été aligné sur vos fichiers</h2>
               <p>
-                Dix ajustements livrés. Les cinq derniers datent des 22, 24 et 25 septembre et
-                reprennent vos conventions, vos remarques et vos premières réponses ; ils se
-                défont aussi simplement qu&apos;ils se posent.
+                Onze ajustements livrés. Les six derniers datent des 22, 24 et 25 septembre et
+                reprennent vos conventions, vos remarques et vos réponses ; ils se défont aussi
+                simplement qu&apos;ils se posent.
               </p>
             </div>
             <div className="doc-steps">
@@ -377,6 +377,21 @@ export default async function RapprochementPage() {
                     leur propre ligne dans la vue Chantiers (point 7). Sous le cumul de
                     facturation, la ligne « dont prévisions en cours » (point 4). Le point 3 vous
                     répond, le point 5 est reformulé.
+                  </p>
+                </div>
+              </article>
+              <article className="doc-step">
+                <div className="doc-step-num">11</div>
+                <div>
+                  <h3>Vos réponses du 25 septembre</h3>
+                  <p>
+                    Le bouton « Valider le mois » et sa lecture A de la Synthèse (points 2 et 15).
+                    La Synthèse distingue désormais « Annulation M-1 » et « Prévision M » grâce à
+                    la balance analytique. Une ligne « Autres produits chantier » pour les
+                    indemnités et produits divers (point 9). Les honoraires de management sur deux
+                    comptes, prêts pour vos balances rééditées (point 8). Un chantier dont la
+                    prévision est reprise reste visible pour être ajusté. Neuf points sont
+                    refermés.
                   </p>
                 </div>
               </article>
