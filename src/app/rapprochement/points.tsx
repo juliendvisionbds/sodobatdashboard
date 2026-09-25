@@ -84,7 +84,7 @@ export const POINTS: Point[] = [
     key: "c3",
     n: 3,
     title: "Des écritures sont reclassées d'un chantier à l'autre",
-    stake: "total du mois inchangé",
+    stake: "total du mois inchangé — vous faites vérifier les factures",
     tone: "warn",
     body: (
       <>
@@ -102,120 +102,124 @@ export const POINTS: Point[] = [
               <tr><td>Mars</td><td>non appariés : 1031C −2 157 · 1036A +1 687 · 1027B +814 · 53 −344</td><td>1 € net</td></tr>
               <tr><td>Avril</td><td>1043B → 944B</td><td>914</td></tr>
               <tr><td>Avril</td><td>906E → 923E (produits) · 906E honoraires ↔ salaires</td><td>5 295 · 2 100</td></tr>
-              <tr><td>Mai</td><td>943E sous-traitance, révisée après votre export</td><td>7 255</td></tr>
             </tbody>
           </table>
         </div>
         <p>
-          Quatre centres ont été créés à la volée par Cegid lors d&apos;un import ASCII, sur une
-          faute de frappe : <N>1034B</N>, <N>1047A</N>, <N>1036C</N> et <N>52MF</N>. Depuis le 22
-          septembre, l&apos;application les lit comme 1034E, 1047E, 1036A et 52 : les écrans
-          sont justes, et 52MF portait <N>70 871</N> de facturation en juin et juillet qui
-          manquaient au chantier 52. Les écritures restent telles quelles en base ; l&apos;alerte
-          le signale désormais comme « lu comme 52 par l&apos;application ».
+          <strong>Réponse à vos trois questions du 24 septembre.</strong>
         </p>
+        <ul>
+          <li>
+            Non, nous ne vous demandons pas de corriger la comptabilité : nous demandons laquelle
+            des deux sources a raison. L&apos;application suit la comptabilité. Si elle est juste,
+            il n&apos;y a rien à faire. Si c&apos;est votre tableau qui l&apos;était, une écriture de
+            reclassement suffit, et elle reste possible : tous ces cas vont de février à mai 2026,
+            dans l&apos;exercice en cours. Vous faites vérifier les factures : c&apos;est la bonne
+            démarche, on attend ce retour.
+          </li>
+          <li>
+            52MF et 52 : compris, c&apos;est l&apos;ancien découpage par sous-chantier de la mairie
+            de Fréjus. L&apos;application lit déjà 52MF comme 52, rien à changer.
+          </li>
+          <li>
+            Les quatre centres : vous n&apos;avez rien à faire. L&apos;application lit 1034B, 1047A,
+            1036C et 52MF comme 1034E, 1047E, 1036A et 52 ; les écrans sont justes, y compris sur
+            les mois passés. Seule question pour la suite : 1034B, 1047A et 1036C sont-ils, comme
+            52MF, des codes voulus, ou des fautes de frappe à éviter sur les prochaines écritures ?
+            Si un nouveau code de ce type apparaît, l&apos;application le signale et nous
+            l&apos;ajoutons.
+          </li>
+        </ul>
       </>
     ),
-    ask: "Pouvez-vous faire corriger ces quatre codes centre dans Cegid, pour que la comptabilité elle-même soit juste ? Et les reclassements d'un chantier à l'autre sont-ils passés en comptabilité, ou restent-ils propres à votre tableau ?",
+    ask: "Une seule question reste : 1034B, 1047A et 1036C sont-ils des codes voulus (comme 52MF) ou des fautes de frappe ? Et, après vérification des factures, quelle source a raison pour les reclassements ci-dessus ?",
   },
   {
     key: "c4",
     n: 4,
-    title: "Le cumul de facturation : avec ou sans les provisions ?",
-    stake: "448 423 € d'écart dès février",
-    tone: "warn",
+    title: "Le cumul de facturation comprend les prévisions, avec leur part en dessous",
+    stake: "réglé le 25 septembre, selon votre réponse",
+    tone: "ok",
     body: (
       <p>
-        Dans votre fichier, le cumul de facturation est le report plus la facturation du mois :
-        les provisions en sont exclues. Le cumul de résultat, lui, les inclut. La maquette
-        validée additionne au contraire le CA HT total, provisions comprises. En février,
-        25 chantiers sont concernés.
+        Vous avez tranché : le cumul de facturation additionne les prévisions, et la part de
+        prévisions se lit en dessous. C&apos;est ce que fait désormais la vue Chantiers : sous
+        « Cumul Facturation fin de mois », une ligne « dont prévisions en cours » donne, chantier
+        par chantier, la prévision encore ouverte à la fin du mois (prévisions posées moins
+        reprises, depuis l&apos;ouverture du chantier, saisie du mois comprise).
       </p>
     ),
-    ask: "Quelle définition fait foi pour le cumul de facturation : le facturé seul, ou le facturé augmenté de la provision ouverte ?",
+    ask: "Rien à trancher : à regarder sur l'écran Chantiers, bloc des cumuls.",
   },
   {
     key: "c5",
     n: 5,
-    title: "Un ajustement entre décembre et janvier",
-    stake: "1012A : 74 468 €",
+    title: "Les cumuls des chantiers : d'où repartent-ils ?",
+    stake: "1012A : 74 468 € · reformulé le 25 septembre",
     tone: "warn",
     body: (
-      <p>
-        De janvier à mai, le report d&apos;un mois est exactement le cumul du mois précédent.
-        Entre les onglets « TG 11-12 2025 » et « TG 01 2026 », onze chantiers bougent :
-        1012A Déchetterie Puget de <N>+74 468</N>{" "}en facturation comme en résultat, puis 1026C
-        −5 000, 1025C −846, 1022B −162 et 1006B −130. L&apos;application, partie de
-        l&apos;onglet 11-12, ne connaît pas ces ajustements.
-      </p>
+      <>
+        <p>
+          Reformulons. Aujourd&apos;hui, le cumul d&apos;un chantier (facturation et résultat depuis
+          son ouverture) repart de vos colonnes de report de l&apos;onglet « TG 11-12 2025 »,
+          arrêtées au 31 octobre 2025, et y ajoute les mois importés depuis novembre. Deux
+          questions concrètes :
+        </p>
+        <ul>
+          <li>
+            Entre vos onglets « TG 11-12 2025 » et « TG 01 2026 », le report de 1012A Déchetterie
+            Puget augmente de <N>74 468</N> (facturation et résultat), et quatre autres chantiers
+            bougent un peu (1026C −5 000, 1025C −846, 1022B −162, 1006B −130). L&apos;application
+            est partie du premier onglet : faut-il reprendre ces montants corrigés ?
+          </li>
+          <li>
+            Vous indiquez vouloir reprendre l&apos;analytique depuis le début du chantier. Les
+            balances analytiques 2023/24 et 2024/25 sont maintenant en base : pour les chantiers
+            ouverts depuis novembre 2023, le cumul pourrait se recalculer depuis ces balances
+            plutôt que depuis vos reports. Pour les plus anciens, vos reports restent
+            indispensables. Souhaitez-vous ce recalcul ? Il changera les cumuls là où vos reports
+            et la comptabilité ne disent pas la même chose.
+          </li>
+        </ul>
+      </>
     ),
-    ask: "D'où vient la correction de 1012A, et faut-il la reprendre dans les reports d'ouverture ?",
+    ask: "Reprend-on les reports corrigés de votre onglet de janvier pour 1012A et les quatre autres ? Et voulez-vous que les cumuls des chantiers ouverts depuis novembre 2023 soient recalculés depuis les balances analytiques ?",
   },
   {
     key: "c6",
     n: 6,
     title: "Le DEPOT et le SAV sont classés en chantier, comme dans votre tableau",
-    stake: "déjà appliqué : à confirmer d'un mot",
-    tone: "warn",
+    stake: "confirmé le 24 septembre",
+    tone: "ok",
     body: (
-      <>
-        <p>
-          Vous suivez le DEPOT et le SAV comme des lignes du tableau chantiers ; l&apos;application
-          les classait en frais généraux. C&apos;était la cause unique de quatre écarts de frais
-          généraux (masse salariale du siège, crédits-baux, petit outillage, carburant) et du
-          compte d&apos;intérim « sans ligne » du point 9 : 20 812 des 21 407 € étaient sur le
-          DEPOT.
-        </p>
-        <p>
-          Nous avons donc repris votre périmètre. Le DEPOT et le SAV apparaissent dans la vue
-          Chantiers avec vos reports d&apos;ouverture — DEPOT <N>7 943,05</N> de facturation et{" "}
-          <N>−860 440,63</N> de résultat, SAV <N>−1 051,27</N> et <N>−1 363,54</N> — et le cumul
-          du DEPOT à fin décembre tombe sur le vôtre : <N>−884 416,46</N>.
-        </p>
-        <div className="doc-tbl-wrap">
-          <table className="doc-tbl">
-            <tbody>
-              <tr><th>Janvier 2026 — frais généraux</th><th>Votre fichier</th><th>Application</th><th>Écart</th></tr>
-              <tr><td>Crédits-baux / LLD</td><td>2 574</td><td>2 574</td><td className="ok">0</td></tr>
-              <tr><td>Petit outillage, fournitures</td><td>42</td><td>42</td><td className="ok">0</td></tr>
-              <tr><td>Masse salariale du siège</td><td>15 877</td><td>15 991</td><td>114</td></tr>
-              <tr><td>GNR, péages, déplacements</td><td>7 002</td><td>7 634</td><td>632</td></tr>
-            </tbody>
-          </table>
-        </div>
-        <p className="doc-note">
-          Les 114 € sont la formation continue et la taxe d&apos;apprentissage du siège, que vous
-          rangez en impôts ; les 632 €, la géolocalisation et les réceptions, que vous rangez en
-          téléphonie et autres charges (point 8). Sur les charges d&apos;exploitation et de
-          personnel des chantiers, DEPOT compris, le total du mois est identique au vôtre de
-          novembre à avril.
-        </p>
-      </>
+      <p>
+        Vous suivez le DEPOT et le SAV comme des lignes du tableau chantiers ; l&apos;application
+        les classait en frais généraux. Depuis le 22 septembre, elle reprend votre périmètre, avec
+        vos reports d&apos;ouverture (DEPOT <N>7 943,05</N> de facturation et <N>−860 440,63</N> de
+        résultat, SAV <N>−1 051,27</N> et <N>−1 363,54</N>). Quatre lignes de frais généraux sont
+        tombées identiques aux vôtres (crédits-baux, petit outillage, masse salariale du siège,
+        carburant) et le compte d&apos;intérim « sans ligne » a disparu. Vous l&apos;avez confirmé.
+      </p>
     ),
-    ask: "Confirmez-vous ce classement du DEPOT et du SAV en chantier ? Il se règle centre par centre et se défait aussi vite.",
+    ask: "Rien à faire : le point est refermé.",
   },
   {
     key: "c7",
     n: 7,
-    title: "Déplacements et réceptions de chantier : rangés avec les honoraires, comme chez vous",
-    stake: "rien à trancher",
+    title: "Déplacements et réceptions de chantier : sur leur propre ligne, comme vous le préférez",
+    stake: "réglé le 25 septembre, selon votre réponse",
     tone: "ok",
     body: (
       <>
         <p>
           Votre colonne « Honoraires chantier - Gardiennage » couvre la plage de comptes 62261
-          à 6282 : elle prend donc aussi les déplacements, péages et réceptions (6251, 6257,
-          6264) imputés à un chantier, que la maquette rangeait avec le carburant. C&apos;était
-          l&apos;origine des écarts « honoraires ↔ eau / EDF / carburant » de chaque mois (1 640,
-          365, 794, 1 039, 19, 22). L&apos;application suit désormais votre colonne : les deux
-          blocs sont identiques tous les mois.
+          à 6282, déplacements, péages et réceptions compris (6251, 6257, 6264). Nous les avions
+          d&apos;abord réunis sur la ligne honoraires ; vous préférez deux lignes, c&apos;est fait :
+          « Honoraire chantier / Gardiennage » et « Déplacements / Réceptions / Péages » se
+          suivent dans la vue Chantiers, comme dans la Synthèse. Leur somme reste identique à votre
+          colonne, tous les mois.
         </p>
         <ul>
-          <li>
-            Dans la Synthèse, ces montants forment une ligne à part, « Déplacements / Réceptions
-            / Péages chantier », juste sous les honoraires ; leur part siège reste sur la ligne
-            GNR / péages de structure, comme dans votre bloc « Autres charges ».
-          </li>
           <li>
             Novembre-décembre : vos déchets (<N>47 770</N>, 12 chantiers) sont dans « Location » ;
             à partir de janvier vous les isolez, comme l&apos;application. Rien à changer.
@@ -227,7 +231,7 @@ export const POINTS: Point[] = [
         </ul>
       </>
     ),
-    ask: "Rien à trancher : à regarder ensemble sur l'écran Chantiers, colonne « Honoraire chantier / Gardiennage / Déplacements ».",
+    ask: "Rien à trancher : à regarder sur l'écran Chantiers, bloc des charges de personnel.",
   },
   {
     key: "c8",

@@ -251,9 +251,9 @@ export default async function RapprochementPage() {
               <span className="doc-part-tag">Partie B</span>
               <h2>Ce qui a été aligné sur vos fichiers</h2>
               <p>
-                Neuf ajustements livrés. Les quatre derniers datent des 22 et 24 septembre et
-                reprennent vos conventions et vos remarques ; ils se défont aussi simplement
-                qu&apos;ils se posent.
+                Dix ajustements livrés. Les cinq derniers datent des 22, 24 et 25 septembre et
+                reprennent vos conventions, vos remarques et vos premières réponses ; ils se
+                défont aussi simplement qu&apos;ils se posent.
               </p>
             </div>
             <div className="doc-steps">
@@ -365,6 +365,18 @@ export default async function RapprochementPage() {
                     et écarts sans couleur de signe. L&apos;assistant propose les questions les
                     plus posées, communes à tous. Un rôle « saisie » permet à chaque entité
                     d&apos;entrer ses prévisions ; vous seule les figez.
+                  </p>
+                </div>
+              </article>
+              <article className="doc-step">
+                <div className="doc-step-num">10</div>
+                <div>
+                  <h3>Vos réponses du 24 septembre</h3>
+                  <p>
+                    DEPOT et SAV en chantier, confirmé (point 6). Déplacements et réceptions sur
+                    leur propre ligne dans la vue Chantiers (point 7). Sous le cumul de
+                    facturation, la ligne « dont prévisions en cours » (point 4). Le point 3 vous
+                    répond, le point 5 est reformulé.
                   </p>
                 </div>
               </article>
