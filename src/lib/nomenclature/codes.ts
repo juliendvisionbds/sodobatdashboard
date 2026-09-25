@@ -4,6 +4,8 @@
 
 export const SYNTHESE_CODES = {
   caTotal: "syn_ca_total",
+  annulation: "syn_annulation_m1",
+  tecProvision: "syn_tec_provision",
   exploitation: "syn_total_exploitation",
   personnel: "syn_total_personnel",
   resultatExploitation: "syn_resultat_exploitation",

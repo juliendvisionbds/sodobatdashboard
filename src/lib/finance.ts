@@ -398,6 +398,37 @@ const syntheseMemo = cache(async function syntheseMemo(
     leaves.set(cat.code, vec);
   }
 
+  // ── Annulation M-1 et Prévision M ──────────────────────────────────────────
+  // La balance ventilée ne porte que le mouvement net du compte 71331000 : la
+  // prévision du mois moins la reprise de celle du mois précédent. La balance
+  // analytique du même mois, elle, distingue le débit (reprise) du crédit
+  // (prévision) : quand elle est là, la Synthèse présente les deux lignes,
+  // comme le tableau de gestion. La somme reste le net de la ventilée, le CA
+  // total ne bouge pas. Sans analytique, tout reste sur la ligne Prévision.
+  const annulationVec: Vector = Object.fromEntries(months.map((m) => [m, 0]));
+  const prevVec = leaves.get(SYNTHESE_CODES.tecProvision);
+  if (prevVec) {
+    const upTo = opts.period && opts.period < imp.period ? opts.period : undefined;
+    const annual = await annualImportIds(entity.id);
+    const mensuels = [...(await analytiqueImportsOfYear(entity.id, imp.fiscalYearStart, upTo))].filter(
+      ([, id]) => !annual.has(id)
+    );
+    for (const [month, importId] of mensuels) {
+      if (!months.includes(month)) continue;
+      let debit = 0;
+      let credit = 0;
+      for (const l of await analyticLinesOf(importId)) {
+        if (l.account !== "71331000") continue;
+        debit += num(l.debit);
+        credit += num(l.credit);
+      }
+      annulationVec[month] = round2(-debit);
+      prevVec[month] = round2(credit);
+    }
+    annulationVec[TOTAL_COLUMN] = round2(months.reduce((t, m) => t + (annulationVec[m] as number), 0));
+    prevVec[TOTAL_COLUMN] = round2(months.reduce((t, m) => t + ((prevVec[m] as number) ?? 0), 0));
+  }
+
   // ── Découpage chantier / structure ─────────────────────────────────────────
   // Les postes partagés cèdent aux frais généraux ce que la balance analytique
   // du mois impute au siège. Le transfert est additif : ce qui quitte une ligne
@@ -507,6 +538,7 @@ const syntheseMemo = cache(async function syntheseMemo(
   provided.set(SYNTHESE_CODES.resultatBg, resultatBg);
   const previsionsSaisies = await previsionsSaisiesParMois(entity.id, months);
   provided.set(SYNTHESE_CODES.previsionsSaisies, previsionsSaisies);
+  provided.set(SYNTHESE_CODES.annulation, annulationVec);
 
   const values = evaluate(mapper.lines, columns, leaves, { provided });
 
@@ -529,6 +561,7 @@ const syntheseMemo = cache(async function syntheseMemo(
     provided: new Map([
       [SYNTHESE_CODES.resultatBg, cumulate(resultatBg)],
       [SYNTHESE_CODES.previsionsSaisies, cumulate(previsionsSaisies)],
+      [SYNTHESE_CODES.annulation, cumulate(annulationVec)],
     ]),
   });
 
