@@ -1230,6 +1230,15 @@ export async function getChantiers(
       rowValues[line.code] = v;
       if (line.kind === "poste" && v) mouvemente = true;
     }
+    // Un chantier dont la prévision du mois précédent est reprise ce mois-ci,
+    // ou qui portait encore une prévision ouverte à la fin du mois précédent,
+    // reste visible même sans autre mouvement : c'est là qu'on ajuste sa
+    // prévision (demande de la DAF, 25 septembre 2026).
+    if (
+      (annulationVec[centre] as number) ||
+      (cumulBefore.get(CHANTIER_CODES.provision)?.[centre] as number)
+    )
+      mouvemente = true;
     return {
       centreCode: centre,
       centreLabel: labels.get(centre) ?? centre,
