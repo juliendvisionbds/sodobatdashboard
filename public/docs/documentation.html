@@ -275,24 +275,26 @@
 
   <section id="pres-acces">
     <h2>03 · Qui fait quoi</h2>
-    <p class="h2-sub">Trois rôles, une navigation simple.</p>
+    <p class="h2-sub">Quatre rôles, une navigation simple.</p>
 
     <div class="table-wrap">
       <table>
-        <thead><tr><th>Rôle</th><th>Consulter les vues et l'assistant</th><th>Importer, mapper, saisir, résoudre les alertes</th></tr></thead>
+        <thead><tr><th>Rôle</th><th>Consulter les vues et l'assistant</th><th>Saisir les prévisions de ses chantiers</th><th>Importer, mapper, figer, valider le mois, résoudre les alertes</th></tr></thead>
         <tbody>
-          <tr><td><strong>Admin</strong></td><td>Oui</td><td>Oui</td></tr>
-          <tr><td><strong>DAF</strong></td><td>Oui</td><td>Oui</td></tr>
-          <tr><td><strong>Lecteur</strong></td><td>Oui</td><td>Non, lecture seule partout</td></tr>
+          <tr><td><strong>Admin</strong></td><td>Oui</td><td>Oui</td><td>Oui</td></tr>
+          <tr><td><strong>DAF</strong></td><td>Oui</td><td>Oui</td><td>Oui</td></tr>
+          <tr><td><strong>Saisie</strong> (une entité)</td><td>Oui</td><td>Oui, en brouillon, sur son entité</td><td>Non</td></tr>
+          <tr><td><strong>Lecteur</strong></td><td>Oui</td><td>Non</td><td>Non, lecture seule partout</td></tr>
         </tbody>
       </table>
     </div>
 
     <p>
       La connexion se fait par email et mot de passe ; la session dure 7 jours. La
-      navigation principale comporte quatre onglets : <strong>Synthèse</strong>,
-      <strong>Chantiers</strong>, <strong>Frais généraux</strong> et
-      <strong>Assistant IA</strong>. Le menu utilisateur donne accès aux écrans
+      navigation principale comporte cinq onglets : <strong>Synthèse</strong>,
+      <strong>Chantiers</strong>, <strong>Frais généraux</strong>, <strong>Objectifs</strong> et
+      <strong>Assistant IA</strong>. Le menu utilisateur donne accès à <strong>Comptes</strong>,
+      <strong>Alertes</strong> et <strong>Rapprochement</strong>, et aux écrans
       <strong>Imports</strong> et <strong>Mapping</strong> pour les profils admin et DAF.
     </p>
 
@@ -351,26 +353,30 @@
 
   <section id="vue-chantiers">
     <h2>02 · Chantiers</h2>
-    <p class="h2-sub">Le résultat de chaque affaire, mois par mois, sur la balance analytique.</p>
+    <p class="h2-sub">Le résultat de chaque affaire, mois par mois, sur la balance analytique du mois.</p>
 
     <p>
-      Chaque ligne est un chantier (centre analytique), regroupé par pôle, la lettre en
-      suffixe du code chantier (1003B → pôle B). Les colonnes du mois :
+      Les postes de la maquette sont en lignes et chaque chantier (centre analytique) est une
+      colonne, regroupée par pôle, la lettre en suffixe du code chantier (1003B → pôle B), et
+      classée par numéro croissant. L'intitulé à gauche et la colonne Total à droite restent
+      figés au défilement. Les lignes du mois :
     </p>
 
     <ul class="clean">
-      <li><strong>Annulation</strong> : extourne de la provision de travaux en cours du mois précédent (négatif).</li>
-      <li><strong>Provision (TEC)</strong> : le manque à facturer du mois, issu de la comptabilité et ajustable à la main (voir l'onglet Provisions).</li>
-      <li><strong>Facturé</strong> : la facturation réelle du mois.</li>
-      <li><strong>Total produits</strong> = Facturé + Provision + Annulation.</li>
-      <li><strong>Achats MP</strong>, <strong>Sous-traitance</strong>, <strong>Autres charges</strong> : les charges directes affectées au chantier.</li>
-      <li><strong>Résultat mois</strong> = Total produits − charges directes.</li>
-      <li><strong>Note</strong> : champ libre pour expliquer un écart ou un point d'attention.</li>
+      <li><strong>Annulation M-1</strong> : reprise de la prévision de travaux en cours du mois précédent (négatif), lue au débit du compte 71331000.</li>
+      <li><strong>Prévision M (TEC)</strong> : le manque à facturer du mois, lu au crédit du 71331000 et saisissable à la main (voir l'onglet Provisions).</li>
+      <li><strong>Facturé</strong> : la facturation réelle du mois ; <strong>CA HT total</strong> = Facturé + Prévision + Annulation.</li>
+      <li><strong>Charges d'exploitation</strong> (achats, sous-traitance paiement Sodobat et paiement direct, locations, déchets, entretien, EDF / eau, carburant) et <strong>charges de personnel</strong> (salaires et cotisations, intérim, honoraires, déplacements).</li>
+      <li><strong>Résultat du mois</strong> = CA HT total − charges, puis coefficient et marge.</li>
+      <li><strong>Cumuls sur la durée de vie du chantier</strong> : report et cumul de résultat, report et cumul de facturation, « dont prévisions en cours ». Ils repartent du report d'ouverture repris du tableau de gestion de la DAF et additionnent les mois importés.</li>
+      <li><strong>Note</strong> et <strong>statut</strong> brouillon / figé, par chantier.</li>
     </ul>
 
     <p>
       La vue se filtre par pôle et par recherche libre, et masque par défaut les chantiers
-      sans activité. Les frais généraux (centre FX) en sont exclus : ils ont leur vue dédiée.
+      sans activité. Les centres de structure (FX, siège) en sont exclus : ils ont leur vue dédiée.
+      Le DEPOT et le SAV, que la DAF suit comme des chantiers, y figurent. En tête de vue,
+      l'encart <strong>Validation du mois</strong> (voir l'onglet Provisions).
     </p>
   </section>
 
@@ -408,14 +414,14 @@
     <div class="card">
       <p>
         Un <strong>sélecteur de mois</strong> se trouve à côté du titre des trois vues.
-        Sur Chantiers et Frais généraux, il liste tous les mois pour lesquels un snapshot
-        analytique a été validé, du plus récent au plus ancien. Choisir un mois passé
-        recalcule toute la vue pour cette période, y compris la colonne « du mois », qui
-        reprend le delta avec le snapshot précédent de l'époque.
+        Sur Chantiers et Frais généraux, il liste tous les mois pour lesquels une balance
+        analytique a été validée, du plus récent au plus ancien ; les balances d'exercices clos,
+        importées en une fois, n'y figurent pas. Choisir un mois passé recalcule toute la vue
+        pour cette période, depuis le fichier de ce mois.
       </p>
       <ul class="clean">
-        <li>Avec un seul mois importé, le sélecteur est visible mais grisé : il s'active dès le deuxième snapshot validé.</li>
-        <li>Sur un mois passé, la vue Chantiers passe en <strong>lecture seule</strong> (badge « mois passé, lecture seule ») : provisions et notes ne sont saisissables que sur le dernier mois, on ne réécrit pas une période close.</li>
+        <li>Avec un seul mois importé, le sélecteur est visible mais grisé : il s'active dès le deuxième mois validé.</li>
+        <li>Un mois <strong>validé par la DAF</strong> passe en <strong>lecture seule</strong> (badge « mois validé, lecture seule ») : prévisions et notes ne s'y saisissent plus tant qu'il n'est pas rouvert. Un mois non validé reste saisissable, même si un mois plus récent est importé.</li>
       </ul>
       <p>
         La <strong>Synthèse</strong> a son propre sélecteur d'<strong>arrêté mensuel</strong>,
@@ -490,17 +496,17 @@
           <tr>
             <td><strong>Contenu</strong></td>
             <td>Tous les comptes, avec <strong>une colonne par mois depuis le début de l'exercice</strong> (novembre). Le fichier de juin contient donc les colonnes novembre → juin.</td>
-            <td>Les comptes éclatés par centre (chantier), en <strong>cumul depuis l'ouverture de chaque chantier</strong>. Aucune notion de mois dans le fichier.</td>
+            <td>Les comptes éclatés par centre (chantier), avec <strong>les mouvements du seul mois exporté</strong>. Le fichier ne porte pas sa période : elle est indiquée à l'import.</td>
           </tr>
           <tr>
             <td><strong>Nature</strong></td>
             <td>Photo complète de l'exercice, refaite chaque mois.</td>
-            <td>Instantané (« snapshot ») daté du mois de l'export.</td>
+            <td>Mouvements d'un mois ; ses totaux de classes 6 et 7 recoupent la colonne du même mois de la ventilée.</td>
           </tr>
           <tr>
             <td><strong>Au réimport</strong></td>
             <td><span class="tag amber">Remplacement</span>, le nouvel export remplace l'ancien, pour tout l'exercice.</td>
-            <td><span class="tag green">Accumulation</span>, chaque snapshot mensuel est conservé, ils coexistent.</td>
+            <td><span class="tag green">Accumulation</span>, chaque mois est conservé ; un réimport ne remplace que le même mois.</td>
           </tr>
           <tr>
             <td><strong>Alimente</strong></td>
@@ -536,29 +542,26 @@
     </div>
 
     <div class="card">
-      <h3>Analytique : des snapshots qui s'empilent, et des deltas</h3>
+      <h3>Analytique : un fichier par mois, lu tel quel</h3>
       <p>
-        La balance analytique étant un cumul depuis l'ouverture des chantiers, un seul fichier
-        ne dit rien de l'activité <em>du mois</em>. Pour l'obtenir, le système conserve
-        <strong>un snapshot par mois</strong> et calcule la différence entre deux snapshots
-        consécutifs :
+        Chaque balance analytique porte les mouvements de son mois : la vue Chantiers et la
+        colonne « du mois » des Frais généraux le lisent directement. Le contrôle qui l'établit :
+        ses totaux de classes 6 et 7 recoupent, au centime, la colonne du même mois de la balance
+        ventilée.
       </p>
       <div class="callout blue" style="margin: 10px 0;">
         <span class="ico">∑</span>
-        <p><strong>Activité de juin = snapshot juin − snapshot mai</strong>, centre par centre,
-        compte par compte. C'est ce delta qui alimente la vue Chantiers et la colonne « du mois »
-        des Frais généraux.</p>
+        <p><strong>Cumul de l'exercice = somme des fichiers mensuels</strong> ; <strong>cumul d'un
+        chantier sur sa durée de vie = report d'ouverture + somme des mois importés</strong>, le
+        report étant repris du tableau de gestion de la DAF au 31 octobre 2025.</p>
       </div>
       <p>
-        Le snapshot de mai <strong>reste donc validé</strong> quand celui de juin arrive : les deux
+        Le fichier de mai <strong>reste validé</strong> quand celui de juin arrive : les mois
         coexistent, par construction. Un import analytique ne remplace un précédent que s'il porte
-        sur <strong>le même mois</strong> (cas de la version corrigée). C'est aussi ce qui permet de
-        suivre un chantier sur toute sa durée de vie, au-delà de l'exercice comptable de 12 mois.
-      </p>
-      <p style="font-size: 13.5px; color: var(--gray2);">
-        Cas particulier du tout premier snapshot : sans mois précédent, aucun delta n'est possible,
-        la vue Chantiers affiche alors le cumul depuis l'ouverture des chantiers, et l'indique.
-        L'activité mensuelle apparaît à partir du deuxième snapshot.
+        sur <strong>le même mois</strong> (cas de la version corrigée). Les balances analytiques
+        d'exercices clos, importées en une fois avec l'option « annuel », ne servent qu'aux
+        colonnes N-1 et N-2 des frais généraux : elles ne sont ni un mois affichable, ni un terme
+        des cumuls.
       </p>
     </div>
   </section>
@@ -693,10 +696,9 @@
 
     <div class="card">
       <h3>Que se passe-t-il si on saute un mois d'analytique ?</h3>
-      <p>Le delta suivant couvrira deux mois d'activité d'un coup (ex. snapshot juillet − snapshot mai
-      = activité juin + juillet), sans erreur de total mais sans détail mensuel. Une alerte « mois sans
-      données » signale le trou. Pour retrouver le détail, il suffit d'importer a posteriori le snapshot
-      du mois manquant.</p>
+      <p>Le mois manquant n'entre ni dans le cumul de l'exercice ni dans les cumuls des chantiers,
+      et la Synthèse ne peut pas découper ses charges entre chantiers et siège pour ce mois (elle le
+      signale). Il suffit d'importer a posteriori le fichier du mois manquant : tout se recalcule.</p>
     </div>
 
     <div class="card">
@@ -707,10 +709,11 @@
     </div>
 
     <div class="card">
-      <h3>Pourquoi la vue Chantiers affiche « cumul depuis l'ouverture » au premier import ?</h3>
-      <p>Parce qu'un delta exige deux snapshots. Au tout premier import analytique, il n'existe pas
-      encore de mois précédent : la vue présente le cumul, en l'annonçant. Dès le deuxième snapshot
-      validé, l'activité mensuelle apparaît.</p>
+      <h3>D'où viennent les cumuls des chantiers ouverts avant le premier mois importé ?</h3>
+      <p>Des reports d'ouverture repris du tableau de gestion de la DAF au 31 octobre 2025 (facturation
+      et résultat, chantier par chantier), auxquels s'ajoutent les mois importés depuis novembre 2025.
+      Les balances analytiques des exercices clos ne remplacent pas ces reports : il leur manque tout ce
+      qui précède novembre 2023.</p>
     </div>
   </section>
 
@@ -837,41 +840,41 @@
 
   <!-- ═══════════ 03 AJUSTEMENT MANUEL ═══════════ -->
   <section id="prov-manuel">
-    <h2>03 · L'ajustement manuel : brouillon, puis figé</h2>
-    <p class="h2-sub">Quand l'estimation de la DAF est plus fraîche que la comptabilité.</p>
+    <h2>03 · La saisie par les entités, le figeage et la validation par la DAF</h2>
+    <p class="h2-sub">Les prévisions sont connues des entités avant d'être comptabilisées.</p>
 
     <p>
-      La provision issue de la balance date du dernier export comptable. Entre deux exports,
-      la DAF connaît souvent un manque à facturer plus à jour (avancement réel du chantier,
-      situation en préparation…). Plutôt que d'attendre la prochaine clôture, elle peut
-      <strong>modifier la provision directement dans la vue Chantiers</strong> : c'est le
-      mécanisme demandé au §4.6 du cahier des charges.
+      La prévision issue de la balance date du dernier export comptable, et le cabinet ne la
+      passe qu'après l'avoir reçue du tableau de gestion. C'est donc chaque entité (profil
+      saisie) qui <strong>saisit ses prévisions directement dans la vue Chantiers</strong> ; la
+      DAF les fige, les transmet au cabinet, puis valide le mois. C'est le mécanisme demandé au
+      §4.6 du cahier des charges, précisé avec la DAF le 24 septembre 2026.
     </p>
 
     <div class="flow">
       <div class="flow-step">
         <div class="t">Valeur comptable</div>
-        <div class="d">Par défaut, la cellule Provision (TEC) affiche la provision issue de la balance (713).</div>
+        <div class="d">Par défaut, la cellule Prévision (TEC) affiche la prévision issue de la balance (713).</div>
       </div>
       <div class="flow-arrow">→</div>
       <div class="flow-step">
         <div class="t">Brouillon 🟡</div>
-        <div class="d">L'utilisateur saisit sa propre valeur. Elle reste modifiable à volonté et est marquée comme manuelle.</div>
+        <div class="d">L'entité saisit sa valeur. Elle reste modifiable et porte qui l'a saisie et quand.</div>
       </div>
       <div class="flow-arrow">→</div>
       <div class="flow-step">
         <div class="t">Figé 🔒</div>
-        <div class="d">Le bouton « figer » verrouille la valeur pour le mois. Plus aucune modification jusqu'à la période suivante.</div>
+        <div class="d">La DAF fige la valeur (bouton « figer »), ou valide le mois, ce qui fige tout d'un bloc. Elle seule peut rouvrir.</div>
       </div>
     </div>
 
     <p style="margin-top: 16px;">Ce qu'il faut savoir sur ce mécanisme :</p>
     <ul class="clean">
       <li>La saisie est rattachée à <strong>un chantier et un mois</strong> précis : au changement de période, on repart de la valeur comptable.</li>
-      <li>La saisie n'est possible que sur <strong>le dernier mois importé</strong> : un mois passé consulté via le sélecteur de mois est en lecture seule.</li>
+      <li>La saisie est possible sur tout mois <strong>non validé</strong> par la DAF ; un mois validé est en lecture seule tant qu'elle ne l'a pas rouvert.</li>
       <li>Dès qu'une valeur manuelle existe, <strong>c'est elle</strong> qui entre dans le total produits et le résultat du chantier, à la place de la valeur issue de la balance.</li>
       <li>Chaque saisie est <strong>tracée</strong> : qui a modifié, quand, et avec quel statut (brouillon ou figé).</li>
-      <li>Seuls les utilisateurs habilités (admin, DAF) peuvent saisir ; les lecteurs voient la valeur et son statut.</li>
+      <li>Les profils saisie (sur leur entité), DAF et admin peuvent saisir ; figer, rouvrir et valider le mois sont réservés à la DAF et à l'admin ; les lecteurs voient la valeur et son statut.</li>
       <li>Un <strong>champ note</strong> par chantier permet d'expliquer l'écart avec la comptabilité (§4.5 du CDC), c'est la bonne pratique à chaque ajustement.</li>
     </ul>
 
@@ -880,6 +883,21 @@
       <p><strong>Les données comptables ne sont jamais touchées.</strong> L'ajustement manuel est
       une surcouche de gestion, stockée à part. La balance importée reste intacte, et l'écart entre
       la valeur manuelle et la valeur comptable est toujours identifiable.</p>
+    </div>
+
+    <div class="card" style="margin-top: 16px;">
+      <h3>La validation du mois</h3>
+      <p>
+        En tête de la vue Chantiers, l'encart <strong>Validation du mois</strong> compare, chantier
+        par chantier, les prévisions saisies au crédit du compte 713 dans la balance du mois, et
+        affiche le résultat comptable du mois (Synthèse) et le résultat de gestion (résultat
+        comptable + écart). Le bouton <strong>Valider le mois</strong>, réservé à la DAF, exige la
+        balance ventilée du mois ; si l'écart n'est pas nul, il demande confirmation. À la
+        validation, toutes les saisies du mois passent en figé et la validation mémorise le
+        contrôle et les imports sur lesquels elle a porté. Si l'une des balances du mois est
+        réimportée ensuite, la validation devient caduque et le mois est à revalider. La DAF peut
+        rouvrir un mois validé.
+      </p>
     </div>
   </section>
 
@@ -951,25 +969,25 @@
     <p class="h2-sub">Deux comportements à connaître pour bien lire les chiffres.</p>
 
     <div class="card">
-      <h3>La Synthèse ne reprend pas les ajustements manuels</h3>
+      <h3>La Synthèse reste comptable, et montre l'écart</h3>
       <p>
-        La vue Synthèse est construite sur la balance ventilée : sa ligne « Travaux en cours »
-        reflète uniquement les écritures comptables du 713. Si une provision manuelle a été saisie
-        dans la vue Chantiers, <strong>les deux vues peuvent différer</strong> le temps que la
-        comptabilité passe ses écritures de clôture. C'est un choix de conception, la Synthèse
-        reste « pure comptabilité », mais il faut le savoir pour ne pas chercher un écart qui
-        n'est pas une erreur.
+        La vue Synthèse est construite sur la balance ventilée : sa ligne « Prévision M » et son
+        résultat net reflètent uniquement les écritures comptables du 713. Les prévisions saisies
+        dans la vue Chantiers n'y entrent pas, mais deux lignes du bloc Résultat les rendent
+        visibles : <strong>« Prévisions saisies non comptabilisées »</strong>, l'écart saisi moins
+        comptabilisé mois par mois, et <strong>« Résultat de gestion »</strong>, qui l'ajoute au
+        résultat net. Quand le cabinet a passé les mêmes prévisions, l'écart est nul et les deux
+        résultats se confondent : c'est le contrôle de la validation du mois.
       </p>
     </div>
 
     <div class="card">
       <h3>Un chantier sans mouvement comptable du mois n'affiche pas sa saisie manuelle</h3>
       <p>
-        Les lignes de la vue Chantiers sont créées à partir des mouvements de la balance du mois.
-        Un chantier totalement dormant (aucun mouvement dans le delta mensuel) n'apparaît pas dans
-        le tableau, même si une provision manuelle a été enregistrée pour lui. Cas rare en
-        pratique, un chantier avec un manque à facturer a généralement des mouvements, mais à
-        garder en tête.
+        Les colonnes de la vue Chantiers sont créées à partir des mouvements de la balance du mois,
+        des cumuls antérieurs et des reports d'ouverture. Un chantier sans aucun de ces trois
+        éléments n'apparaît pas ; celui qui n'a qu'une saisie manuelle reste visible tant que la
+        case « masquer les chantiers sans activité » est décochée.
       </p>
     </div>
   </section>
@@ -1158,11 +1176,11 @@
 
   <section id="acces-roles">
     <h2>03 · Comptes, rôles et navigation</h2>
-    <p class="h2-sub">Trois niveaux d'accès, un compte par rôle.</p>
+    <p class="h2-sub">Quatre niveaux d'accès ; les comptes se créent avec le script db:user.</p>
 
     <div class="table-wrap">
       <table>
-        <thead><tr><th>Rôle</th><th>Vues &amp; assistant</th><th>Imports</th><th>Mapping</th><th>Provisions &amp; notes</th><th>Alertes</th></tr></thead>
+        <thead><tr><th>Rôle</th><th>Vues &amp; assistant</th><th>Imports</th><th>Mapping</th><th>Prévisions &amp; notes</th><th>Alertes</th></tr></thead>
         <tbody>
           <tr>
             <td><strong>Admin</strong></td>
@@ -1181,6 +1199,14 @@
             <td>Résolution</td>
           </tr>
           <tr>
+            <td><strong>Saisie</strong></td>
+            <td>Consultation</td>
+            <td>-</td>
+            <td>-</td>
+            <td>Saisie en brouillon, sur son entité</td>
+            <td>Lecture seule</td>
+          </tr>
+          <tr>
             <td><strong>Lecteur</strong></td>
             <td>Consultation</td>
             <td>-</td>
@@ -1194,7 +1220,7 @@
 
     <ul class="clean">
       <li>Connexion par email et mot de passe ; session de 7 jours ; toute page exige d'être connecté.</li>
-      <li>Les onglets <strong>Synthèse · Chantiers · Frais généraux · Assistant IA</strong> sont visibles par tous ; <strong>Imports</strong> et <strong>Mapping</strong> n'apparaissent dans le menu utilisateur que pour les profils admin et DAF, et sont aussi protégés côté serveur : un lecteur qui en tape l'adresse directement est renvoyé à la Synthèse.</li>
+      <li>Les onglets <strong>Synthèse · Chantiers · Frais généraux · Objectifs · Assistant IA</strong> sont visibles par tous ; <strong>Imports</strong> et <strong>Mapping</strong> n'apparaissent dans le menu utilisateur que pour les profils admin et DAF, et sont aussi protégés côté serveur : un lecteur ou un profil saisie qui en tape l'adresse directement est renvoyé à la Synthèse. Un compte saisie est rattaché à une entité et n'agit que sur elle ; figer, rouvrir et valider un mois lui sont refusés côté serveur.</li>
       <li>L'en-tête rappelle l'exercice comptable affiché (ex. « Exercice 2025 / 2026 »).</li>
     </ul>
   </section>

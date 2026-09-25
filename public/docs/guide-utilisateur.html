@@ -257,16 +257,18 @@
             </tr>
             <tr>
               <td><strong>Balance analytique</strong></td>
-              <td>Les mêmes comptes, éclatés par centre (un centre = un chantier, plus le centre FX pour les frais généraux). Les montants sont cumulés depuis l'ouverture de chaque chantier.</td>
+              <td>Les mêmes comptes, éclatés par centre (un centre = un chantier, plus le centre FX pour les frais généraux). Un fichier par mois, qui porte les mouvements du mois.</td>
               <td><span class="tag blue">Chantiers</span> <span class="tag blue">Frais généraux</span></td>
             </tr>
           </tbody>
         </table>
       </div>
       <p style="font-size:13.5px; color:var(--gray2);">
-        Comme la balance analytique est un <em>cumul</em>, l'app conserve une photo à chaque import
-        et calcule automatiquement la différence avec le mois précédent pour obtenir l'activité du mois.
-        C'est aussi ce qui permet de suivre un chantier sur toute sa durée de vie, au-delà de l'exercice comptable.
+        Chaque balance analytique est recoupée avec la balance ventilée du même mois sur les totaux des
+        classes 6 et 7 : c'est ce qui garantit que les deux fichiers racontent le même mois. Les cumuls
+        d'un chantier sur toute sa durée de vie additionnent les mois importés à partir de son report
+        d'ouverture. Les balances analytiques des exercices clos, importées en une fois, ne servent
+        qu'aux colonnes N-1 et N-2 des frais généraux.
       </p>
     </div>
 
@@ -327,6 +329,9 @@
         <li><strong>Résultat mensuel</strong> : le résultat de chaque mois de l'exercice.</li>
         <li><strong>Tableau détaillé</strong> : toutes les lignes de gestion (produits, charges d'exploitation, personnel, frais généraux) avec les montants mensuels et cumulés, filtrable par section et par recherche libre.</li>
         <li><strong>Alertes actives</strong> : ce qui demande votre attention (voir section 05).</li>
+        <li><strong>Prévisions saisies non comptabilisées</strong> et <strong>Résultat de gestion</strong> :
+          le résultat net reste celui de la balance ; ces deux lignes montrent ce qu'y ajoutent les
+          prévisions saisies dans la vue Chantiers tant que le cabinet ne les a pas passées.</li>
       </ul>
       <p>
         Un <strong>sélecteur de mois</strong> à côté du titre permet d'afficher la synthèse
@@ -339,27 +344,39 @@
     <div class="card">
       <div class="card-label">Chantiers · l'activité par affaire</div>
       <p>
-        Construite à partir de la balance analytique, cette vue liste chaque chantier avec, pour le mois :
-        annulation de la provision précédente, provision (travaux en cours), facturé, total produits, achats
-        de matières premières, sous-traitance, autres charges, et le résultat du mois. Les chantiers sont
-        regroupés par pôle et filtrables.
+        Construite à partir de la balance analytique du mois, cette vue met les postes de gestion en
+        lignes et <strong>un chantier par colonne</strong>, regroupés par pôle et classés par numéro : pour
+        chaque chantier, annulation de la prévision précédente, prévision (travaux en cours), facturé,
+        total produits, achats, sous-traitance, déplacements, honoraires, charges de personnel, résultat du
+        mois, puis les cumuls depuis l'ouverture du chantier (facturation, dont prévisions en cours,
+        résultat). L'intitulé à gauche et la colonne Total à droite restent figés quand on fait défiler.
+        Les chantiers se filtrent par pôle et par recherche, et ceux sans activité sont masqués par défaut.
       </p>
       <p>
-        La colonne <strong>Provision (TEC)</strong> est saisissable directement dans le tableau (profils admin et DAF) :
-        c'est là que se gèrent les travaux en cours du mois. Une valeur saisie reste en
-        <span class="tag amber">brouillon</span> (modifiable à volonté) jusqu'à la clôture du mois, où elle
-        est figée et devient la référence pour les calculs du mois suivant. Chaque ligne peut aussi porter
-        une <strong>note</strong> libre (contexte, point d'attention, litige…).
+        La ligne <strong>Prévision (TEC)</strong> se saisit directement dans le tableau, par chaque
+        entité (profil saisie) ou par la DAF. Une valeur saisie reste en
+        <span class="tag amber">brouillon</span>, modifiable, jusqu'à ce que la DAF la fige ou valide le
+        mois ; au survol, on voit qui l'a saisie et quand. Chaque chantier porte aussi une
+        <strong>note</strong> libre et un statut brouillon / figé.
+      </p>
+      <p>
+        En haut de la vue, l'encart <strong>Validation du mois</strong> compare, chantier par chantier,
+        les prévisions saisies au compte 713 comptabilisé, et affiche le résultat comptable du mois et le
+        résultat de gestion. Quand l'écart est nul, la DAF <strong>valide le mois</strong> d'un bouton :
+        toutes les saisies du mois se figent, et plus personne n'y touche tant qu'elle ne l'a pas rouvert.
+        Si une balance du mois est réimportée ensuite, la validation devient caduque et le mois est à
+        revalider.
       </p>
     </div>
 
     <div class="card">
       <div class="card-label">Frais généraux · les charges de structure</div>
       <p>
-        Le détail du centre analytique FX : masse salariale sédentaire, crédit-bail, assurances, honoraires,
-        loyers, carburant… Chaque poste affiche le montant du mois, le cumul de l'exercice (YTD), son poids
-        en % du CA, et la comparaison avec N-1 et N-2. En haut de page : le total FX cumulé, le FX du mois
-        et le ratio FX / CA.
+        Le détail des centres de structure (FX, siège) : masse salariale sédentaire, crédit-bail, assurances,
+        honoraires, loyers, carburant… Chaque poste affiche le montant du mois, le cumul de l'exercice (YTD),
+        son poids en % du CA, et la comparaison avec N-1 et N-2, lues dans les balances analytiques des
+        exercices clos. En haut de page : le total FX cumulé, le FX du mois et le ratio FX / CA. Une
+        seconde lecture, « Mensuel », donne un mois par colonne.
       </p>
       <p>
         Le tableau se filtre par section et par recherche libre (libellé ou numéro de compte), et un
@@ -394,7 +411,28 @@
         « Quels chantiers perdent de l'argent ? », « Où en est la masse salariale ? ») : l'assistant répond
         en s'appuyant <strong>exclusivement</strong> sur les chiffres calculés par l'application, les mêmes
         que ceux des écrans, au centime. Il ne calcule rien lui-même et n'invente jamais un chiffre : si une
-        donnée n'est pas disponible, il le dit.
+        donnée n'est pas disponible, il le dit. Les questions déjà posées, par qui que ce soit, sont
+        proposées en un clic : les plus fréquentes d'abord, puis les dernières.
+      </p>
+    </div>
+
+    <div class="card">
+      <div class="card-label">Objectifs · le réalisé face aux objectifs du dirigeant</div>
+      <p>
+        Douze indicateurs en % du CA (achats, locations, salaires, sous-traitance paiement direct et
+        paiement Sodobat, intérim, frais généraux…), chacun repris d'une ligne de la Synthèse ou des Frais
+        généraux : aucun calcul à part. La DAF saisit l'objectif annuel de chaque indicateur ; l'écran
+        donne l'écart en points et un statut (bon, bien, à surveiller, mauvais).
+      </p>
+    </div>
+
+    <div class="card">
+      <div class="card-label">Rapprochement · le dialogue avec la DAF</div>
+      <p>
+        Accessible via le menu utilisateur. Cet écran dit où en est l'application par rapport au tableau de
+        gestion tenu jusqu'ici : ce qui est contrôlé et juste, ce qui a été aligné sur sa présentation, et
+        les points qui appellent sa décision, chacun avec une zone de réponse enregistrée et lisible de
+        tous.
       </p>
     </div>
 
@@ -442,12 +480,16 @@
           <div class="step-d">Écran Mapping : affecter chaque nouveau compte à sa ligne de gestion. Le choix vaut pour tous les mois suivants.</div>
         </li>
         <li>
-          <div class="step-t">Saisir les travaux en cours</div>
-          <div class="step-d">Écran Chantiers : renseigner la colonne Provision (TEC) pour les chantiers concernés. Les valeurs restent en brouillon, modifiables jusqu'à la clôture.</div>
+          <div class="step-t">Saisir les prévisions</div>
+          <div class="step-d">Écran Chantiers : chaque entité renseigne la ligne Prévision (TEC) de ses chantiers. Les valeurs restent en brouillon, modifiables, jusqu'à la validation du mois.</div>
         </li>
         <li>
-          <div class="step-t">Vérifier la Synthèse</div>
-          <div class="step-d">Un dernier regard sur les indicateurs et les alertes actives : le tableau de bord est à jour pour tout le monde.</div>
+          <div class="step-t">Passer les prévisions en comptabilité</div>
+          <div class="step-d">La DAF transmet les prévisions au cabinet ; la balance analytique corrigée est réimportée. L'encart « Validation du mois » montre l'écart restant, chantier par chantier.</div>
+        </li>
+        <li>
+          <div class="step-t">Valider le mois</div>
+          <div class="step-d">Écart nul : la DAF clique « Valider le mois ». Toutes les saisies se figent, la Synthèse et les Chantiers disent le même résultat, le tableau de bord est à jour pour tout le monde.</div>
         </li>
       </ol>
     </div>
@@ -492,6 +534,10 @@
       </table>
     </div>
 
+    <p>Les alertes nées des balances analytiques des exercices clos (importées pour les colonnes N-1 et N-2)
+    sont rangées à part sur la page Alertes, hors compteur : elles disent ce qui reste hors de ces colonnes,
+    sans appeler d'action ce mois-ci.</p>
+
     <p>Toutes les alertes se gèrent depuis la page <strong>Alertes</strong> (menu utilisateur en haut à droite,
     ou lien « Gérer » sur la carte de la Synthèse). Pour chaque alerte ouverte : un bouton d'action contextuel
     (affecter dans Mapping, marquer comme traitée / comme normal). Une alerte traitée <strong>ne revient pas</strong>
@@ -515,7 +561,7 @@
 
     <div class="table-wrap">
       <table>
-        <thead><tr><th>Rôle</th><th>Consulter les tableaux</th><th>Importer &amp; valider</th><th>Saisir provisions &amp; notes</th><th>Gérer le mapping</th></tr></thead>
+        <thead><tr><th>Rôle</th><th>Consulter les tableaux</th><th>Saisir prévisions &amp; notes</th><th>Figer, valider le mois</th><th>Importer, mapping, objectifs</th></tr></thead>
         <tbody>
           <tr>
             <td><span class="tag blue">Admin</span></td>
@@ -526,6 +572,10 @@
             <td>Oui</td><td>Oui</td><td>Oui</td><td>Oui</td>
           </tr>
           <tr>
+            <td><span class="tag amber">Saisie</span></td>
+            <td>Oui</td><td>Oui, sur son entité</td><td>-</td><td>-</td>
+          </tr>
+          <tr>
             <td><span class="tag gray">Lecteur</span></td>
             <td>Oui</td><td>-</td><td>-</td><td>-</td>
           </tr>
@@ -534,8 +584,10 @@
     </div>
 
     <p style="font-size:13.5px; color:var(--gray2);">
-      Les profils Lecteur (dirigeants, associés) voient exactement les mêmes chiffres que la DAF, en temps réel,
-      sans pouvoir les modifier. L'Assistant IA leur est aussi ouvert. Les écrans Imports et Mapping sont
+      Le profil <strong>Saisie</strong> est celui des entités : il entre les prévisions, les notes et le statut
+      de ses chantiers, en brouillon ; figer une valeur, la rouvrir ou valider le mois reste à la DAF. Les
+      profils Lecteur (dirigeants, associés) voient exactement les mêmes chiffres que la DAF, en temps réel,
+      sans pouvoir les modifier. L'Assistant IA est ouvert à tous. Les écrans Imports, Mapping et Alertes sont
       réservés aux profils admin et DAF, y compris en tapant l'adresse directement. La session reste ouverte
       7 jours ; la déconnexion se fait via le menu utilisateur en haut à droite.
     </p>
