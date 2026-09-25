@@ -606,7 +606,7 @@ export const synthese: NomenclatureLine[] = [
     kind: "poste",
     hidden: true,
     accounts: [
-      "62263000", "62260000", "62262000", "62270000", "62280000", "62280100",
+      "62263000", "62263100", "62260000", "62262000", "62270000", "62280000", "62280100",
     ],
     notes: "Codes U et V",
   },
@@ -953,6 +953,17 @@ export const chantier: NomenclatureLine[] = [
 
   // ▸ CHARGES D'EXPLOITATION
   {
+    code: "cha_produits_divers",
+    view: "chantier",
+    section: CHA.produits,
+    label: "Autres produits chantier (indemnités, différences de règlement)",
+    kind: "poste",
+    sign: -1,
+    accounts: ["75800000", "75870000"],
+    notes:
+      "Codes ZW — indemnités d'assurance et produits divers imputés à un chantier : hors CA HT total, dans le résultat (réponse de la DAF au point 9, 25 septembre 2026)",
+  },
+  {
     code: "cha_achats_mp",
     view: "chantier",
     section: CHA.exploitation,
@@ -1228,7 +1239,7 @@ export const chantier: NomenclatureLine[] = [
     label: "Honoraire chantier / Gardiennage",
     kind: "poste",
     accounts: [
-      "62261000", "62820000", "62260000", "62262000", "62263000", "62270000",
+      "62261000", "62820000", "62260000", "62262000", "62263000", "62263100", "62270000",
       "62280000", "62280100",
     ],
     notes:
@@ -1288,6 +1299,7 @@ export const chantier: NomenclatureLine[] = [
       op: "sum",
       operands: [
         { code: "cha_ca_total", sign: 1 },
+        { code: "cha_produits_divers", sign: 1 },
         { code: "cha_total_exploitation", sign: -1 },
         { code: "cha_total_personnel", sign: -1 },
       ],
@@ -1414,33 +1426,41 @@ export const fx: NomenclatureLine[] = [
   },
 
   // ▸ HONORAIRES
+  // Code U — la DAF crée deux comptes depuis le début de l'exercice (réponse du
+  // 25 septembre 2026) : 62263000 honoraires de management SDG, 62263100 NJW.
+  // Tant que les balances rééditées ne sont pas importées, tout est sur SDG.
   {
-    code: "fx_honoraires_management",
+    code: "fx_honoraires_sdg",
     view: "fx",
     section: FX.honoraires,
-    label: "Honoraires management (SDG + NJW)",
+    label: "Honoraires management SDG (holding)",
     kind: "poste",
-    hidden: true,
     accounts: ["62263000"],
-    notes:
-      "Code U — un seul compte Sodobat pour deux natures ; ventilé manuellement entre SDG et NJW",
+    notes: "Code U — compte 62263000",
   },
   {
     code: "fx_honoraires_njw",
     view: "fx",
     section: FX.honoraires,
-    label: "Honoraires NJW",
-    kind: "manual",
-    formula: { op: "manual", field: "ventilation", subKey: "NJW" },
-    notes: "Part NJW saisie par la DAF (brouillon → figé) ; le solde va en SDG",
+    label: "Honoraires management NJW",
+    kind: "poste",
+    accounts: ["62263100"],
+    notes: "Code U — compte 62263100, créé par la DAF en septembre 2026",
   },
   {
-    code: "fx_honoraires_sdg",
+    code: "fx_honoraires_management",
     view: "fx",
     section: FX.honoraires,
-    label: "Honoraires SDG (holding)",
-    kind: "computed",
-    formula: { op: "diff", a: "fx_honoraires_management", b: "fx_honoraires_njw" },
+    label: "Honoraires management (SDG + NJW)",
+    kind: "subtotal",
+    hidden: true,
+    formula: {
+      op: "sum",
+      operands: [
+        { code: "fx_honoraires_sdg", sign: 1 },
+        { code: "fx_honoraires_njw", sign: 1 },
+      ],
+    },
   },
   {
     code: "fx_honoraires_divers",
