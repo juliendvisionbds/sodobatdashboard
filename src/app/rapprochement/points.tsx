@@ -493,11 +493,4 @@ export const FICHIERS = [
     tag: "points 2 à 9",
     tone: "warn" as Tone,
   },
-  {
-    nom: "Les objectifs annuels du dirigeant, validés",
-    pourquoi:
-      "L'écran Objectifs porte aujourd'hui vos ratios réalisés 2025/26, saisis en brouillon, et non les objectifs. La colonne « OBJECTIF FRED » de votre synthèse (achats 15 %, location externe 10 %, EasyMat 7 %, salaires production 8 %, sédentaires 7 %, sous-traitants 41 %, intérim 15 %, eau 1 %) est saisie en cinq minutes une fois confirmée.",
-    tag: "objectifs",
-    tone: "warn" as Tone,
-  },
 ];
