@@ -1198,14 +1198,24 @@ export const chantier: NomenclatureLine[] = [
     code: "cha_honoraires",
     view: "chantier",
     section: CHA.personnel,
-    label: "Honoraire chantier / Gardiennage / Déplacements",
+    label: "Honoraire chantier / Gardiennage",
     kind: "poste",
     accounts: [
       "62261000", "62820000", "62260000", "62262000", "62263000", "62270000",
-      "62280000", "62280100", ...DEPLACEMENTS_RECEPTIONS,
+      "62280000", "62280100",
     ],
     notes:
-      "Code J — la colonne « Honoraires chantier - Gardiennage » du tableau de gestion couvre la plage 62261 → 6282 : honoraires divers (V), management (U), déplacements et réceptions (I) imputés à un chantier",
+      "Code J — les honoraires divers (V) et de management (U) imputés à un chantier sont rattachés ici",
+  },
+  {
+    code: "cha_deplacements",
+    view: "chantier",
+    section: CHA.personnel,
+    label: "Déplacements / Réceptions / Péages",
+    kind: "poste",
+    accounts: DEPLACEMENTS_RECEPTIONS,
+    notes:
+      "Code I — la colonne « Honoraires chantier - Gardiennage » du tableau de gestion les comptait avec les honoraires (plage 62261 → 6282) ; la DAF préfère deux lignes (24 septembre 2026)",
   },
   {
     code: "cha_total_personnel",
@@ -1227,6 +1237,7 @@ export const chantier: NomenclatureLine[] = [
         { code: "cha_autres_personnel", sign: 1 },
         { code: "cha_interim", sign: 1 },
         { code: "cha_honoraires", sign: 1 },
+        { code: "cha_deplacements", sign: 1 },
       ],
     },
   },
@@ -1316,6 +1327,15 @@ export const chantier: NomenclatureLine[] = [
         { code: "cha_ca_total", sign: 1 },
       ],
     },
+  },
+  {
+    code: "cha_cumul_dont_previsions",
+    view: "chantier",
+    section: CHA.cumuls,
+    label: "dont prévisions en cours",
+    kind: "computed",
+    notes:
+      "Prévision encore ouverte à la fin du mois : prévisions posées moins reprises, depuis l'ouverture du chantier. Le cumul de facturation la comprend (réponse de la DAF au point 4).",
   },
   {
     code: "cha_cumul_charges",

@@ -94,7 +94,11 @@ const BLOCS: Bloc[] = [
     app: ["cha_locations", "cha_entretien"],
   },
   { label: "Déchets", daf: (r) => n(r[COL.dechets]), app: ["cha_dechets"] },
-  { label: "Honoraires / gardiennage", daf: (r) => n(r[COL.honoraires]), app: ["cha_honoraires"] },
+  {
+    label: "Honoraires / gardiennage",
+    daf: (r) => n(r[COL.honoraires]),
+    app: ["cha_honoraires", "cha_deplacements"],
+  },
   { label: "Intérims", daf: (r) => n(r[COL.interims]), app: ["cha_interim"] },
   {
     label: "Salaires et charges (63-64)",

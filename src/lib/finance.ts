@@ -994,6 +994,16 @@ export async function getChantiers(
         ouvertureVec((o) => o.facturation - o.resultat),
       ]),
     ],
+    // Prévision encore ouverte à la fin du mois : ce qui reste des prévisions
+    // posées après leurs reprises, mois passés compris, saisie du mois incluse.
+    [
+      CHANTIER_CODES.cumulDontPrevisions,
+      sumVectors(columns, [
+        cumulBefore.get(CHANTIER_CODES.provision),
+        monthlyLeaves.get(CHANTIER_CODES.provision),
+        annulationVec,
+      ]),
+    ],
   ]);
 
   const values = evaluate(mapper.lines, columns, monthlyLeaves, { provided });

@@ -26,6 +26,7 @@ export const CHANTIER_CODES = {
   cumulResultat: "cha_cumul_resultat",
   cumulFacturation: "cha_cumul_facturation",
   cumulCharges: "cha_cumul_charges",
+  cumulDontPrevisions: "cha_cumul_dont_previsions",
   note: "cha_note",
   statut: "cha_statut",
 } as const;
