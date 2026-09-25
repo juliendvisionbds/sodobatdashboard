@@ -476,6 +476,46 @@ export const POINTS: Point[] = [
     ),
     ask: "Cette imputation sur FX est-elle volontaire ? Si la provision doit revenir aux chantiers, faut-il une écriture de reclassement en comptabilité, ou la saisir chantier par chantier dans l'application ? Et pour juillet, les provisions sont-elles à venir dans un export corrigé ?",
   },
+  {
+    key: "c15",
+    n: 15,
+    title: "Les prévisions saisies doivent-elles entrer dans la Synthèse ?",
+    stake: "à trancher — deux lectures possibles, une heure de réglage",
+    tone: "warn",
+    body: (
+      <>
+        <p>
+          Vous saisissez le compte 713 après les imports, et vous souhaitez que ces prévisions se
+          retrouvent dans la Synthèse comme dans la vue Chantiers. Aujourd&apos;hui
+          l&apos;application fait autrement, et nous préférons vous exposer les deux lectures
+          plutôt que de choisir à votre place.
+        </p>
+        <div className="doc-tbl-wrap">
+          <table className="doc-tbl">
+            <tbody>
+              <tr><th></th><th>A · Synthèse comptable (aujourd&apos;hui)</th><th>B · Synthèse de gestion (votre demande)</th></tr>
+              <tr><td>Ligne « Prévision M »</td><td>le 713 tel que comptabilisé</td><td>la prévision saisie, chantier par chantier, à la place du 713 comptable, comme dans Chantiers</td></tr>
+              <tr><td>Résultat net</td><td>celui de la balance générale</td><td>celui de votre tableau : « résultat de gestion »</td></tr>
+              <tr><td>Où se lit l&apos;écart</td><td>lignes « Prévisions saisies non comptabilisées » et « Résultat de gestion », sous le résultat net</td><td>lignes « Résultat BG comptable » et « Ctrl », comme dans votre onglet Synthèse</td></tr>
+              <tr><td>Quand le cabinet a passé les 713</td><td colSpan={2}>les deux lectures se confondent ; c&apos;est ce que vérifie le bouton « Valider le mois »</td></tr>
+              <tr><td>Chantiers et Synthèse</td><td>diffèrent tant que les 713 ne sont pas comptabilisés, l&apos;écart est affiché</td><td>disent la même chose dès la saisie</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p>
+          Notre raisonnement pour A : le résultat net reste celui de la comptabilité, et rien
+          n&apos;y entre qui ne soit une écriture ; vos saisies se lisent juste en dessous, sans
+          être mélangées à la balance. Votre raisonnement pour B, tel que nous le comprenons :
+          la Synthèse est votre tableau de gestion, ses chiffres doivent être ceux que vous
+          connaissez le mois même, et c&apos;est la ligne « Ctrl » qui dit ce que la comptabilité
+          n&apos;a pas encore passé. Les deux sont défendables ; B est fidèle à votre Excel, A à la
+          balance. Le bouton de validation fonctionne dans les deux cas : il compare toujours saisi
+          et comptabilisé.
+        </p>
+      </>
+    ),
+    ask: "Confirmez-vous la lecture B : la Synthèse reprend vos prévisions saisies, et « Résultat BG comptable » et « Ctrl » portent l'écart avec la comptabilité ? Ou préférez-vous garder la lecture A ? Un mot suffit, le réglage est fait dans l'heure.",
+  },
 ];
 
 export const FICHIERS = [
