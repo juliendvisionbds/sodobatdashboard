@@ -163,36 +163,46 @@ export const POINTS: Point[] = [
   {
     key: "c5",
     n: 5,
-    title: "Les cumuls des chantiers : d'où repartent-ils ?",
-    stake: "1012A : 74 468 € · reformulé le 25 septembre",
+    title: "Les cumuls des chantiers : vos reports restent la base, l'analytique les contrôle",
+    stake: "1012A : 74 468 € · chiffré le 25 septembre",
     tone: "warn",
     body: (
       <>
         <p>
-          Reformulons. Aujourd&apos;hui, le cumul d&apos;un chantier (facturation et résultat depuis
-          son ouverture) repart de vos colonnes de report de l&apos;onglet « TG 11-12 2025 »,
-          arrêtées au 31 octobre 2025, et y ajoute les mois importés depuis novembre. Deux
-          questions concrètes :
+          Vous indiquez vouloir reprendre l&apos;analytique depuis le début du chantier. Avec vos
+          balances analytiques 2023/24 et 2024/25 en base, nous l&apos;avons calculé : pour chacun
+          des 72 chantiers qui ont un report d&apos;ouverture dans votre onglet « TG 11-12 2025 »,
+          le cumul de résultat au 31 octobre 2025 selon ces deux exercices, en regard de votre
+          report.
         </p>
-        <ul>
-          <li>
-            Entre vos onglets « TG 11-12 2025 » et « TG 01 2026 », le report de 1012A Déchetterie
-            Puget augmente de <N>74 468</N> (facturation et résultat), et quatre autres chantiers
-            bougent un peu (1026C −5 000, 1025C −846, 1022B −162, 1006B −130). L&apos;application
-            est partie du premier onglet : faut-il reprendre ces montants corrigés ?
-          </li>
-          <li>
-            Vous indiquez vouloir reprendre l&apos;analytique depuis le début du chantier. Les
-            balances analytiques 2023/24 et 2024/25 sont maintenant en base : pour les chantiers
-            ouverts depuis novembre 2023, le cumul pourrait se recalculer depuis ces balances
-            plutôt que depuis vos reports. Pour les plus anciens, vos reports restent
-            indispensables. Souhaitez-vous ce recalcul ? Il changera les cumuls là où vos reports
-            et la comptabilité ne disent pas la même chose.
-          </li>
-        </ul>
+        <div className="doc-tbl-wrap">
+          <table className="doc-tbl">
+            <tbody>
+              <tr><th>Chantiers</th><th>Nombre</th><th>Lecture</th></tr>
+              <tr><td>Report identique à l&apos;analytique, à 500 € près</td><td>26</td><td className="ok">chantiers ouverts après novembre 2023 : les deux sources disent la même chose</td></tr>
+              <tr><td>Report différent, chantier déjà actif en 2023/24</td><td>45</td><td>le report porte une histoire antérieure à novembre 2023, que l&apos;analytique ne couvre pas</td></tr>
+              <tr><td>Report sans activité sur les deux exercices</td><td>1</td><td>56 · chantier ancien, cumul figé</td></tr>
+              <tr><td>Activité 2023-2025 sans report dans votre tableau</td><td>53</td><td>chantiers terminés que vous ne suivez plus (58, 941C, 969F, 976C, 989D…), 102 436 € de résultat</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p>
+          Conclusion : l&apos;analytique ne peut pas remplacer vos reports, il lui manque tout ce
+          qui précède novembre 2023 pour les deux tiers des chantiers (951D, 52, 985B, 919D, le
+          DEPOT…). Vos reports restent la base des cumuls ; les deux exercices servent de contrôle,
+          et sur les chantiers ouverts depuis novembre 2023 ils vous donnent raison au centime près,
+          sauf deux cas : 1006B, où votre cumul de facturation exclut 80 000 € de prévision (réglé
+          par le point 4), et 1022B, 626 € de résultat.
+        </p>
+        <p>
+          Reste l&apos;ajustement entre vos onglets « TG 11-12 2025 » et « TG 01 2026 » : le report
+          de 1012A Déchetterie Puget augmente de <N>+74 468</N> (facturation et résultat), et quatre
+          chantiers bougent un peu (1026C −5 000, 1025C −846, 1022B −162, 1006B −130).
+          L&apos;application est partie du premier onglet.
+        </p>
       </>
     ),
-    ask: "Reprend-on les reports corrigés de votre onglet de janvier pour 1012A et les quatre autres ? Et voulez-vous que les cumuls des chantiers ouverts depuis novembre 2023 soient recalculés depuis les balances analytiques ?",
+    ask: "Reprend-on les reports corrigés de votre onglet de janvier pour 1012A et les quatre autres ? Et confirmez-vous que vos reports d'ouverture restent la référence des cumuls, l'analytique servant de contrôle ?",
   },
   {
     key: "c6",
