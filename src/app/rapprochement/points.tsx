@@ -347,26 +347,27 @@ export const POINTS: Point[] = [
   {
     key: "c14",
     n: 14,
-    title: "Juin, juillet, août : les prévisions sont à saisir dans l'application",
-    stake: "trois mois à rattraper, dans l'ordre",
-    tone: "warn",
+    title: "Juin, juillet, août : le tableau de gestion qui fait foi est celui de l'application",
+    stake: "réglé le 25 septembre",
+    tone: "ok",
     body: (
       <>
         <p>
-          Vous le confirmez : depuis juin, les tableaux ne sont pas tenus et les prévisions ne
-          sont pas comptabilisées. La provision de juin sur le centre FX et l&apos;absence
-          d&apos;écriture en juillet et août en sont la trace. Le rattrapage se fait dans
-          l&apos;application, mois par mois :
+          Vous le confirmez : depuis juin, les tableaux ne sont plus tenus et les prévisions ne
+          sont pas comptabilisées ; la provision de juin sur le centre FX et l&apos;absence
+          d&apos;écriture en juillet et août en sont la trace. Il n&apos;y aura pas de tableau de
+          gestion sorti de votre côté pour ces mois : celui de l&apos;application fait foi, et le
+          rattrapage s&apos;y fait mois par mois.
         </p>
         <ul>
-          <li>les dirigeants saisissent leurs prévisions de juin dans la vue Chantiers (le mois est ouvert à la saisie) ;</li>
+          <li>les dirigeants saisissent leurs prévisions de juin dans la vue Chantiers, ouverte à la saisie ;</li>
           <li>vous les passez en comptabilité, ventilées par chantier, et réexportez juin ;</li>
           <li>l&apos;encart « Validation du mois » tombe à zéro, vous validez juin ;</li>
-          <li>puis juillet, puis août.</li>
+          <li>puis juillet, puis août, de la même façon.</li>
         </ul>
       </>
     ),
-    ask: "Rien à trancher : à qui demandez-vous de saisir juin, et quand ? Bob a déjà son accès.",
+    ask: "Rien à trancher : l'application est prête, à vous et aux dirigeants de dérouler.",
   },
   {
     key: "c15",
@@ -399,13 +400,6 @@ export const FICHIERS = [
     pourquoi:
       "Honoraires de management sur deux comptes (62263000 SDG, 62263100 NJW), intérim et honoraires chantier retirés du centre FX, honoraires chantier saisis à tort en management. Un import par mois corrigé.",
     tag: "points 8 et 9",
-    tone: "warn" as Tone,
-  },
-  {
-    nom: "Les prévisions de juin, juillet et août, saisies par les dirigeants",
-    pourquoi:
-      "Dans la vue Chantiers, mois par mois ; vous les comptabilisez ensuite et validez chaque mois.",
-    tag: "point 14",
     tone: "warn" as Tone,
   },
   {
