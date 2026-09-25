@@ -5,6 +5,7 @@ import AppHeader from "@/components/AppHeader";
 import { getEntityByCode, getSynthese, listVentileePeriods } from "@/lib/views";
 import { fmtEurAuto, fmtPct, monthLabel, monthLabelLong, splitAutoEur } from "@/lib/format";
 import MonthSelect from "@/components/MonthSelect";
+import { currentFiscalCutoff, splitAlerts } from "@/lib/alerts";
 import SyntheseTable from "./SyntheseTable";
 
 export const dynamic = "force-dynamic";
@@ -19,15 +20,17 @@ export default async function SynthesePage({
 
   const [periods, { mois }] = await Promise.all([listVentileePeriods(entity), searchParams]);
   const period = mois && periods.includes(mois) ? mois : undefined;
-  const [data, openAlerts] = await Promise.all([
+  const [data, allOpenAlerts, cutoff] = await Promise.all([
     getSynthese(entity, { period }),
     db
       .select()
       .from(tables.alerts)
       .where(and(eq(tables.alerts.entityId, entity.id), eq(tables.alerts.status, "open")))
-      .orderBy(desc(tables.alerts.severity), desc(tables.alerts.createdAt))
-      .limit(6),
+      .orderBy(desc(tables.alerts.severity), desc(tables.alerts.createdAt)),
+    currentFiscalCutoff(entity.id),
   ]);
+  // Les alertes des exercices clos (imports annuels) restent hors du compteur.
+  const openAlerts = splitAlerts(allOpenAlerts, cutoff).current.slice(0, 6);
   const isLatestPeriod = !data || data.period === periods[0];
 
   if (!data) {

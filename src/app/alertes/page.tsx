@@ -4,6 +4,7 @@ import { db, tables } from "@/db";
 import AppHeader from "@/components/AppHeader";
 import { getEntityByCode } from "@/lib/finance";
 import { canWrite, getSession } from "@/lib/auth";
+import { currentFiscalCutoff, splitAlerts } from "@/lib/alerts";
 import { fmtEur, monthLabelLong } from "@/lib/format";
 import { forgetAlertAction, resolveAlertAction } from "@/app/actions";
 
@@ -51,11 +52,15 @@ export default async function AlertesPage() {
   const session = await getSession();
   const writer = !!session && canWrite(session);
 
-  const open = await db
+  const allOpen = await db
     .select()
     .from(tables.alerts)
     .where(and(eq(tables.alerts.entityId, entity.id), eq(tables.alerts.status, "open")))
     .orderBy(desc(tables.alerts.severity), desc(tables.alerts.createdAt));
+  // Les alertes des exercices clos (balances annuelles N-1 / N-2) se lisent à
+  // part : elles disent ce qui reste hors des colonnes N-1 et N-2 des frais
+  // généraux, sans appeler d'action ce mois-ci.
+  const { current: open, closedYears } = splitAlerts(allOpen, await currentFiscalCutoff(entity.id));
 
   const resolved = await db
     .select()
@@ -160,6 +165,47 @@ export default async function AlertesPage() {
             </div>
           );
         })}
+
+        {closedYears.length > 0 && (
+          <div className="card" style={{ marginBottom: 20 }}>
+            <div className="card-label">Exercices clos ({closedYears.length}) · hors compteur</div>
+            <p style={{ fontSize: 12.5, color: "var(--gray2)", margin: "10px 0 4px" }}>
+              Comptes sans ligne dans les balances analytiques des exercices antérieurs, importées
+              pour les colonnes N-1 et N-2 des frais généraux. Leurs montants restent hors de ces
+              colonnes ; aucune écriture n&apos;est à corriger, le point 13 du Rapprochement les
+              décrit.
+            </p>
+            {closedYears.map((a) => (
+              <div
+                key={a.id}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 12,
+                  padding: "8px 0",
+                  borderBottom: "1px solid var(--gray5)",
+                  fontSize: 12.5,
+                }}
+              >
+                <div style={{ flex: "1 1 320px" }}>
+                  <span style={{ color: "var(--gray1)" }}>{a.title}</span>
+                  <span style={{ color: "var(--gray3)" }}>
+                    {a.period ? ` · exercice ${monthLabelLong(String(a.period))}` : ""}
+                    {a.amount ? ` · ${fmtEur(Number(a.amount))}` : ""}
+                  </span>
+                </div>
+                {writer && (
+                  <form action={resolveAlertAction}>
+                    <input type="hidden" name="alertId" value={a.id} />
+                    <button type="submit" className="btn secondary" style={{ padding: "5px 10px", fontSize: 12 }}>
+                      Marquer comme traitée
+                    </button>
+                  </form>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
 
         {resolved.length > 0 && (
           <div className="card">

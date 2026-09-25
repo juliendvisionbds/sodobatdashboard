@@ -8,6 +8,7 @@ import { z } from "zod";
 import { and, desc, eq } from "drizzle-orm";
 import { db, tables } from "@/db";
 import { Entity, getChantiers, getFx, getSynthese } from "./finance";
+import { currentFiscalCutoff, splitAlerts } from "./alerts";
 import { monthLabelLong } from "./format";
 import { CHANTIER_CODES } from "./nomenclature/codes";
 
@@ -194,14 +195,17 @@ export function buildAssistantTools(entity: Entity) {
         "mois sans données, écarts de contrôle. Montants en euros.",
       inputSchema: z.object({}),
       execute: async () => {
-        const rows = await db
-          .select()
-          .from(tables.alerts)
-          .where(
-            and(eq(tables.alerts.entityId, entity.id), eq(tables.alerts.status, "open"))
-          )
-          .orderBy(desc(tables.alerts.createdAt))
-          .limit(50);
+        const cutoff = await currentFiscalCutoff(entity.id);
+        const rows = splitAlerts(
+          await db
+            .select()
+            .from(tables.alerts)
+            .where(
+              and(eq(tables.alerts.entityId, entity.id), eq(tables.alerts.status, "open"))
+            )
+            .orderBy(desc(tables.alerts.createdAt)),
+          cutoff
+        ).current.slice(0, 50);
 
         if (rows.length === 0) return { alertesOuvertes: 0, detail: [] };
         return {
