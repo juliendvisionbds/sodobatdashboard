@@ -2,10 +2,10 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq, inArray, isNull } from "drizzle-orm";
 import { db, tables } from "@/db";
 import { canFiger, canSaisir, canWrite, getSession, login, logout, ownsEntity } from "@/lib/auth";
-import { getEntityByCode } from "@/lib/finance";
+import { getEntityByCode, getPrevisionControl } from "@/lib/finance";
 import type { ManualField } from "@/lib/nomenclature/types";
 import {
   assignAccountToCategory,
@@ -290,6 +290,73 @@ export async function saveManualEntryAction(formData: FormData) {
       updatedBy: session.email,
     });
   }
+  revalidatePath("/", "layout");
+}
+
+// ── Validation du mois ───────────────────────────────────────────────────────
+
+/**
+ * La DAF valide le tableau de gestion du mois : toutes les saisies du mois
+ * passent en figé d'un bloc, et la validation mémorise le contrôle (prévisions
+ * saisies contre comptabilisées) et les imports sur lesquels elle a porté.
+ */
+export async function validateMonthAction(formData: FormData) {
+  const session = await getSession();
+  if (!session || !canFiger(session)) throw new Error("Seule la DAF peut valider un mois.");
+  const entity = await getEntityByCode(ENTITY);
+  if (!entity) throw new Error("Entité introuvable.");
+  const period = String(formData.get("period") ?? "");
+  if (!/^\d{4}-\d{2}-01$/.test(period)) return;
+
+  const control = await getPrevisionControl(entity, period);
+  if (!control.analytiqueImportId) throw new Error("Aucune balance analytique pour ce mois.");
+  if (!control.ventileeCovers)
+    throw new Error("La balance ventilée de ce mois n'est pas reçue : le résultat comptable manque.");
+
+  await db.transaction(async (tx) => {
+    await tx
+      .update(tables.manualEntries)
+      .set({ status: "final", updatedBy: session.email, updatedAt: new Date() })
+      .where(
+        and(
+          eq(tables.manualEntries.entityId, entity.id),
+          eq(tables.manualEntries.period, period),
+          inArray(tables.manualEntries.field, ["tec_provision", "note", "statut"]),
+          eq(tables.manualEntries.status, "draft")
+        )
+      );
+    const values = {
+      validatedBy: session.email,
+      validatedAt: new Date(),
+      analytiqueImportId: control.analytiqueImportId,
+      ventileeImportId: control.ventileeImportId,
+      ecart: String(control.ecart),
+      resultatComptable: control.resultatComptable == null ? null : String(control.resultatComptable),
+      resultatGestion: control.resultatGestion == null ? null : String(control.resultatGestion),
+      snapshot: control,
+    };
+    await tx
+      .insert(tables.monthValidations)
+      .values({ entityId: entity.id, period, ...values })
+      .onConflictDoUpdate({
+        target: [tables.monthValidations.entityId, tables.monthValidations.period],
+        set: values,
+      });
+  });
+  revalidatePath("/", "layout");
+}
+
+/** Rouvre un mois validé : la validation est retirée, les saisies restent figées (à rouvrir une à une). */
+export async function reopenMonthAction(formData: FormData) {
+  const session = await getSession();
+  if (!session || !canFiger(session)) throw new Error("Seule la DAF peut rouvrir un mois.");
+  const entity = await getEntityByCode(ENTITY);
+  if (!entity) throw new Error("Entité introuvable.");
+  const period = String(formData.get("period") ?? "");
+  if (!/^\d{4}-\d{2}-01$/.test(period)) return;
+  await db
+    .delete(tables.monthValidations)
+    .where(and(eq(tables.monthValidations.entityId, entity.id), eq(tables.monthValidations.period, period)));
   revalidatePath("/", "layout");
 }
 

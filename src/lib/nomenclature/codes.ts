@@ -11,6 +11,8 @@ export const SYNTHESE_CODES = {
   impots: "syn_impots_taxes",
   resultatNet: "syn_resultat_net",
   resultatBg: "syn_resultat_bg",
+  previsionsSaisies: "syn_previsions_saisies",
+  resultatGestion: "syn_resultat_gestion",
   ctrl: "syn_ctrl",
 } as const;
 

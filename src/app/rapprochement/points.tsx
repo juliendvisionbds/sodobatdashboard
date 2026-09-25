@@ -76,9 +76,18 @@ export const POINTS: Point[] = [
           dans votre tableau. Le total des produits est identique — <N>2 866 085</N>{" "}— seule la
           colonne change.
         </p>
+        <p>
+          <strong>Depuis le 25 septembre</strong>, votre réponse est mise en œuvre : chaque entité
+          saisit ses prévisions dans la vue Chantiers ; un encart « Validation du mois » vous
+          montre, chantier par chantier, les prévisions saisies contre le compte 713 comptabilisé,
+          et donc l&apos;écart entre le résultat de gestion et le résultat de la balance générale.
+          Une fois les prévisions passées en comptabilité, l&apos;écart est nul et vous validez le
+          mois d&apos;un bouton : tout se fige. La Synthèse porte la même lecture, avec une ligne
+          « Prévisions saisies non comptabilisées » et un « Résultat de gestion ».
+        </p>
       </>
     ),
-    ask: "Ces provisions seront-elles passées en comptabilité, ou préférez-vous les saisir directement dans l'application ? Les lignes « Prévision M » et « Annulation M-1 » de l'écran Chantiers sont prévues pour cela, et chaque entité peut désormais y saisir ses prévisions, que vous figez.",
+    ask: "Reste le passé : les prévisions de 964F (100 000, nov.-déc. et janvier), 1019E (30 000, janvier) et 951D (55 053, avril) de votre tableau n'ont jamais été comptabilisées. Les saisit-on dans l'application sur ces mois, ou restent-elles hors comptes ?",
   },
   {
     key: "c3",

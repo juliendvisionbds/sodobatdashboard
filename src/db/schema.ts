@@ -253,6 +253,35 @@ export const rapprochementDecisions = pgTable(
   (t) => [uniqueIndex("rappro_decisions_key").on(t.entityId, t.pointKey)]
 );
 
+// Validation mensuelle du tableau de gestion par la DAF : une fois les
+// prévisions comptabilisées et le contrôle passé, le mois est figé d'un bloc.
+// La validation mémorise les imports sur lesquels elle a porté : si l'un est
+// remplacé ensuite, elle devient caduque et le mois est à revalider.
+export const monthValidations = pgTable(
+  "month_validations",
+  {
+    id: serial("id").primaryKey(),
+    entityId: integer("entity_id")
+      .notNull()
+      .references(() => entities.id),
+    period: date("period").notNull(),
+    validatedBy: text("validated_by").notNull(),
+    validatedAt: timestamp("validated_at").notNull().defaultNow(),
+    analytiqueImportId: integer("analytique_import_id").references(() => imports.id, {
+      onDelete: "set null",
+    }),
+    ventileeImportId: integer("ventilee_import_id").references(() => imports.id, {
+      onDelete: "set null",
+    }),
+    // Contrôle au moment de la validation : prévisions saisies − comptabilisées.
+    ecart: numeric("ecart", { precision: 14, scale: 2 }).notNull().default("0"),
+    resultatComptable: numeric("resultat_comptable", { precision: 14, scale: 2 }),
+    resultatGestion: numeric("resultat_gestion", { precision: 14, scale: 2 }),
+    snapshot: jsonb("snapshot"),
+  },
+  (t) => [uniqueIndex("month_validations_key").on(t.entityId, t.period)]
+);
+
 export const alerts = pgTable(
   "alerts",
   {

@@ -795,6 +795,33 @@ export const synthese: NomenclatureLine[] = [
     kind: "ratio",
     formula: { op: "ratio", num: "syn_resultat_net", den: "syn_ca_total" },
   },
+  // Le résultat net reste celui de la balance générale. Les prévisions que les
+  // entités saisissent dans la vue Chantiers avant que le cabinet ne les passe
+  // en comptabilité s'en distinguent sur une ligne, et le résultat de gestion
+  // les ajoute : c'est l'écart que la DAF contrôle avant de valider le mois.
+  {
+    code: "syn_previsions_saisies",
+    view: "synthese",
+    section: SYN.resultat,
+    label: "Prévisions saisies non comptabilisées",
+    kind: "computed",
+    notes:
+      "Prévisions saisies dans la vue Chantiers moins le compte 71331000 comptabilisé, chantier par chantier. Nul quand le cabinet a passé les mêmes prévisions.",
+  },
+  {
+    code: "syn_resultat_gestion",
+    view: "synthese",
+    section: SYN.resultat,
+    label: "Résultat de gestion (prévisions saisies comprises)",
+    kind: "computed",
+    formula: {
+      op: "sum",
+      operands: [
+        { code: "syn_resultat_net", sign: 1 },
+        { code: "syn_previsions_saisies", sign: 1 },
+      ],
+    },
+  },
   {
     code: "syn_resultat_bg",
     view: "synthese",

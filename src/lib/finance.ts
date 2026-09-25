@@ -1,5 +1,5 @@
 import { cache } from "react";
-import { and, desc, eq, lt, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, lt, sql } from "drizzle-orm";
 import { db, tables } from "@/db";
 import { CentreKind, classifyCentre, fiscalMonths, poleOf } from "./parsers";
 import { Category, loadMapper, type View } from "./mapping";
@@ -505,6 +505,8 @@ const syntheseMemo = cache(async function syntheseMemo(
   const provided = new Map<string, Vector>();
   const resultatBg = bgResult(lines, months);
   provided.set(SYNTHESE_CODES.resultatBg, resultatBg);
+  const previsionsSaisies = await previsionsSaisiesParMois(entity.id, months);
+  provided.set(SYNTHESE_CODES.previsionsSaisies, previsionsSaisies);
 
   const values = evaluate(mapper.lines, columns, leaves, { provided });
 
@@ -524,7 +526,10 @@ const syntheseMemo = cache(async function syntheseMemo(
   };
   const cumulLeaves = new Map([...leaves].map(([code, vec]) => [code, cumulate(vec)]));
   const cumulValues = evaluate(mapper.lines, columns, cumulLeaves, {
-    provided: new Map([[SYNTHESE_CODES.resultatBg, cumulate(resultatBg)]]),
+    provided: new Map([
+      [SYNTHESE_CODES.resultatBg, cumulate(resultatBg)],
+      [SYNTHESE_CODES.previsionsSaisies, cumulate(previsionsSaisies)],
+    ]),
   });
 
   const caTotalVec = values.get(SYNTHESE_CODES.caTotal) ?? {};
@@ -622,6 +627,180 @@ function bgResult(
   }
   vec[TOTAL_COLUMN] = round2(total);
   return vec;
+}
+
+// ── Prévisions saisies, contrôle et validation du mois ───────────────────────
+//
+// Les entités saisissent leurs prévisions (compte 713, travaux en cours) dans
+// la vue Chantiers avant que le cabinet ne les comptabilise. Tant que la balance
+// ne les porte pas, la vue Chantiers et la Synthèse ne disent pas le même
+// résultat : l'écart, chantier par chantier, est ce que la DAF contrôle avant
+// de valider le mois. Il ne porte que sur les chantiers ayant une saisie ; pour
+// les autres, la valeur du fichier fait foi des deux côtés.
+
+/** Crédit du compte 71331000 (prévision du mois) par chantier, dans la balance du mois. */
+async function previsionsComptabilisees(importId: number, kindOf: (code: string) => CentreKind) {
+  const out = new Map<string, { label: string; credit: number }>();
+  for (const l of await analyticLinesOf(importId)) {
+    if (l.account !== "71331000" || kindOf(l.centreCode) !== "chantier") continue;
+    const prev = out.get(l.centreCode);
+    out.set(l.centreCode, {
+      label: prev?.label ?? l.centreLabel,
+      credit: round2((prev?.credit ?? 0) + num(l.credit)),
+    });
+  }
+  return out;
+}
+
+/** Écart prévisions saisies − comptabilisées, mois par mois, pour la Synthèse. */
+const previsionsSaisiesParMois = cache(async function previsionsSaisiesParMois(
+  entityId: number,
+  months: string[]
+): Promise<Vector> {
+  const vec: Vector = Object.fromEntries(months.map((m) => [m, 0]));
+  const saisies = await db
+    .select()
+    .from(tables.manualEntries)
+    .where(
+      and(
+        eq(tables.manualEntries.entityId, entityId),
+        eq(tables.manualEntries.field, "tec_provision"),
+        inArray(tables.manualEntries.period, months)
+      )
+    );
+  const kindOf = await loadCentreKinds(entityId);
+  let total = 0;
+  for (const month of new Set(saisies.map((s) => s.period))) {
+    const imp = await latestValidatedImport(entityId, "analytique", { atPeriod: month });
+    const compta = imp ? await previsionsComptabilisees(imp.id, kindOf) : new Map();
+    let ecart = 0;
+    for (const s of saisies) {
+      if (s.period !== month || !s.centreCode || s.valueNum == null) continue;
+      ecart += num(s.valueNum) - (compta.get(s.centreCode)?.credit ?? 0);
+    }
+    vec[month] = round2(ecart);
+    total += ecart;
+  }
+  vec[TOTAL_COLUMN] = round2(total);
+  return vec;
+});
+
+export type PrevisionControl = {
+  period: string;
+  analytiqueImportId: number | null;
+  ventileeImportId: number | null;
+  /** la balance ventilée reçue couvre-t-elle ce mois ? */
+  ventileeCovers: boolean;
+  /** chantiers ayant une prévision saisie */
+  rows: {
+    centreCode: string;
+    centreLabel: string;
+    saisie: number;
+    comptabilisee: number;
+    ecart: number;
+    status: "draft" | "final";
+    by: string | null;
+  }[];
+  /** total du 713 comptabilisé sur les chantiers, tous chantiers */
+  totalComptabilise: number;
+  totalSaisi: number;
+  ecart: number;
+  resultatComptable: number | null;
+  resultatGestion: number | null;
+};
+
+export async function getPrevisionControl(entity: Entity, period: string): Promise<PrevisionControl> {
+  const [imp, ventilee, kindOf, saisies, synthese] = await Promise.all([
+    latestValidatedImport(entity.id, "analytique", { atPeriod: period }),
+    latestValidatedImport(entity.id, "ventilee"),
+    loadCentreKinds(entity.id),
+    db
+      .select()
+      .from(tables.manualEntries)
+      .where(
+        and(
+          eq(tables.manualEntries.entityId, entity.id),
+          eq(tables.manualEntries.period, period),
+          eq(tables.manualEntries.field, "tec_provision")
+        )
+      ),
+    getSynthese(entity),
+  ]);
+  const compta = imp ? await previsionsComptabilisees(imp.id, kindOf) : new Map<string, { label: string; credit: number }>();
+  const referentiel = await db
+    .select({ code: tables.centres.code, name: tables.centres.name })
+    .from(tables.centres)
+    .where(eq(tables.centres.entityId, entity.id));
+  const names = new Map(referentiel.map((c) => [c.code, c.name]));
+
+  const rows: PrevisionControl["rows"] = [];
+  for (const s of saisies) {
+    if (!s.centreCode || s.valueNum == null) continue;
+    const c = compta.get(s.centreCode);
+    const saisie = num(s.valueNum);
+    rows.push({
+      centreCode: s.centreCode,
+      centreLabel: c?.label ?? names.get(s.centreCode) ?? s.centreCode,
+      saisie,
+      comptabilisee: c?.credit ?? 0,
+      ecart: round2(saisie - (c?.credit ?? 0)),
+      status: s.status as "draft" | "final",
+      by: s.updatedBy,
+    });
+  }
+  rows.sort((a, b) => Math.abs(b.ecart) - Math.abs(a.ecart) || a.centreCode.localeCompare(b.centreCode));
+  const ecart = round2(rows.reduce((t, r) => t + r.ecart, 0));
+  const ventileeCovers = !!ventilee && ventilee.period >= period;
+  const resultatComptable = ventileeCovers
+    ? (synthese?.byCode[SYNTHESE_CODES.resultatNet]?.cells[period] ?? null)
+    : null;
+  return {
+    period,
+    analytiqueImportId: imp?.id ?? null,
+    ventileeImportId: ventileeCovers ? ventilee!.id : null,
+    ventileeCovers,
+    rows,
+    totalComptabilise: round2([...compta.values()].reduce((t, c) => t + c.credit, 0)),
+    totalSaisi: round2(rows.reduce((t, r) => t + r.saisie, 0)),
+    ecart,
+    resultatComptable,
+    resultatGestion: resultatComptable == null ? null : round2(resultatComptable + ecart),
+  };
+}
+
+export type MonthValidation = {
+  validatedBy: string;
+  validatedAt: string;
+  ecart: number;
+  /** encore valable : les imports sur lesquels elle a porté sont toujours ceux du mois */
+  current: boolean;
+  /** pourquoi elle ne l'est plus */
+  staleReason: string | null;
+};
+
+export async function getMonthValidation(
+  entity: Entity,
+  control: PrevisionControl
+): Promise<MonthValidation | null> {
+  const [v] = await db
+    .select()
+    .from(tables.monthValidations)
+    .where(
+      and(eq(tables.monthValidations.entityId, entity.id), eq(tables.monthValidations.period, control.period))
+    );
+  if (!v) return null;
+  const reasons: string[] = [];
+  if (v.analytiqueImportId !== control.analytiqueImportId)
+    reasons.push("la balance analytique du mois a été réimportée");
+  if (v.ventileeImportId !== control.ventileeImportId)
+    reasons.push("la balance ventilée a été réimportée");
+  return {
+    validatedBy: v.validatedBy,
+    validatedAt: new Date(v.validatedAt).toLocaleDateString("fr-FR"),
+    ecart: num(v.ecart),
+    current: reasons.length === 0,
+    staleReason: reasons.length ? reasons.join(" et ") : null,
+  };
 }
 
 // ── Vue Chantiers ────────────────────────────────────────────────────────────
