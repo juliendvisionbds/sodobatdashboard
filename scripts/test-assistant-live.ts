@@ -4,7 +4,7 @@
 // Usage : node --env-file=.env.local --import=tsx scripts/test-assistant-live.ts
 
 import { generateText, stepCountIs } from "ai";
-import { openai } from "@ai-sdk/openai";
+import { openai } from "../src/lib/openai";
 import { getEntityByCode } from "../src/lib/finance";
 import { buildAssistantTools } from "../src/lib/assistant-tools";
 import { ASSISTANT_MODEL, ASSISTANT_SYSTEM_PROMPT } from "../src/lib/assistant";
@@ -17,7 +17,9 @@ const QUESTIONS = [
 ];
 
 async function main() {
-  if (!process.env.OPENAI_API_KEY) throw new Error("OPENAI_API_KEY manquant");
+  if (!process.env.KEYONE_API_KEY && !process.env.OPENAI_API_KEY) {
+    throw new Error("KEYONE_API_KEY (ou OPENAI_API_KEY) manquante");
+  }
   const entity = await getEntityByCode("sodobat");
   if (!entity) throw new Error("Entité sodobat introuvable");
   const tools = buildAssistantTools(entity);

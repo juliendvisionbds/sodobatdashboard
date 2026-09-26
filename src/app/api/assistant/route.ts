@@ -1,4 +1,4 @@
-import { openai } from "@ai-sdk/openai";
+import { openai } from "@/lib/openai";
 import { convertToModelMessages, stepCountIs, streamText, type UIMessage } from "ai";
 import { db, tables } from "@/db";
 import { getSession } from "@/lib/auth";

@@ -76,7 +76,11 @@ c'est son objet. Il ne touche que la colonne `password_hash`.
 
 L'application est déployée sur Vercel, la base est un Postgres Supabase. Vercel
 attend les variables `DATABASE_URL` (chaîne du **session pooler** Supabase, port
-5432), `AUTH_SECRET` et `OPENAI_API_KEY`.
+5432), `AUTH_SECRET` et les trois variables key.one : `KEYONE_API_KEY`,
+`KEYONE_OPENAI_BASE_URL` et `KEYONE_ANTHROPIC_BASE_URL` (voir `.env.example`).
+Elles sont à saisir à la main dans Vercel : l'assistant passe par le proxy
+key.one, qui suit les dépenses IA du projet ; sans `KEYONE_API_KEY`, il retombe
+sur `OPENAI_API_KEY`.
 
 ⚠️ **Sur Vercel, rien ne migre la base automatiquement.** Le build ne lance ni
 `drizzle-kit push` ni le seed : après tout changement de schéma ou de
