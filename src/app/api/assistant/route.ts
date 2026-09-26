@@ -29,7 +29,7 @@ export async function POST(req: Request) {
       .join(" ") ?? "";
 
   const result = streamText({
-    model: openai(ASSISTANT_MODEL),
+    model: openai.chat(ASSISTANT_MODEL),
     system: ASSISTANT_SYSTEM_PROMPT,
     messages: await convertToModelMessages(messages),
     tools: buildAssistantTools(entity),

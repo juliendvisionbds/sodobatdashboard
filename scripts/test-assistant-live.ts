@@ -28,7 +28,7 @@ async function main() {
     console.log(`\n━━━ Q: ${q}`);
     const started = Date.now();
     const result = await generateText({
-      model: openai(ASSISTANT_MODEL),
+      model: openai.chat(ASSISTANT_MODEL),
       system: ASSISTANT_SYSTEM_PROMPT,
       prompt: q,
       tools,
