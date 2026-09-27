@@ -41,7 +41,7 @@ export default async function RapprochementPage() {
       <AppHeader active="rapprochement" fiscalYearStart={2025} />
       <div className="page">
         <div className="page-header">
-          <h1>Rapprochement avec votre tableau de gestion</h1>
+          <h1>Rapprochement</h1>
           <p>
             Ce document est le vôtre. Il dit où en est l&apos;application par rapport à votre
             tableau de gestion, arrêté à mai : ce qui est déjà contrôlé (partie A), ce qui a été
