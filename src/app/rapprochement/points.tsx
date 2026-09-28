@@ -66,26 +66,28 @@ export const POINTS: Point[] = [
   {
     key: "c3",
     n: 3,
-    title: "Des écritures sont reclassées d'un chantier à l'autre",
-    stake: "vous faites vérifier les factures",
-    tone: "warn",
+    title: "Reclassements d'un chantier à l'autre : la comptabilité fait foi",
+    stake: "réglé le 28 septembre",
+    tone: "ok",
     body: (
       <>
         <p>
-          Le total des charges du mois est identique : c&apos;est la répartition entre chantiers
-          qui diffère (1030A → 1029C 12 033 en mars, 906E → 923E 5 295 en avril, 934D → 1029C
-          343, 1043B → 944B 914…). Nous ne vous demandons pas de corriger la comptabilité, mais
-          de dire laquelle des deux sources a raison. Vous faites vérifier les factures : on
-          attend ce retour. Si la comptabilité a raison, il n&apos;y a rien à faire.
+          Votre ancien tableau rangeait certaines écritures sur un autre chantier que la
+          comptabilité (1030A → 1029C 12 033 en mars, 906E → 923E 5 295 en avril, 934D → 1029C
+          343, 1043B → 944B 914…), pour un total du mois identique. La comptabilité fait foi :
+          l&apos;application la suit, comme elle le fait depuis le début, et ces reclassements ne
+          sont pas repris. Si la vérification des factures montre qu&apos;une imputation est fausse,
+          c&apos;est une écriture de reclassement en comptabilité qui la corrige, et l&apos;import
+          suivant la reprend.
         </p>
         <p>
-          52MF = 52 : compris, l&apos;application lit déjà 52MF comme 52. Pour 1034B, 1047A et
-          1036C, rien à faire non plus, l&apos;application les rattache déjà à 1034E, 1047E et
-          1036A ; sur les prochaines écritures, mieux vaut les bons codes.
+          52MF = 52 : l&apos;application lit 52MF comme 52, et 1034B, 1047A, 1036C comme 1034E,
+          1047E, 1036A. Rien à faire de votre côté ; sur les prochaines écritures, mieux vaut les
+          bons codes.
         </p>
       </>
     ),
-    ask: "Après vérification des factures : la comptabilité ou votre tableau a-t-il raison sur ces reclassements ?",
+    ask: "Rien à trancher.",
   },
   {
     key: "c4",
@@ -403,10 +405,9 @@ export const FICHIERS = [
     tone: "warn" as Tone,
   },
   {
-    nom: "Vos réponses aux points 3 et 8",
-    pourquoi:
-      "Le verdict des factures sur les reclassements, et la règle de lissage des amortissements.",
-    tag: "points 3 et 8",
+    nom: "Votre réponse au point 8",
+    pourquoi: "La règle de lissage des amortissements : un douzième de la dotation N-1, recalée sur le réel.",
+    tag: "point 8",
     tone: "warn" as Tone,
   },
 ];
