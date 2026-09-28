@@ -19,49 +19,105 @@ const SUGGESTIONS = [
 ];
 const MAX_SUGGESTIONS = 6;
 
-type ToolInput = { pole?: string; recherche?: string } | undefined;
-type ToolOutput = { erreur?: string; mois?: string; dernierMoisImporte?: string } | undefined;
+type ToolInput = { pole?: string; recherche?: string; mois?: string } | undefined;
+type ToolOutput =
+  | {
+      erreur?: string;
+      mois?: string;
+      dernierMoisImporte?: string;
+      periode?: string;
+      compte?: string;
+    }
+  | undefined;
+
+/** « en mars 2026 » pour un mois demandé au format AAAA-MM, rien sinon. */
+function enMois(mois?: string): string {
+  const m = mois && /^(\d{4})-(\d{2})/.exec(mois);
+  if (!m) return "";
+  const noms = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août",
+    "septembre", "octobre", "novembre", "décembre"];
+  return ` de ${noms[Number(m[2]) - 1] ?? ""} ${m[1]}`;
+}
+
+const withMonth = (path: string, o: ToolOutput, extra = "") =>
+  o?.periode ? `${path}?mois=${o.periode}${extra}` : extra ? `${path}?${extra.slice(1)}` : path;
 
 // Outils de l'assistant (src/lib/assistant-tools.ts) vus par l'utilisateur :
-// ce qu'on affiche pendant la lecture, et l'écran d'où viennent les chiffres.
+// ce qu'on affiche pendant la lecture, et l'écran d'où viennent les chiffres
+// (ouvert sur le mois lu quand l'écran le permet).
 const TOOLS: Record<
   string,
-  { label: string; href: string; doing: (input: ToolInput) => string; done: string }
+  {
+    label: string;
+    done: string;
+    href: (output: ToolOutput) => string;
+    doing: (input: ToolInput) => string;
+  }
 > = {
   synthese: {
     label: "Synthèse",
     done: "Synthèse consultée",
-    href: "/",
+    href: (o) => withMonth("/", o),
     doing: () => "Je consulte la Synthèse",
   },
   chantiers: {
     label: "Chantiers",
     done: "Chantiers consultés",
-    href: "/chantiers",
+    href: (o) => withMonth("/chantiers", o),
     doing: (i) =>
       i?.recherche
-        ? `Je cherche le chantier « ${i.recherche} »`
+        ? `Je cherche le chantier « ${i.recherche} »${enMois(i.mois)}`
         : i?.pole
-          ? `Je consulte les chantiers du pôle ${i.pole}`
-          : "Je consulte les Chantiers",
+          ? `Je consulte les chantiers du pôle ${i.pole}${enMois(i.mois)}`
+          : `Je consulte les Chantiers${enMois(i?.mois)}`,
+  },
+  historique_chantier: {
+    label: "Historique chantier",
+    done: "Historique du chantier consulté",
+    href: () => "/chantiers",
+    doing: (i) => `Je retrace l'historique du chantier « ${i?.recherche ?? ""} »`,
   },
   frais_generaux: {
     label: "Frais généraux",
     done: "Frais généraux consultés",
-    href: "/frais-generaux",
-    doing: () => "Je consulte les Frais généraux",
+    href: (o) => withMonth("/frais-generaux", o),
+    doing: (i) => `Je consulte les Frais généraux${enMois(i?.mois)}`,
+  },
+  frais_generaux_mensuels: {
+    label: "Frais généraux mensuels",
+    done: "Frais généraux mensuels consultés",
+    href: (o) => withMonth("/frais-generaux", o, "&vue=mensuel"),
+    doing: () => "Je consulte les Frais généraux mois par mois",
+  },
+  objectifs: {
+    label: "Objectifs",
+    done: "Objectifs consultés",
+    href: () => "/objectifs",
+    doing: () => "Je compare le réalisé aux objectifs",
+  },
+  compte: {
+    label: "Compte",
+    done: "Compte consulté",
+    href: (o) => (o?.compte ? `/comptes/${o.compte}` : "/comptes"),
+    doing: (i) => `Je cherche le compte « ${i?.recherche ?? ""} »`,
+  },
+  validation_mois: {
+    label: "Clôture du mois",
+    done: "Clôture du mois vérifiée",
+    href: (o) => withMonth("/chantiers", o),
+    doing: (i) => `Je vérifie la clôture du mois${enMois(i?.mois)}`,
   },
   alertes: {
     label: "Alertes",
     done: "Alertes vérifiées",
-    href: "/alertes",
+    href: () => "/alertes",
     doing: () => "Je vérifie les alertes ouvertes",
   },
   imports_disponibles: {
     label: "Imports",
     done: "Imports vérifiés",
-    href: "/imports",
-    doing: () => "Je vérifie les imports disponibles",
+    href: () => "/imports",
+    doing: () => "Je vérifie les mois disponibles",
   },
 };
 
@@ -90,10 +146,8 @@ function currentActivity(m: UIMessage | undefined): string | null {
   const last = parts.at(-1);
   if (!last) return "Je lis votre question";
   if (isToolPart(last)) {
-    if (isRunning(last)) {
-      const t = TOOLS[toolName(last)];
-      return t ? t.doing(last.input as ToolInput) : "Je consulte les données";
-    }
+    // Outil en cours : son étape (avec la roue et le chrono) suffit.
+    if (isRunning(last)) return null;
     return "J'analyse les chiffres";
   }
   if (last.type === "reasoning") return "Je réfléchis";
@@ -103,19 +157,20 @@ function currentActivity(m: UIMessage | undefined): string | null {
 
 /** Sources consultées pour une réponse : un lien par écran, avec le mois lu. */
 function sourcesOf(m: UIMessage) {
+  // Une source par écran et par mois lu : deux mois comparés donnent deux liens.
   const out = new Map<string, { label: string; href: string; mois?: string; failed: boolean }>();
   for (const p of m.parts) {
     if (!isToolPart(p)) continue;
-    const name = toolName(p);
-    const t = TOOLS[name];
+    const t = TOOLS[toolName(p)];
     if (!t) continue;
     const output = p.output as ToolOutput;
     const failed = p.state === "output-error" || !!output?.erreur;
-    const mois = output?.mois ?? output?.dernierMoisImporte;
-    const prev = out.get(name);
-    out.set(name, {
+    const href = t.href(output);
+    const mois = output?.compte ?? output?.mois ?? output?.dernierMoisImporte;
+    const prev = out.get(href);
+    out.set(href, {
       label: t.label,
-      href: t.href,
+      href,
       mois: mois ?? prev?.mois,
       failed: (prev?.failed ?? true) && failed,
     });
@@ -155,6 +210,18 @@ const MD_COMPONENTS: Components = {
     </td>
   ),
 };
+
+/**
+ * Le modèle colle parfois un tableau à la ligne qui le précède (dans une liste
+ * par exemple) : sans ligne vide, le markdown n'y voit pas de tableau. On
+ * ajoute la ligne vide avant toute ligne d'en-tête suivie d'un séparateur…
+ */
+function fixTables(md: string): string {
+  return md
+    .replace(/([^\n])\n(\|[^\n]*\|[ \t]*\n[ \t]*\|[ \t]*:?-{3,})/g, "$1\n\n$2")
+    // …et après la dernière ligne du tableau, sinon le texte suivant en devient une ligne.
+    .replace(/^(\|[^\n]*\|[ \t]*)\n(?=[^|\s])/gm, "$1\n\n");
+}
 
 function useElapsed(running: boolean) {
   const [seconds, setSeconds] = useState(0);
@@ -365,6 +432,9 @@ export default function Chat({
                               : failed
                                 ? `${t?.label ?? "Données"} : lecture impossible`
                                 : (t?.done ?? "Données consultées")}
+                            {running && elapsed >= 5 && (
+                              <span className="chat-elapsed">{elapsed} s</span>
+                            )}
                           </li>
                         );
                       })}
@@ -374,7 +444,7 @@ export default function Chat({
                   {text && (
                     <div className="chat-md">
                       <ReactMarkdown remarkPlugins={[remarkGfm]} components={MD_COMPONENTS}>
-                        {text}
+                        {fixTables(text)}
                       </ReactMarkdown>
                     </div>
                   )}

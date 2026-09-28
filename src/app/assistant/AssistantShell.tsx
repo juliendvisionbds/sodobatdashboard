@@ -88,7 +88,13 @@ export default function AssistantShell({
     setStarted({ id: chatId, title: titleFrom(question), updatedAt: new Date().toISOString() });
   };
 
-  const onAnswered = () => startTransition(() => router.refresh());
+  // Relit l'historique (ordre, titres) après chaque réponse. Pas pour une
+  // conversation neuve : l'adresse est passée de /assistant à /assistant/<id>
+  // et un rafraîchissement remonterait tout le chat, brouillon en cours compris ;
+  // elle est déjà affichée en tête de liste.
+  const onAnswered = () => {
+    if (savedId) startTransition(() => router.refresh());
+  };
 
   const remove = async (id: string) => {
     setRemoved((s) => new Set(s).add(id));

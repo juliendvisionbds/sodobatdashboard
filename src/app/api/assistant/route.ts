@@ -13,7 +13,12 @@ import { db, tables } from "@/db";
 import { getSession } from "@/lib/auth";
 import { getEntityByCode } from "@/lib/finance";
 import { buildAssistantTools } from "@/lib/assistant-tools";
-import { ASSISTANT_MODEL, ASSISTANT_SYSTEM_PROMPT } from "@/lib/assistant";
+import {
+  ASSISTANT_MODEL,
+  ASSISTANT_PROVIDER_OPTIONS,
+  assistantSystemPrompt,
+} from "@/lib/assistant";
+import * as views from "@/lib/views";
 import {
   CONVERSATION_ID,
   ensureConversation,
@@ -102,7 +107,7 @@ export async function POST(req: Request) {
   else await saveMessage(conversationId, userMessage);
   const history = [...(at >= 0 ? stored.slice(0, at) : stored), userMessage];
 
-  const tools = buildAssistantTools(entity);
+  const tools = buildAssistantTools(entity, views);
   let messages: UIMessage[];
   try {
     messages = await validateUIMessages({
@@ -122,7 +127,8 @@ export async function POST(req: Request) {
   const started = Date.now();
   const result = streamText({
     model: openai.chat(ASSISTANT_MODEL),
-    system: ASSISTANT_SYSTEM_PROMPT,
+    system: assistantSystemPrompt(),
+    providerOptions: ASSISTANT_PROVIDER_OPTIONS,
     // Une réponse arrêtée par l'utilisateur pendant la lecture d'un outil laisse
     // un appel sans résultat : on l'ignore pour que la question suivante passe.
     messages: await convertToModelMessages(messages, { ignoreIncompleteToolCalls: true }),
