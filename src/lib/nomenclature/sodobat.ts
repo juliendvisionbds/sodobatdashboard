@@ -712,6 +712,19 @@ export const synthese: NomenclatureLine[] = [
     kind: "poste",
     notes: "Salaires et charges imputés aux centres de structure",
   },
+  // Les dotations aux amortissements ne sont comptabilisées qu'une ou deux fois
+  // par exercice, en bloc. La DAF les lit lissées : la ligne reçoit chaque mois
+  // une part égale du cumul comptabilisé, et, pour les mois que la comptabilité
+  // n'a pas encore couverts, un douzième de la dotation de l'exercice précédent.
+  {
+    code: "syn_fx_dotations",
+    view: "synthese",
+    section: SYN.fx,
+    label: "Dotations aux amortissements (lissées)",
+    kind: "computed",
+    notes:
+      "Compte 68112000 lissé : cumul comptabilisé réparti à parts égales sur les mois qu'il couvre, puis un douzième de la dotation N-1 par mois en attendant l'écriture suivante.",
+  },
   {
     code: "syn_autres_charges",
     view: "synthese",
@@ -754,6 +767,7 @@ export const synthese: NomenclatureLine[] = [
         { code: "syn_fx_edf_eau_structure", sign: 1 },
         { code: "syn_fx_carburant_structure", sign: 1 },
         { code: "syn_fx_ms_structure", sign: 1 },
+        { code: "syn_fx_dotations", sign: 1 },
         { code: "syn_autres_charges", sign: 1 },
         { code: "syn_resultat_sep", sign: 1 },
       ],
@@ -833,14 +847,31 @@ export const synthese: NomenclatureLine[] = [
       "Résultat issu directement de la balance générale (produits − charges), calculé hors nomenclature — validation croisée",
   },
   {
+    code: "syn_dap_comptabilisee",
+    view: "synthese",
+    section: SYN.resultat,
+    label: "Dotations et provisions comptabilisées",
+    kind: "poste",
+    hidden: true,
+    accounts: ["68112000", "68174000", "78174000"],
+    cumulative: true,
+    notes: "Code ZY — ce que la comptabilité a passé, avant lissage",
+  },
+  {
     code: "syn_retraitement_dap",
     view: "synthese",
     section: SYN.resultat,
     label: "Retraitement DAP",
-    kind: "poste",
-    accounts: ["68112000", "68174000", "78174000"],
-    cumulative: true,
-    notes: "Code ZY — cumul depuis l'ouverture, valeur mensuelle par différence",
+    kind: "computed",
+    formula: {
+      op: "sum",
+      operands: [
+        { code: "syn_dap_comptabilisee", sign: 1 },
+        { code: "syn_fx_dotations", sign: -1 },
+      ],
+    },
+    notes:
+      "Dotations et provisions comptabilisées moins les dotations lissées déjà comptées en frais généraux : l'écart que le lissage laisse avec la comptabilité.",
   },
   {
     code: "syn_retraitement_vnc",
@@ -860,7 +891,7 @@ export const synthese: NomenclatureLine[] = [
     kind: "computed",
     formula: { op: "diff", a: "syn_resultat_net", b: "syn_resultat_bg" },
     notes:
-      "Le résultat du TG exclut les dotations et la VNC : cet écart doit donc être nul ou exactement égal à Retraitement DAP + Retraitement VNC. Toute autre valeur est une anomalie.",
+      "Le résultat du TG lisse les dotations et exclut la VNC : cet écart doit donc être nul ou exactement égal à Retraitement DAP + Retraitement VNC. Toute autre valeur est une anomalie.",
   },
   {
     code: "syn_notes",
@@ -1687,11 +1718,11 @@ export const fx: NomenclatureLine[] = [
     code: "fx_dotations",
     view: "fx",
     section: FX.generaux,
-    label: "Dotations aux amortissements",
+    label: "Dotations aux amortissements (lissées)",
     kind: "poste",
     accounts: ["68112000"],
     cumulative: true,
-    notes: "Code ZY — cumul depuis l'ouverture, valeur mensuelle par différence",
+    notes: "Code ZY — lissées sur l'exercice en cours, comme dans la Synthèse ; N-1 et N-2 sont les dotations de l'exercice entier",
   },
   {
     code: "fx_vnc",

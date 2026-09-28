@@ -91,7 +91,7 @@ async function main() {
     `calculé ${fmt(resultatBg)} vs fichier ${fmt(fileResultat ?? 0)}`
   );
 
-  // Le résultat du TG exclut délibérément les dotations et la VNC : l'écart avec
+  // Le résultat du TG lisse les dotations et exclut la VNC : l'écart avec
   // le résultat comptable doit donc être exactement égal à ces retraitements
   // (« Ctrl doit être 0 ou lié aux DAP », maquette § Résultat final & contrôles).
   const ctrl = synthese.byCode[SYNTHESE_CODES.ctrl]?.total ?? 0;

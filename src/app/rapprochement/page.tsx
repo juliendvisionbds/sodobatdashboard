@@ -44,11 +44,12 @@ export default async function RapprochementPage() {
           <h1>Rapprochement</h1>
           <p>
             Ce document est le vôtre. Il dit où en est l&apos;application par rapport à votre
-            tableau de gestion, arrêté à mai : ce qui est déjà contrôlé (partie A), ce qui a été
-            aligné sur votre présentation (partie B), et les {combien} points de la partie C
-            qui appellent votre décision. Sous chacun d&apos;eux, une zone « Votre réponse »
-            vous attend : écrivez-y librement, avec votre compte, avant ou pendant notre
-            rendez-vous. Chaque réponse est enregistrée aussitôt et reste lisible de tous.
+            tableau de gestion, arrêté à mai : ce qui est contrôlé (partie A), ce qui a été
+            aligné sur votre présentation (partie B), et les quinze points de la partie C,
+            dont {combien} reste{ouverts.length > 1 ? "nt" : ""} ouvert{ouverts.length > 1 ? "s" : ""}.
+            Sous chacun d&apos;eux, une zone « Votre réponse » reste à votre disposition :
+            écrivez-y librement, avec votre compte. Chaque réponse est enregistrée aussitôt et
+            reste lisible de tous.
           </p>
         </div>
 
@@ -146,7 +147,7 @@ export default async function RapprochementPage() {
               <h3>3. La Synthèse boucle sur les cinq exercices</h3>
               <p>
                 L&apos;écart entre le résultat calculé et celui de la balance générale doit être
-                intégralement expliqué par les retraitements de dotations et de VNC. Il l&apos;est,
+                intégralement expliqué par le lissage des dotations et par la VNC. Il l&apos;est,
                 mois par mois et au total, et aucun compte ne reste sans ligne d&apos;accueil.
               </p>
               <div className="doc-tbl-wrap">
@@ -162,9 +163,10 @@ export default async function RapprochementPage() {
                 </table>
               </div>
               <p className="doc-note">
-                En juin 2026, le résultat net de la Synthèse (−228 618) et le résultat comptable
-                (−295 357) diffèrent de 66 739 € : dotations 31 147 plus VNC 35 592, soit
-                exactement les retraitements.
+                En juin 2026, le résultat net de la Synthèse (−232 511) et le résultat comptable
+                (−295 357) diffèrent de 62 845 € : les dotations comptabilisées en bloc (31 147)
+                moins la part lissée du mois (3 893), plus la VNC (35 592), soit exactement les
+                retraitements.
               </p>
             </div>
 
@@ -221,13 +223,15 @@ export default async function RapprochementPage() {
               <h3>6. Le résultat mensuel est celui de votre tableau</h3>
               <p>
                 Votre ligne « Résultat » lisse les amortissements (3 600 à 4 000 € par mois, ligne
-                « Retraitement DAP ») là où la comptabilité les passe en mai et en juin. Ce
-                lissage neutralisé, le résultat net de la Synthèse est le vôtre.
+                « Retraitement DAP ») là où la comptabilité les passe en bloc en juin. La
+                Synthèse les lisse désormais aussi, à 3 893 € par mois (point 8) : son résultat
+                net est celui de la colonne « Application » moins cette part, à quelques dizaines
+                d&apos;euros du vôtre selon le mois.
               </p>
               <div className="doc-tbl-wrap">
                 <table className="doc-tbl">
                   <tbody>
-                    <tr><th>Mois</th><th>Votre « Résultat »</th><th>Votre lissage DAP</th><th>Vous, hors lissage</th><th>Application</th><th>Écart</th></tr>
+                    <tr><th>Mois</th><th>Votre « Résultat »</th><th>Votre lissage DAP</th><th>Vous, hors lissage</th><th>Application, hors lissage</th><th>Écart</th></tr>
                     <tr><td>Novembre + décembre 2025</td><td>−64 163</td><td>−9 604</td><td>−54 559</td><td>29 543</td><td className="warn">84 102</td></tr>
                     <tr><td>Janvier 2026</td><td>−30 346</td><td>−3 973</td><td>−26 373</td><td>−26 373</td><td className="ok">0</td></tr>
                     <tr><td>Février 2026</td><td>−3 781</td><td>−3 594</td><td>−187</td><td>−189</td><td className="ok">−2</td></tr>
@@ -251,7 +255,7 @@ export default async function RapprochementPage() {
               <span className="doc-part-tag">Partie B</span>
               <h2>Ce qui a été aligné sur vos fichiers</h2>
               <p>
-                Onze ajustements livrés. Les six derniers datent des 22, 24 et 25 septembre et
+                Douze ajustements livrés. Les sept derniers datent des 22 au 28 septembre et
                 reprennent vos conventions, vos remarques et vos réponses ; ils se défont aussi
                 simplement qu&apos;ils se posent.
               </p>
@@ -395,6 +399,18 @@ export default async function RapprochementPage() {
                   </p>
                 </div>
               </article>
+              <article className="doc-step">
+                <div className="doc-step-num">12</div>
+                <div>
+                  <h3>Les amortissements sont lissés</h3>
+                  <p>
+                    La Synthèse et les Frais généraux portent une ligne « Dotations aux
+                    amortissements (lissées) » : 3 893 € par mois de novembre à juin, 4 774 €
+                    ensuite, en attendant la prochaine écriture (point 8). Le résultat net les
+                    comprend ; le contrôle avec la comptabilité reste à zéro.
+                  </p>
+                </div>
+              </article>
             </div>
           </section>
 
@@ -402,12 +418,11 @@ export default async function RapprochementPage() {
           <section className="doc-part">
             <div className="doc-part-head">
               <span className="doc-part-tag">Partie C</span>
-              <h2>Les points qui appellent votre décision</h2>
+              <h2>Les points, un par un</h2>
               <p>
-                Classés par enjeu. En rouge, ce qui empêche un mois d&apos;être juste. En orange,
-                ce sur quoi l&apos;application est cohérente avec la comptabilité mais pas avec
-                votre fichier : il faut choisir la référence. Vos réponses sont enregistrées au
-                fur et à mesure.
+                Quatorze points sont refermés selon vos réponses, en vert. Un seul reste ouvert,
+                en orange : le passage à Pennylane, à traiter le moment venu. Vos réponses restent
+                enregistrées, et vous pouvez les compléter à tout moment.
               </p>
             </div>
             <div className="doc-points">

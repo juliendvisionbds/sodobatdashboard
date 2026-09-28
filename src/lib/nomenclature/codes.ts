@@ -10,6 +10,7 @@ export const SYNTHESE_CODES = {
   personnel: "syn_total_personnel",
   resultatExploitation: "syn_resultat_exploitation",
   fx: "syn_total_fx",
+  fxDotations: "syn_fx_dotations",
   impots: "syn_impots_taxes",
   resultatNet: "syn_resultat_net",
   resultatBg: "syn_resultat_bg",
@@ -45,7 +46,11 @@ export const CHANTIER_CODES = {
  */
 export const COMPTES_TOUJOURS_FX = new Set(["68112000", "65700000", "67500000"]);
 
+/** Compte des dotations aux amortissements, lissé sur l'exercice. */
+export const COMPTE_DOTATIONS = "68112000";
+
 export const FX_CODES = {
+  dotations: "fx_dotations",
   caReference: "fx_ca_reference",
   totalHonoraires: "fx_total_honoraires",
   totalGeneraux: "fx_total_generaux",

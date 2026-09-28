@@ -61,7 +61,7 @@ async function main() {
 
   // ── 1. Invariants ──────────────────────────────────────────────────────────
   console.log("INVARIANTS");
-  // Le résultat du TG exclut les dotations et la VNC : l'écart avec le résultat
+  // Le résultat du TG lisse les dotations et exclut la VNC : l'écart avec le résultat
   // comptable doit être exactement égal à ces retraitements, et rien d'autre.
   const ctrl = v("syn_ctrl");
   const dap = v("syn_retraitement_dap");

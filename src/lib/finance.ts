@@ -13,6 +13,7 @@ import {
 import {
   CHANTIER_CODES,
   COMPTES_TOUJOURS_FX,
+  COMPTE_DOTATIONS,
   FX_CODES,
   SYNTHESE_CODES,
 } from "./nomenclature/codes";
@@ -346,6 +347,102 @@ async function structurePartParMois(
   };
 }
 
+// ── Dotations aux amortissements lissées ─────────────────────────────────────
+//
+// La comptabilité passe les dotations en bloc, une ou deux fois par exercice.
+// Le tableau de gestion les lit lissées :
+//   · jusqu'au dernier mois où une dotation est comptabilisée, le cumul réel est
+//     réparti à parts égales sur les mois écoulés depuis l'ouverture ;
+//   · au-delà, chaque mois reçoit un douzième de la dotation de l'exercice
+//     précédent, en attendant l'écriture suivante qui recalera le tout.
+// Le lissage se lit sur tout ce que la base connaît de l'exercice, même quand
+// l'écran est arrêté à un mois passé : un mois déjà recalé ne change plus.
+
+export type DotationsLissees = {
+  /** dotation comptabilisée, par mois */
+  comptabilisee: Record<string, number>;
+  /** dotation lissée, par mois couvert par une balance */
+  lissee: Record<string, number>;
+  /** dotation de l'exercice précédent, base du douzième */
+  reference: number;
+};
+
+const dotationsLissees = cache(async function dotationsLissees(
+  entityId: number,
+  fiscalYearStart: number
+): Promise<DotationsLissees> {
+  const months = fiscalMonths(fiscalYearStart);
+  const comptabilisee: Record<string, number> = {};
+  const couverts = new Set<string>();
+  const dotationsDe = async (importId: number) => {
+    const byMonth: Record<string, number> = {};
+    const seen = new Set<string>();
+    for (const l of await generalLinesOf(importId)) {
+      seen.add(l.month);
+      if (l.account !== COMPTE_DOTATIONS) continue;
+      byMonth[l.month] = round2((byMonth[l.month] ?? 0) + num(l.amount));
+    }
+    return { byMonth, seen };
+  };
+
+  const [ventilee, prevVentilee, analytiques, annual] = await Promise.all([
+    latestValidatedImport(entityId, "ventilee", { fiscalYearStart }),
+    latestValidatedImport(entityId, "ventilee", { fiscalYearStart: fiscalYearStart - 1 }),
+    analytiqueImportsOfYear(entityId, fiscalYearStart),
+    annualImportIds(entityId),
+  ]);
+  if (ventilee) {
+    const { byMonth, seen } = await dotationsDe(ventilee.id);
+    for (const m of seen) couverts.add(m);
+    Object.assign(comptabilisee, byMonth);
+  }
+  // Un mois que la ventilée ne couvre pas encore se lit dans sa balance analytique.
+  for (const [month, importId] of analytiques) {
+    if (annual.has(importId) || couverts.has(month)) continue;
+    couverts.add(month);
+    let v = 0;
+    for (const l of await analyticLinesOf(importId))
+      if (l.account === COMPTE_DOTATIONS) v += num(l.solde);
+    if (v) comptabilisee[month] = round2(v);
+  }
+
+  let reference = 0;
+  if (prevVentilee) {
+    const { byMonth } = await dotationsDe(prevVentilee.id);
+    reference = round2(Object.values(byMonth).reduce((t, v) => t + v, 0));
+  }
+
+  const mois = months.filter((m) => couverts.has(m));
+  const dernier = [...mois].reverse().find((m) => comptabilisee[m]);
+  const rang = dernier ? months.indexOf(dernier) + 1 : 0;
+  const cumul = round2(mois.reduce((t, m) => t + (comptabilisee[m] ?? 0), 0));
+  const part = rang ? round2(cumul / rang) : 0;
+  const douzieme = round2(reference / 12);
+
+  const lissee: Record<string, number> = {};
+  for (const m of months) {
+    const i = months.indexOf(m) + 1;
+    if (i < rang) lissee[m] = part;
+    // Le dernier mois recalé porte l'arrondi : le cumul lissé est le cumul réel.
+    else if (i === rang) lissee[m] = round2(cumul - part * (rang - 1));
+    else if (couverts.has(m)) lissee[m] = douzieme;
+  }
+  return { comptabilisee, lissee, reference };
+});
+
+/** Vecteur des dotations lissées sur les mois affichés, total compris. */
+function vecteurDotations(lissee: Record<string, number>, months: string[], affiches: string[]): Vector {
+  const vec: Vector = {};
+  let total = 0;
+  for (const m of months) {
+    const v = affiches.includes(m) ? (lissee[m] ?? 0) : 0;
+    vec[m] = v;
+    total += v;
+  }
+  vec[TOTAL_COLUMN] = round2(total);
+  return vec;
+}
+
 export async function getSynthese(
   entity: Entity,
   opts?: { fiscalYearStart?: number; period?: string }
@@ -524,13 +621,25 @@ const syntheseMemo = cache(async function syntheseMemo(
     }
   }
 
-  const evalOn = (values: Map<string, number>) => {
+  // Dotations lissées : N sur les mois affichés, N-1 au même rang de mois.
+  const dotations = await dotationsLissees(entity.id, imp.fiscalYearStart);
+  const dotationsVec = vecteurDotations(dotations.lissee, months, monthsWithData);
+  const dotationsPrev = prevImp
+    ? (await dotationsLissees(entity.id, prevImp.fiscalYearStart)).lissee
+    : {};
+  const dotationsPrevMois = prevImp ? fiscalMonths(prevImp.fiscalYearStart) : [];
+  const dotationsPrevSur = (n: number) =>
+    round2(dotationsPrevMois.slice(0, n).reduce((t, m) => t + (dotationsPrev[m] ?? 0), 0));
+
+  const evalOn = (values: Map<string, number>, dotationsN1: number) => {
     const l = new Map<string, Vector>();
     for (const cat of mapper.categories) l.set(cat.code, { v: values.get(cat.code) ?? 0 });
-    return evaluate(mapper.lines, ["v"], l);
+    return evaluate(mapper.lines, ["v"], l, {
+      provided: new Map([[SYNTHESE_CODES.fxDotations, { v: dotationsN1 }]]),
+    });
   };
-  const prevYtdEval = prevImp ? evalOn(prevYtd) : null;
-  const prevFullEval = prevImp ? evalOn(prevFull) : null;
+  const prevYtdEval = prevImp ? evalOn(prevYtd, dotationsPrevSur(monthsWithData.length)) : null;
+  const prevFullEval = prevImp ? evalOn(prevFull, dotationsPrevSur(12)) : null;
 
   // ── Évaluation ─────────────────────────────────────────────────────────────
   const provided = new Map<string, Vector>();
@@ -539,6 +648,7 @@ const syntheseMemo = cache(async function syntheseMemo(
   const previsionsSaisies = await previsionsSaisiesParMois(entity.id, months);
   provided.set(SYNTHESE_CODES.previsionsSaisies, previsionsSaisies);
   provided.set(SYNTHESE_CODES.annulation, annulationVec);
+  provided.set(SYNTHESE_CODES.fxDotations, dotationsVec);
 
   const values = evaluate(mapper.lines, columns, leaves, { provided });
 
@@ -562,6 +672,7 @@ const syntheseMemo = cache(async function syntheseMemo(
       [SYNTHESE_CODES.resultatBg, cumulate(resultatBg)],
       [SYNTHESE_CODES.previsionsSaisies, cumulate(previsionsSaisies)],
       [SYNTHESE_CODES.annulation, cumulate(annulationVec)],
+      [SYNTHESE_CODES.fxDotations, cumulate(dotationsVec)],
     ]),
   });
 
@@ -1524,6 +1635,19 @@ export async function getFx(
     }
   }
 
+  // Dotations de l'exercice en cours : lissées, comme dans la Synthèse. N-1 et
+  // N-2 portent la dotation de l'exercice entier, que le lissage ne change pas.
+  const dotations = await dotationsLissees(entity.id, imp.fiscalYearStart);
+  const dotationsVec = leaves.get(FX_CODES.dotations);
+  if (dotationsVec) {
+    dotationsVec.n = round2(
+      fiscalMonths(imp.fiscalYearStart)
+        .filter((m) => m <= imp.period)
+        .reduce((t, m) => t + (dotations.lissee[m] ?? 0), 0)
+    );
+    dotationsVec[MOIS_COLUMN] = dotations.lissee[imp.period] ?? 0;
+  }
+
   // ── CA de référence, un par exercice ───────────────────────────────────────
   const caReference: Record<FxColumn, number | null> = { n: caN, n1: caN1, n2: caN2 };
   const provided = new Map<string, Vector>([
@@ -1686,6 +1810,19 @@ export async function getFxMensuel(
       set.add(account);
       accountsByCat.set(cat.code, set);
     }
+  }
+
+  // Dotations lissées, mois par mois, comme dans la Synthèse.
+  const dotations = await dotationsLissees(entity.id, last.fiscalYearStart);
+  const dotationsVec = leaves.get(FX_CODES.dotations);
+  if (dotationsVec) {
+    let cumul = 0;
+    for (const m of months) {
+      if (missing.includes(m)) continue;
+      dotationsVec[m] = dotations.lissee[m] ?? 0;
+      cumul += dotationsVec[m] as number;
+    }
+    dotationsVec[TOTAL_COLUMN] = round2(cumul);
   }
 
   // CA de référence : celui de la Synthèse, mois par mois. Le cumul ne retient

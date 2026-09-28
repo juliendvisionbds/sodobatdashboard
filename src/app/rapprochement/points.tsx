@@ -191,8 +191,8 @@ export const POINTS: Point[] = [
     key: "c8",
     n: 8,
     title: "Frais généraux : indemnités, amortissements, honoraires de management",
-    stake: "deux choses sont faites, une règle à confirmer",
-    tone: "warn",
+    stake: "réglé le 28 septembre",
+    tone: "ok",
     body: (
       <>
         <ul>
@@ -210,15 +210,18 @@ export const POINTS: Point[] = [
           </li>
           <li>
             <strong>Amortissements</strong> : Quadra ne vous donne que le cumul, vous préférez
-            un lissage. Règle proposée : un douzième de la dotation annuelle N-1 chaque mois
-            (57 293 / 12 = 4 774 €), recalé sur le cumul réel dès que la comptabilité le passe,
-            et la ligne « Retraitement DAP » sous le résultat comptable conserve l&apos;écart,
-            pour que le contrôle reste juste.
+            un lissage. Il est en place, dans la Synthèse et dans les Frais généraux, sur la
+            ligne « Dotations aux amortissements (lissées) ». Le cumul comptabilisé est réparti à
+            parts égales sur les mois qu&apos;il couvre : les 31 147 € passés en juin donnent
+            3 893 € par mois de novembre à juin. Chaque mois suivant reçoit un douzième de la
+            dotation N-1 (57 293 / 12 = 4 774 €), jusqu&apos;à l&apos;écriture suivante qui recale
+            le tout. La ligne « Retraitement DAP », sous le résultat comptable, conserve
+            l&apos;écart : le contrôle reste juste.
           </li>
         </ul>
       </>
     ),
-    ask: "La règle d'un douzième de la dotation N-1, recalée sur le réel, vous convient-elle ?",
+    ask: "Rien à trancher : si vous préférez une autre clé de lissage, dites-le, elle se change en un endroit.",
   },
   {
     key: "c9",
@@ -287,17 +290,17 @@ export const POINTS: Point[] = [
     key: "c12",
     n: 12,
     title: "Le circuit mensuel, avec Pennylane",
-    stake: "un export à nous transmettre dès que possible",
-    tone: "stop",
+    stake: "le seul point ouvert, à traiter au passage à Pennylane",
+    tone: "warn",
     body: (
       <>
         <p>
           Vous passez sur Pennylane et ne pourrez plus sortir de balance ventilée : vous
-          ressortirez les balances mois par mois depuis le début de l&apos;exercice. C&apos;est le
-          point qui conditionne tout le reste : l&apos;application lit aujourd&apos;hui la balance
-          ventilée Cegid (une colonne par mois) et la balance analytique Cegid par centre. Il nous
-          faut un export Pennylane de chaque nature, même partiel, pour adapter l&apos;import avant
-          votre prochain envoi.
+          ressortirez les balances mois par mois depuis le début de l&apos;exercice.
+          L&apos;application lit aujourd&apos;hui la balance ventilée Cegid (une colonne par mois)
+          et la balance analytique Cegid par centre : tout ce que vous avez transmis est en place.
+          Le moment venu, il nous faudra un export Pennylane de chaque nature, même partiel, pour
+          adapter l&apos;import avant votre premier envoi dans ce format.
         </p>
         <p>
           Votre circuit est repris tel quel : balances à J+7 après la TVA ; une V1 brouillon pour
@@ -309,7 +312,7 @@ export const POINTS: Point[] = [
         </p>
       </>
     ),
-    ask: "Pouvez-vous nous envoyer un export Pennylane de balance générale et un de balance analytique, sur n'importe quel mois, pour caler l'import ?",
+    ask: "Dès que Pennylane est en service, pouvez-vous nous envoyer un export de balance générale et un de balance analytique, sur n'importe quel mois ?",
   },
   {
     key: "c13",
@@ -329,10 +332,10 @@ export const POINTS: Point[] = [
         <div className="doc-tbl-wrap">
           <table className="doc-tbl">
             <tbody>
-              <tr><th>Ligne</th><th>N-2 (2023/24)</th><th>N-1 (2024/25)</th><th>N à fin juillet</th></tr>
-              <tr><td>Total masse salariale + frais généraux</td><td>1 762 090</td><td>2 343 271</td><td>1 847 654</td></tr>
+              <tr><th>Ligne</th><th>N-2 (2023/24)</th><th>N-1 (2024/25)</th><th>N à fin août</th></tr>
+              <tr><td>Total masse salariale + frais généraux</td><td>1 762 090</td><td>2 343 271</td><td>1 857 203</td></tr>
               <tr><td>Masse salariale sédentaire</td><td>178 833</td><td>143 148</td><td>150 178</td></tr>
-              <tr><td>Dotations aux amortissements</td><td>60 180</td><td>57 293</td><td>31 147</td></tr>
+              <tr><td>Dotations aux amortissements (lissées)</td><td>60 180</td><td>57 293</td><td>40 695</td></tr>
             </tbody>
           </table>
         </div>
@@ -393,21 +396,15 @@ export const FICHIERS = [
   {
     nom: "Un export Pennylane de balance générale et un de balance analytique",
     pourquoi:
-      "Vous ne pourrez plus sortir de balance ventilée : il faut adapter l'import à vos nouveaux fichiers avant le prochain envoi mensuel. N'importe quel mois convient.",
-    tag: "bloquant · point 12",
-    tone: "stop" as Tone,
+      "Vous ne pourrez plus sortir de balance ventilée : il faut adapter l'import à vos nouveaux fichiers. N'importe quel mois convient, le moment venu.",
+    tag: "au passage à Pennylane · point 12",
+    tone: "warn" as Tone,
   },
   {
     nom: "Les balances rééditées après vos corrections",
     pourquoi:
       "Honoraires de management sur deux comptes (62263000 SDG, 62263100 NJW), intérim et honoraires chantier retirés du centre FX, honoraires chantier saisis à tort en management. Un import par mois corrigé.",
     tag: "points 8 et 9",
-    tone: "warn" as Tone,
-  },
-  {
-    nom: "Votre réponse au point 8",
-    pourquoi: "La règle de lissage des amortissements : un douzième de la dotation N-1, recalée sur le réel.",
-    tag: "point 8",
     tone: "warn" as Tone,
   },
 ];
