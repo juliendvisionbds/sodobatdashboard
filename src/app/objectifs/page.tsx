@@ -1,18 +1,37 @@
 import Link from "next/link";
 import AppHeader from "@/components/AppHeader";
 import { getEntityByCode, getObjectifs } from "@/lib/views";
-import { getSession, canWrite } from "@/lib/auth";
+import { getSession, canFiger, canWrite } from "@/lib/auth";
 import { fmtEurAuto, fmtPct, monthLabelLong } from "@/lib/format";
+import { listAnalyses, listMoisAnalysables } from "@/lib/analyse-mensuelle";
 import ObjectifsTable from "./ObjectifsTable";
+import AnalysesMensuelles from "./AnalysesMensuelles";
 
 export const dynamic = "force-dynamic";
+// L'analyse mensuelle calcule puis fait rédiger le texte par l'IA : les actions
+// serveur de la page ont besoin de plus que le délai par défaut.
+export const maxDuration = 60;
 
-export default async function ObjectifsPage() {
+export default async function ObjectifsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ analyse?: string }>;
+}) {
   const entity = await getEntityByCode("sodobat");
   if (!entity) return null;
 
-  const [session, data] = await Promise.all([getSession(), getObjectifs(entity)]);
+  const [session, data, { analyse }] = await Promise.all([
+    getSession(),
+    getObjectifs(entity),
+    searchParams,
+  ]);
   const writer = session ? canWrite(session) : false;
+  const daf = session ? canFiger(session) : false;
+  const [analyses, moisAnalysables] = await Promise.all([
+    listAnalyses(entity, { brouillons: daf }),
+    daf ? listMoisAnalysables(entity) : Promise.resolve([]),
+  ]);
+  const initialPeriod = analyse && /^\d{4}-\d{2}$/.test(analyse) ? `${analyse}-01` : null;
 
   if (!data) {
     return (
@@ -85,6 +104,13 @@ export default async function ObjectifsPage() {
         </div>
 
         <ObjectifsTable data={data} canEdit={writer} />
+
+        <AnalysesMensuelles
+          analyses={analyses}
+          moisAnalysables={moisAnalysables}
+          canEdit={daf}
+          initialPeriod={initialPeriod}
+        />
       </div>
     </>
   );

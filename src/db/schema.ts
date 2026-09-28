@@ -377,3 +377,39 @@ export const assistantMessages = pgTable(
   },
   (t) => [index("assistant_messages_conversation").on(t.conversationId, t.seq)]
 );
+
+// Analyses mensuelles de performance (page Objectifs). Une par mois validé :
+// les chiffres sont calculés une fois et figés dans `figures`, le texte est
+// rédigé par l'IA puis relu par la DAF, qui publie. L'analyse porte l'import
+// analytique du mois : s'il est remplacé, elle devient caduque et se relance.
+export const monthlyAnalyses = pgTable(
+  "monthly_analyses",
+  {
+    id: serial("id").primaryKey(),
+    entityId: integer("entity_id")
+      .notNull()
+      .references(() => entities.id),
+    period: date("period").notNull(),
+    status: text("status", { enum: ["draft", "published"] })
+      .notNull()
+      .default("draft"),
+    analytiqueImportId: integer("analytique_import_id").references(() => imports.id, {
+      onDelete: "set null",
+    }),
+    ventileeImportId: integer("ventilee_import_id").references(() => imports.id, {
+      onDelete: "set null",
+    }),
+    figures: jsonb("figures").notNull(),
+    // Texte rédigé : { enBref, pointsForts[], pointsAttention[], actions[] }
+    redaction: jsonb("redaction"),
+    commentaire: text("commentaire"),
+    model: text("model"),
+    inputTokens: integer("input_tokens"),
+    outputTokens: integer("output_tokens"),
+    generatedBy: text("generated_by").notNull(),
+    generatedAt: timestamp("generated_at").notNull().defaultNow(),
+    publishedBy: text("published_by"),
+    publishedAt: timestamp("published_at"),
+  },
+  (t) => [uniqueIndex("monthly_analyses_key").on(t.entityId, t.period)]
+);
