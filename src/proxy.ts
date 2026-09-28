@@ -25,6 +25,11 @@ export async function proxy(req: NextRequest) {
       // jeton invalide → login
     }
   }
+  // Les appels d'API (assistant) attendent du JSON : une redirection vers la
+  // page de connexion se terminerait en 405 illisible côté navigateur.
+  if (pathname.startsWith("/api/")) {
+    return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
+  }
   const url = req.nextUrl.clone();
   url.pathname = "/login";
   url.searchParams.set("next", pathname);

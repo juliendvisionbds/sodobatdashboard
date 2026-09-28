@@ -327,6 +327,9 @@ export const assistantLogs = pgTable(
       .notNull()
       .references(() => entities.id),
     userEmail: text("user_email").notNull(),
+    // Conversation d'origine. Quand l'utilisateur la supprime, la question est
+    // effacée (vidée) ; la ligne reste pour le suivi des coûts.
+    conversationId: text("conversation_id"),
     question: text("question").notNull(),
     model: text("model").notNull(),
     inputTokens: integer("input_tokens"),
@@ -335,4 +338,42 @@ export const assistantLogs = pgTable(
     createdAt: timestamp("created_at").notNull().defaultNow(),
   },
   (t) => [index("assistant_logs_entity_date").on(t.entityId, t.createdAt)]
+);
+
+// Conversations de l'assistant, propres à chaque utilisateur (menu de gauche).
+// L'identifiant est celui du chat côté navigateur (useChat), repris dans l'URL.
+export const assistantConversations = pgTable(
+  "assistant_conversations",
+  {
+    id: text("id").primaryKey(),
+    entityId: integer("entity_id")
+      .notNull()
+      .references(() => entities.id),
+    userId: integer("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    title: text("title").notNull(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (t) => [index("assistant_conversations_user").on(t.userId, t.updatedAt)]
+);
+
+// Messages d'une conversation, au format du chat (UIMessage) : les parties
+// (texte, appels d'outils et leurs résultats) sont stockées telles quelles
+// pour réafficher la conversation à l'identique.
+export const assistantMessages = pgTable(
+  "assistant_messages",
+  {
+    id: text("id").primaryKey(),
+    // Ordre d'arrivée : plus sûr que l'horodatage pour rejouer le fil.
+    seq: serial("seq").notNull(),
+    conversationId: text("conversation_id")
+      .notNull()
+      .references(() => assistantConversations.id, { onDelete: "cascade" }),
+    role: text("role", { enum: ["user", "assistant"] }).notNull(),
+    parts: jsonb("parts").notNull(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => [index("assistant_messages_conversation").on(t.conversationId, t.seq)]
 );
