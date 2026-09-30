@@ -1,10 +1,11 @@
 import type { ReactNode } from "react";
 
-// Les points ouverts du rapprochement, rédigés à l'adresse de la DAF.
+// Les points à conclure du rapprochement, rédigés à l'adresse de la DAF.
 //
 // Ce module ne contient que du contenu : la page le met en forme et y accroche
-// la zone de réponse partagée. Les numéros sont stables — ils servent de
-// référence commune dans les échanges, y compris quand un point est refermé.
+// la zone de réponse partagée. Document repris à zéro le 30 septembre 2026 :
+// les quinze points du premier échange (clés c1 à c15) sont clos, leurs réponses
+// restent en base ; ceux-ci portent des clés neuves, de c21 à c28.
 
 export type Tone = "stop" | "warn" | "ok";
 
@@ -16,7 +17,7 @@ export type Point = {
   stake: string;
   tone: Tone;
   body: ReactNode;
-  /** la question posée, mise en avant sous le constat */
+  /** ce qui est attendu, mis en avant sous le constat */
   ask: string;
 };
 
@@ -24,387 +25,285 @@ const N = ({ children }: { children: ReactNode }) => <span className="doc-num">{
 
 export const POINTS: Point[] = [
   {
-    key: "c1",
+    key: "c21",
     n: 1,
-    title: "La balance analytique de mai a été ré-exportée : écart nul",
-    stake: "réglé le 23 septembre",
-    tone: "ok",
-    body: (
-      <p>
-        Votre ré-export de mai recoupe la balance générale à l&apos;euro sur les classes 6 et 7,
-        comme les autres mois. Il porte les prévisions chantier par chantier, la sous-traitance
-        révisée de 943E, et ne compte plus la VNC de juin. Le résultat chantiers de mai est
-        désormais le vôtre : <N>−1 648</N> des deux côtés, 378 valeurs sur 383 identiques.
-      </p>
-    ),
-    ask: "Rien à faire : le point est refermé.",
-  },
-  {
-    key: "c2",
-    n: 2,
-    title: "Les prévisions : saisies par les entités, comptabilisées par vous, validées d'un bouton",
-    stake: "réglé le 25 septembre, selon vos réponses",
-    tone: "ok",
+    title: "Les balances rééditées après vos corrections, de novembre à août",
+    stake: "à faire en premier : tout le reste en dépend",
+    tone: "stop",
     body: (
       <>
         <p>
-          Vous l&apos;avez précisé : la reprise de M-1 est comptabilisée avant l&apos;export, la
-          prévision du mois ne l&apos;est qu&apos;après, une fois connue du tableau de gestion. C&apos;est
-          le circuit de l&apos;application : chaque entité saisit ses prévisions dans la vue
-          Chantiers, l&apos;encart « Validation du mois » vous montre l&apos;écart avec le 713
-          comptabilisé, vous passez les écritures, et vous validez le mois d&apos;un bouton.
+          Vous aviez annoncé trois corrections en comptabilité. Aucune n&apos;est encore dans les
+          balances que nous avons :
         </p>
-        <p>
-          Les prévisions de votre ancien tableau jamais comptabilisées (964F, 1019E, 951D) sont
-          abandonnées, conformément à votre réponse au point 10 : l&apos;application suit la
-          comptabilité.
-        </p>
-      </>
-    ),
-    ask: "Rien à trancher.",
-  },
-  {
-    key: "c3",
-    n: 3,
-    title: "Reclassements d'un chantier à l'autre : la comptabilité fait foi",
-    stake: "réglé le 28 septembre",
-    tone: "ok",
-    body: (
-      <>
-        <p>
-          Votre ancien tableau rangeait certaines écritures sur un autre chantier que la
-          comptabilité (1030A → 1029C 12 033 en mars, 906E → 923E 5 295 en avril, 934D → 1029C
-          343, 1043B → 944B 914…), pour un total du mois identique. La comptabilité fait foi :
-          l&apos;application la suit, comme elle le fait depuis le début, et ces reclassements ne
-          sont pas repris. Si la vérification des factures montre qu&apos;une imputation est fausse,
-          c&apos;est une écriture de reclassement en comptabilité qui la corrige, et l&apos;import
-          suivant la reprend.
-        </p>
-        <p>
-          52MF = 52 : l&apos;application lit 52MF comme 52, et 1034B, 1047A, 1036C comme 1034E,
-          1047E, 1036A. Rien à faire de votre côté ; sur les prochaines écritures, mieux vaut les
-          bons codes.
-        </p>
-      </>
-    ),
-    ask: "Rien à trancher.",
-  },
-  {
-    key: "c4",
-    n: 4,
-    title: "Le cumul de facturation comprend les prévisions, avec leur part en dessous",
-    stake: "réglé le 25 septembre, selon votre réponse",
-    tone: "ok",
-    body: (
-      <p>
-        Vous avez tranché : le cumul de facturation additionne les prévisions, et la part de
-        prévisions se lit en dessous. C&apos;est ce que fait désormais la vue Chantiers : sous
-        « Cumul Facturation fin de mois », une ligne « dont prévisions en cours » donne, chantier
-        par chantier, la prévision encore ouverte à la fin du mois (prévisions posées moins
-        reprises, depuis l&apos;ouverture du chantier, saisie du mois comprise).
-      </p>
-    ),
-    ask: "Rien à trancher : à regarder sur l'écran Chantiers, bloc des cumuls.",
-  },
-  {
-    key: "c5",
-    n: 5,
-    title: "Les cumuls des chantiers : la comptabilité analytique partout où elle existe",
-    stake: "réglé le 25 septembre",
-    tone: "ok",
-    body: (
-      <>
-        <p>
-          Vous voulez reprendre l&apos;analytique depuis le début du chantier et repartir de la base
-          comptable (point 10). C&apos;est la règle retenue, avec sa seule limite : la comptabilité
-          analytique dont nous disposons commence en novembre 2023 (vos deux balances annuelles,
-          puis les mois). Pour tout chantier ouvert depuis, le cumul est celui de l&apos;analytique,
-          et nous l&apos;avons vérifié : il coïncide avec vos reports à 500 € près sur les 26
-          chantiers concernés.
-        </p>
-        <p>
-          Pour les 52 chantiers ouverts avant novembre 2023, dont 34 encore actifs cette année
-          (985B, 994E, 1003B, 1000E, 52, 951D, le DEPOT…), l&apos;analytique ne peut pas remonter
-          au début du chantier : votre report d&apos;ouverture au 31 octobre 2025 reste la source
-          de ce qui précède, et l&apos;analytique prend le relais ensuite. C&apos;est ce que fait
-          l&apos;application. Les 18 autres sont sans mouvement depuis novembre : leur cumul est
-          figé.
-        </p>
+        <ul>
+          <li>
+            <strong>Honoraires de management</strong> : tout est encore sur le seul compte
+            62263000. Le compte 62263100 (NJW) n&apos;existe pas dans les balances. Les deux
+            lignes de l&apos;application l&apos;attendent.
+          </li>
+          <li>
+            <strong>Honoraires de chantier saisis en management</strong> : environ{" "}
+            <N>17 100 €</N> sur le compte 62263000, imputés à des chantiers (994E, 934D, 919D,
+            962F, 1032E…), de février à juin.
+          </li>
+          <li>
+            <strong>Deux erreurs de saisie sur le centre FX</strong> : <N>595 €</N> d&apos;intérim
+            (6211, décembre) et <N>1 970 €</N> d&apos;honoraires chantier (62261 : 270 en
+            décembre, 1 700 en janvier). Ce sont les deux seuls comptes encore sans ligne dans
+            les Frais généraux.
+          </li>
+        </ul>
         <p className="doc-note">
-          L&apos;ajustement entre vos onglets « TG 11-12 2025 » et « TG 01 2026 » (1012A
-          +74 468, quatre autres chantiers pour moins de 5 000) n&apos;est pas repris, conformément
-          au point 10 : l&apos;application est partie du premier onglet et n&apos;y revient pas.
+          Un mois réimporté est à revalider : novembre, que vous avez validé le 28 septembre,
+          le sera aussi. C&apos;est pourquoi ce point passe avant les validations.
         </p>
       </>
     ),
-    ask: "Rien à trancher : si un report d'ouverture vous paraît faux pour un chantier ancien, dites-le, il se corrige à l'unité.",
+    ask: "Passez ces corrections, puis rééditez et déposez les balances analytiques de novembre à août et la balance générale.",
   },
   {
-    key: "c6",
-    n: 6,
-    title: "Le DEPOT et le SAV sont classés en chantier, comme dans votre tableau",
-    stake: "confirmé le 24 septembre",
-    tone: "ok",
-    body: (
-      <p>
-        Vous suivez le DEPOT et le SAV comme des lignes du tableau chantiers ; l&apos;application
-        les classait en frais généraux. Depuis le 22 septembre, elle reprend votre périmètre, avec
-        vos reports d&apos;ouverture (DEPOT <N>7 943,05</N> de facturation et <N>−860 440,63</N> de
-        résultat, SAV <N>−1 051,27</N> et <N>−1 363,54</N>). Quatre lignes de frais généraux sont
-        tombées identiques aux vôtres (crédits-baux, petit outillage, masse salariale du siège,
-        carburant) et le compte d&apos;intérim « sans ligne » a disparu. Vous l&apos;avez confirmé.
-      </p>
-    ),
-    ask: "Rien à faire : le point est refermé.",
-  },
-  {
-    key: "c7",
-    n: 7,
-    title: "Déplacements et réceptions de chantier : sur leur propre ligne, comme vous le préférez",
-    stake: "réglé le 25 septembre, selon votre réponse",
-    tone: "ok",
+    key: "c22",
+    n: 2,
+    title: "Juin : la prévision à ventiler par chantier",
+    stake: "bloque la validation de juin",
+    tone: "stop",
     body: (
       <>
         <p>
-          Votre colonne « Honoraires chantier - Gardiennage » couvre la plage de comptes 62261
-          à 6282, déplacements, péages et réceptions compris (6251, 6257, 6264). Nous les avions
-          d&apos;abord réunis sur la ligne honoraires ; vous préférez deux lignes, c&apos;est fait :
-          « Honoraire chantier / Gardiennage » et « Déplacements / Réceptions / Péages » se
-          suivent dans la vue Chantiers, comme dans la Synthèse. Leur somme reste identique à votre
-          colonne, tous les mois.
-        </p>
-        <ul>
-          <li>
-            Novembre-décembre : vos déchets (<N>47 770</N>, 12 chantiers) sont dans « Location » ;
-            à partir de janvier vous les isolez, comme l&apos;application. Rien à changer.
-          </li>
-          <li>
-            Les « autres droits » (compte 63580000 : 943E 2 055 en novembre, 1024A 632 en
-            janvier) sont dans vos salaires et dans nos charges affectées : même total.
-          </li>
-        </ul>
-      </>
-    ),
-    ask: "Rien à trancher : à regarder sur l'écran Chantiers, bloc des charges de personnel.",
-  },
-  {
-    key: "c8",
-    n: 8,
-    title: "Frais généraux : indemnités, amortissements, honoraires de management",
-    stake: "réglé le 28 septembre",
-    tone: "ok",
-    body: (
-      <>
-        <ul>
-          <li>
-            <strong>Indemnités de sinistre</strong> : en produits, pas en déduction des assurances,
-            comme vous le préférez. C&apos;est ce que fait l&apos;application, rien à changer.
-          </li>
-          <li>
-            <strong>Honoraires de management</strong> : oui, créez les deux comptes, 62263000 pour
-            SDG et 62263100 pour NJW, depuis le début de l&apos;exercice, et rééditez les balances.
-            L&apos;application les connaît déjà : dès l&apos;import des balances rééditées, les deux
-            lignes se remplissent d&apos;elles-mêmes, sans plus aucune ventilation à saisir. Les
-            honoraires de chantier saisis à tort en management reviendront au bon endroit par la
-            même occasion.
-          </li>
-          <li>
-            <strong>Amortissements</strong> : Quadra ne vous donne que le cumul, vous préférez
-            un lissage. Il est en place, dans la Synthèse et dans les Frais généraux, sur la
-            ligne « Dotations aux amortissements (lissées) ». Le cumul comptabilisé est réparti à
-            parts égales sur les mois qu&apos;il couvre : les 31 147 € passés en juin donnent
-            3 893 € par mois de novembre à juin. Chaque mois suivant reçoit un douzième de la
-            dotation N-1 (57 293 / 12 = 4 774 €), jusqu&apos;à l&apos;écriture suivante qui recale
-            le tout. La ligne « Retraitement DAP », sous le résultat comptable, conserve
-            l&apos;écart : le contrôle reste juste.
-          </li>
-        </ul>
-      </>
-    ),
-    ask: "Rien à trancher : si vous préférez une autre clé de lissage, dites-le, elle se change en un endroit.",
-  },
-  {
-    key: "c9",
-    n: 9,
-    title: "Quatre comptes sans ligne prévue : deux erreurs à corriger, deux lignes ajoutées",
-    stake: "réglé selon vos réponses",
-    tone: "ok",
-    body: (
-      <ul>
-        <li>
-          Les 595 € d&apos;intérim (6211) et les 1 970 € d&apos;honoraires chantier (62261) sur le
-          centre FX sont des erreurs de saisie du comptable : oui, corrigez et rééditez les
-          balances, les deux alertes disparaîtront à l&apos;import.
-        </li>
-        <li>
-          Les 90,86 € de produits divers (758, différence de règlement SAIEM 943E) et les
-          indemnités d&apos;assurance (7587 : 1 120 sur 882A, 670 sur 766D) sont des écritures
-          correctes : la vue Chantiers a désormais une ligne « Autres produits chantier », hors
-          CA HT total, comprise dans le résultat.
-        </li>
-      </ul>
-    ),
-    ask: "Rien à trancher : rééditez les balances corrigées quand vous le pourrez.",
-  },
-  {
-    key: "c10",
-    n: 10,
-    title: "Base comptable, feuille blanche",
-    stake: "réglé le 25 septembre",
-    tone: "ok",
-    body: (
-      <p>
-        Vous l&apos;avez tranché : l&apos;application se fonde sur les extractions comptables et
-        non sur ce qui était écrit dans les tableaux ; on remet les tableaux au propre sur la
-        base comptable. C&apos;est le principe de l&apos;application depuis le début. Le seul point
-        qui en découle est le point 5, sur les cumuls des chantiers anciens.
-      </p>
-    ),
-    ask: "Rien à trancher.",
-  },
-  {
-    key: "c11",
-    n: 11,
-    title: "Périmètre de la Synthèse — aligné sur votre présentation",
-    stake: "rien à décider",
-    tone: "ok",
-    body: (
-      <>
-        <p>
-          Deux différences de lecture séparaient la Synthèse de votre onglet « Synthese 2026 » :
-          le chiffre d&apos;affaires intégrait les cessions et produits divers que vous isolez, et
-          les charges du siège restaient dans les rubriques d&apos;exploitation.
+          La reprise des prévisions de mai est bien passée chantier par chantier
+          (<N>1 054 701 €</N>). En face, la prévision de juin est un bloc de{" "}
+          <N>1 033 201 €</N> sur le centre FX, plus <N>21 500 €</N> sur 994E : le total égale
+          exactement la reprise. C&apos;est une écriture d&apos;attente, pas une prévision par
+          chantier.
         </p>
         <p>
-          Les deux sont corrigées. Les cessions, produits financiers et produits de gestion
-          courante forment un bloc « Autres produits » placé après le résultat d&apos;exploitation,
-          et les charges partagées sont réparties entre chantiers et siège d&apos;après la balance
-          analytique du mois. Le CA mensuel de janvier à mai est désormais identique au vôtre, au
-          chiffre près.
-        </p>
-      </>
-    ),
-    ask: "Rien à trancher : simplement à regarder ensemble sur l'écran Synthèse, le bloc « Autres produits » et les lignes « (structure) » des frais généraux.",
-  },
-  {
-    key: "c12",
-    n: 12,
-    title: "Le circuit mensuel, avec Pennylane",
-    stake: "le seul point ouvert, à traiter au passage à Pennylane",
-    tone: "warn",
-    body: (
-      <>
-        <p>
-          Vous passez sur Pennylane et ne pourrez plus sortir de balance ventilée : vous
-          ressortirez les balances mois par mois depuis le début de l&apos;exercice.
-          L&apos;application lit aujourd&apos;hui la balance ventilée Cegid (une colonne par mois)
-          et la balance analytique Cegid par centre : tout ce que vous avez transmis est en place.
-          Le moment venu, il nous faudra un export Pennylane de chaque nature, même partiel, pour
-          adapter l&apos;import avant votre premier envoi dans ce format.
-        </p>
-        <p>
-          Votre circuit est repris tel quel : balances à J+7 après la TVA ; une V1 brouillon pour
-          les premières corrections ; une V2 brouillon pour que les dirigeants saisissent leurs
-          prévisions et que vous passiez les dernières corrections ; une V3 définitive. Dans
-          l&apos;application : import V1, import V2 (elle remplace V1, même mois), saisie des
-          prévisions par les entités, import V3 avec le 713 comptabilisé, puis « Valider le
-          mois ». Vous déposez les fichiers vous-même depuis l&apos;écran Imports.
-        </p>
-      </>
-    ),
-    ask: "Dès que Pennylane est en service, pouvez-vous nous envoyer un export de balance générale et un de balance analytique, sur n'importe quel mois ?",
-  },
-  {
-    key: "c13",
-    n: 13,
-    title: "Frais généraux : N-1 et N-2 sont désormais comparables à N",
-    stake: "réglé le 24 septembre",
-    tone: "ok",
-    body: (
-      <>
-        <p>
-          Vos balances analytiques des exercices 2023/24 et 2024/25 sont en base. Les colonnes
-          N-2 et N-1 des frais généraux se lisent désormais sur le périmètre des centres de
-          structure, comme N, au lieu d&apos;être reconstituées depuis la balance ventilée,
-          chantiers compris. Elles ne servent qu&apos;à cette comparaison : elles ne sont ni un
-          mois affichable, ni un terme des cumuls de chantier.
+          Dans la vue Chantiers, <N>470 661 €</N> de prévisions sont saisis pour juin, sur 13
+          chantiers, encore en brouillon. En mai, 28 chantiers portaient une prévision. Ceux qui
+          n&apos;en ont pas en juin, pour les plus gros :
         </p>
         <div className="doc-tbl-wrap">
           <table className="doc-tbl">
             <tbody>
-              <tr><th>Ligne</th><th>N-2 (2023/24)</th><th>N-1 (2024/25)</th><th>N à fin août</th></tr>
-              <tr><td>Total masse salariale + frais généraux</td><td>1 762 090</td><td>2 343 271</td><td>1 857 203</td></tr>
-              <tr><td>Masse salariale sédentaire</td><td>178 833</td><td>143 148</td><td>150 178</td></tr>
-              <tr><td>Dotations aux amortissements (lissées)</td><td>60 180</td><td>57 293</td><td>40 695</td></tr>
+              <tr><th>Chantier</th><th>Prévision de mai</th><th>Saisie de juin</th></tr>
+              <tr><td>964F · Le Meust</td><td>257 240</td><td className="muted">—</td></tr>
+              <tr><td>53 · Travaux divers</td><td>85 000</td><td className="muted">—</td></tr>
+              <tr><td>993D · École de la Bouverie</td><td>80 000</td><td className="muted">—</td></tr>
+              <tr><td>52 · Mairie de Fréjus</td><td>55 000</td><td className="muted">—</td></tr>
+              <tr><td>1007E · Cinéma La Renaissance</td><td>45 000</td><td className="muted">—</td></tr>
+              <tr><td>1038C · Transgourmet</td><td>35 000</td><td className="muted">—</td></tr>
+              <tr><td>1000E · Port de Sainte-Maxime</td><td>20 000</td><td className="muted">—</td></tr>
             </tbody>
           </table>
         </div>
-        <p className="doc-note">
-          Les deux fichiers recoupent la balance générale de leur exercice sur la classe 7 ;
-          sur la classe 6, il leur manque 129 732 (2023/24) et 87 531 (2024/25), des écritures
-          sans centre. Quelques lignes sans centre ou sans ligne d&apos;accueil (quotes-parts de
-          SEP, sous-traitance intracom) restent hors des totaux, signalées en alerte.
-        </p>
       </>
     ),
-    ask: "Rien à trancher : à regarder ensemble sur l'écran Frais généraux, colonnes N-1 et N-2.",
+    ask: "Faites confirmer par les dirigeants que ces chantiers sont bien à zéro en juin, puis passez le 713 chantier par chantier à la place du bloc FX, et réexportez juin.",
   },
   {
-    key: "c14",
-    n: 14,
-    title: "Juin, juillet, août : le tableau de gestion qui fait foi est celui de l'application",
-    stake: "réglé le 25 septembre",
-    tone: "ok",
+    key: "c23",
+    n: 3,
+    title: "Juillet : le mois ne paraît pas clôturé",
+    stake: "bloque la validation de juillet",
+    tone: "stop",
     body: (
       <>
         <p>
-          Vous le confirmez : depuis juin, les tableaux ne sont plus tenus et les prévisions ne
-          sont pas comptabilisées ; la provision de juin sur le centre FX et l&apos;absence
-          d&apos;écriture en juillet et août en sont la trace. Il n&apos;y aura pas de tableau de
-          gestion sorti de votre côté pour ces mois : celui de l&apos;application fait foi, et le
-          rattrapage s&apos;y fait mois par mois.
+          La balance de juillet ne porte aucune écriture de 713 : ni la reprise de juin, ni la
+          prévision de juillet. Son résultat de <N>+469 803 €</N> n&apos;est donc pas un
+          résultat de gestion.
         </p>
-        <ul>
-          <li>les dirigeants saisissent leurs prévisions de juin dans la vue Chantiers, ouverte à la saisie ;</li>
-          <li>vous les passez en comptabilité, ventilées par chantier, et réexportez juin ;</li>
-          <li>l&apos;encart « Validation du mois » tombe à zéro, vous validez juin ;</li>
-          <li>puis juillet, puis août, de la même façon.</li>
-        </ul>
+        <p>
+          Plusieurs charges qui tombent chaque mois sont à zéro en juillet : crédit-bail (612,
+          2 574 € par mois jusqu&apos;en juin), assurances (616), impôts et taxes (635), ainsi que
+          les comptes 618 et 623.
+        </p>
       </>
     ),
-    ask: "Rien à trancher : l'application est prête, à vous et aux dirigeants de dérouler.",
+    ask: "Pouvez-vous passer les écritures récurrentes de juillet, puis la reprise de juin et la prévision de juillet une fois saisie par les dirigeants, et réexporter le mois ?",
   },
   {
-    key: "c15",
-    n: 15,
-    title: "La Synthèse reste comptable, le 713 sera ventilé par chantier",
-    stake: "réglé le 25 septembre",
-    tone: "ok",
+    key: "c24",
+    n: 4,
+    title: "Août : la balance générale manque, l'analytique est à confirmer",
+    stake: "bloque la Synthèse d'août",
+    tone: "stop",
+    body: (
+      <>
+        <p>
+          Nous n&apos;avons pas de balance générale pour août : la Synthèse s&apos;arrête à
+          juillet, et la balance analytique d&apos;août ne peut pas être recoupée.
+        </p>
+        <p>
+          Cette balance analytique, déposée le 24 septembre, est basse : <N>550 095 €</N> de
+          chiffre d&apos;affaires, <N>55 379 €</N> de charges de personnel contre 130 000 environ
+          les autres mois, 418 lignes contre 570 à 640. L&apos;effet des congés d&apos;août
+          l&apos;explique peut-être. Elle ne porte aucune écriture de 713.
+        </p>
+      </>
+    ),
+    ask: "Cette balance d'août est-elle définitive ou un premier brouillon ? Et pouvez-vous déposer la balance générale arrêtée à août ?",
+  },
+  {
+    key: "c25",
+    n: 5,
+    title: "Valider les mois, de novembre à mai",
+    stake: "après le point 1",
+    tone: "warn",
     body: (
       <p>
-        Vous choisissez la lecture A : la Synthèse garde le résultat net de la balance générale,
-        et les lignes « Prévisions saisies non comptabilisées » et « Résultat de gestion » portent
-        l&apos;écart tant que le 713 n&apos;est pas passé. Vous saisirez le 713 ventilé par chantier
-        en comptabilité : c&apos;est ce qui fait tomber l&apos;écart à zéro et rend le mois validable.
+        Seul novembre est validé. De décembre à mai, les prévisions comptabilisées sont ventilées
+        par chantier et l&apos;écart de contrôle est nul : ces six mois sont validables tels
+        quels. Mieux vaut pourtant attendre les balances rééditées du point 1, puisqu&apos;un mois
+        réimporté est à revalider. L&apos;analyse mensuelle de novembre, sur la page Objectifs,
+        est restée en brouillon.
       </p>
     ),
-    ask: "Rien à trancher.",
+    ask: "Une fois les balances rééditées déposées, validez novembre à mai dans la vue Chantiers, et publiez les analyses mensuelles.",
+  },
+  {
+    key: "c26",
+    n: 6,
+    title: "Des codes de centre erronés, encore utilisés cet exercice",
+    stake: "les écrans sont justes, la comptabilité ne l'est pas",
+    tone: "warn",
+    body: (
+      <>
+        <p>
+          Vous aviez répondu ne plus pouvoir corriger les exercices antérieurs. Ces écritures-ci
+          sont de l&apos;exercice en cours :
+        </p>
+        <div className="doc-tbl-wrap">
+          <table className="doc-tbl">
+            <tbody>
+              <tr><th>Centre saisi</th><th>Vrai chantier</th><th>Juin</th><th>Juillet</th><th>Août</th></tr>
+              <tr><td>52MF</td><td>52 · Mairie de Fréjus</td><td>17 155</td><td>53 716</td><td className="muted">—</td></tr>
+              <tr><td>1036C</td><td>1036A · SCI BXJF</td><td>423</td><td>421</td><td className="muted">—</td></tr>
+              <tr><td>1047A</td><td>1047E · École Aubanel</td><td className="muted">—</td><td>4 650</td><td>2 473</td></tr>
+              <tr><td>FORMA</td><td>à identifier</td><td className="muted">—</td><td className="muted">—</td><td>3 955</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p>
+          L&apos;application rattache déjà 52MF, 1036C et 1047A à leur vrai chantier. Le centre
+          FORMA, lui, n&apos;est rattaché à rien : ce sont des salaires et charges sociales, que
+          l&apos;application range en frais généraux faute de mieux.
+        </p>
+      </>
+    ),
+    ask: "FORMA est-il le centre FORMATION ? Et pouvez-vous corriger ces quatre codes sur juin, juillet et août, ou au moins ne plus les alimenter ?",
+  },
+  {
+    key: "c27",
+    n: 7,
+    title: "Pennylane : un export de chaque nature, et la date de bascule",
+    stake: "conditionne la lecture des prochains mois",
+    tone: "warn",
+    body: (
+      <p>
+        L&apos;application lit aujourd&apos;hui la balance ventilée Cegid (une colonne par mois) et
+        la balance analytique Cegid par centre. Vous ne pourrez plus sortir de balance ventilée
+        depuis Pennylane : il faut adapter l&apos;import avant votre premier envoi dans ce format.
+        Si août ou septembre nous arrivent déjà depuis Pennylane, ce point passe devant le point 4.
+      </p>
+    ),
+    ask: "À partir de quel mois les balances sortiront-elles de Pennylane ? Envoyez-nous un export de balance générale et un de balance analytique, sur n'importe quel mois.",
+  },
+  {
+    key: "c28",
+    n: 8,
+    title: "La clôture au 31 octobre : assurances, amortissements, objectifs",
+    stake: "à prévoir, rien ne bloque",
+    tone: "warn",
+    body: (
+      <ul>
+        <li>
+          <strong>Assurances (616)</strong> : elles ne sont pas réparties par mois en comptabilité
+          (<N>+116 796</N> en novembre, <N>−76 991</N> en décembre, <N>−24 686</N> en mars).
+          Le résultat mensuel en est déformé. L&apos;application peut les lisser comme les
+          amortissements, si vous le souhaitez.
+        </li>
+        <li>
+          <strong>Amortissements</strong> : une seule écriture cet exercice, <N>31 147 €</N> en
+          juin. L&apos;application lisse à 3 893 € par mois jusqu&apos;en juin et à 4 774 €
+          ensuite ; l&apos;écriture de clôture recalera le tout.
+        </li>
+        <li>
+          <strong>Septembre et octobre</strong> : les deux dernières balances de l&apos;exercice,
+          selon votre circuit (V1, V2, V3), puis les écritures d&apos;inventaire.
+        </li>
+        <li>
+          <strong>Objectifs 2026/27</strong> : les douze objectifs de l&apos;exercice en cours
+          sont saisis ; ceux du prochain seront à renseigner en novembre.
+        </li>
+      </ul>
+    ),
+    ask: "Souhaitez-vous que les assurances soient lissées dans l'application, et à quelle date prévoyez-vous la balance de clôture ?",
   },
 ];
 
 export const FICHIERS = [
   {
+    nom: "Les balances analytiques de novembre à août, rééditées",
+    pourquoi:
+      "Après les corrections du point 1 (deux comptes d'honoraires de management, honoraires de chantier, intérim et honoraires retirés du centre FX) et, pour juin à août, celles des codes de centre du point 6.",
+    tag: "point 1 · point 6",
+    tone: "stop" as Tone,
+  },
+  {
+    nom: "La balance générale arrêtée à août",
+    pourquoi:
+      "Elle manque : la Synthèse s'arrête à juillet. Rééditée après les mêmes corrections, elle remplace celle de juillet en un seul import.",
+    tag: "points 1 et 4",
+    tone: "stop" as Tone,
+  },
+  {
+    nom: "Juin, juillet et août avec le 713 ventilé par chantier",
+    pourquoi:
+      "Un mois après l'autre : les dirigeants saisissent, vous comptabilisez par chantier, vous réexportez le mois, l'écart tombe à zéro et vous validez.",
+    tag: "points 2, 3 et 4",
+    tone: "stop" as Tone,
+  },
+  {
     nom: "Un export Pennylane de balance générale et un de balance analytique",
     pourquoi:
-      "Vous ne pourrez plus sortir de balance ventilée : il faut adapter l'import à vos nouveaux fichiers. N'importe quel mois convient, le moment venu.",
-    tag: "au passage à Pennylane · point 12",
+      "Pour adapter l'import avant votre premier envoi dans ce format. N'importe quel mois convient.",
+    tag: "point 7",
     tone: "warn" as Tone,
   },
   {
-    nom: "Les balances rééditées après vos corrections",
+    nom: "Les balances de septembre et d'octobre, puis la clôture",
     pourquoi:
-      "Honoraires de management sur deux comptes (62263000 SDG, 62263100 NJW), intérim et honoraires chantier retirés du centre FX, honoraires chantier saisis à tort en management. Un import par mois corrigé.",
-    tag: "points 8 et 9",
+      "Selon votre circuit : à J+7 après la TVA, en V1, V2 puis V3 définitive. Octobre ferme l'exercice.",
+    tag: "point 8",
     tone: "warn" as Tone,
+  },
+];
+
+export const ETAPES = [
+  {
+    titre: "Les corrections en comptabilité",
+    texte:
+      "Honoraires de management sur deux comptes, honoraires de chantier remis à leur place, intérim et honoraires sortis du centre FX, codes de centre corrigés (points 1 et 6).",
+  },
+  {
+    titre: "Les balances rééditées, de novembre à mai",
+    texte:
+      "Vous les déposez depuis l'écran Imports : chaque fichier remplace celui du même mois. Vous validez ensuite ces sept mois, l'un après l'autre (point 5).",
+  },
+  {
+    titre: "Juin",
+    texte:
+      "Les dirigeants terminent leurs prévisions, vous passez le 713 par chantier, vous réexportez juin, l'encart « Validation du mois » tombe à zéro, vous validez (point 2).",
+  },
+  {
+    titre: "Juillet, puis août",
+    texte:
+      "De la même façon, avec les écritures récurrentes de juillet et la balance générale d'août (points 3 et 4).",
+  },
+  {
+    titre: "Septembre, octobre et la clôture",
+    texte:
+      "Dans le format Cegid ou Pennylane selon la date de bascule (points 7 et 8).",
   },
 ];
