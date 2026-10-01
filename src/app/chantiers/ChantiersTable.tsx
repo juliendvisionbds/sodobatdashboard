@@ -244,7 +244,9 @@ function LineTr({
   const isProvision = line.code === CHANTIER_CODES.provision;
   const isNote = line.code === CHANTIER_CODES.note;
   const isStatut = line.code === CHANTIER_CODES.statut;
-  const manual = isProvision || MANUAL_LINES.has(line.code);
+  // La prévision se saisit chantier par chantier, mais son total s'affiche :
+  // il suit la saisie au fur et à mesure, brouillons compris.
+  const manual = MANUAL_LINES.has(line.code);
 
   return (
     <tr className={rowClass(line)} style={isPending ? { opacity: 0.5 } : undefined}>
