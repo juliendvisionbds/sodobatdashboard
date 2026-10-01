@@ -6,6 +6,8 @@ import type { ReactNode } from "react";
 // la zone de réponse partagée. Document repris à zéro le 30 septembre 2026 :
 // les quinze points du premier échange (clés c1 à c15) sont clos, leurs réponses
 // restent en base ; ceux-ci portent des clés neuves, de c21 à c28.
+// Constats mis à jour le 1er octobre 2026, après l'import des balances rééditées
+// de novembre à juin.
 
 export type Tone = "stop" | "warn" | "ok";
 
@@ -27,116 +29,99 @@ export const POINTS: Point[] = [
   {
     key: "c21",
     n: 1,
-    title: "Les balances rééditées après vos corrections, de novembre à août",
-    stake: "à faire en premier : tout le reste en dépend",
+    title: "Vos corrections sont en place : il manque mai et deux écritures",
+    stake: "le fichier de mai bloque la validation de mai",
     tone: "stop",
     body: (
       <>
         <p>
-          Vous l&apos;avez précisé le 1er octobre : il n&apos;existe pas d&apos;honoraires de
-          management entre Sodobat et SDG, seule NJW en perçoit. Il n&apos;y a donc pas de
-          second compte à créer : le 62263000 ne porte que NJW, et les Frais généraux
+          Vos balances rééditées de novembre à juin sont importées depuis le 1er octobre, sauf
+          mai. Le management NJW est à <N>115 700 €</N> tous les mois, sur le seul centre FX ;
+          les honoraires de chantier sont revenus sur le 62261000, chantier par chantier ; les
+          1 970 € d&apos;honoraires chantier ont quitté le centre FX. Les Frais généraux
           n&apos;ont plus qu&apos;une ligne, « Honoraires management NJW ».
         </p>
-        <p>
-          Reste à sortir de ce compte ce qui n&apos;est pas du management NJW. Les mois de
-          novembre, juillet et août sont à <N>115 700 €</N> ; voici ce qui s&apos;en écarte :
-        </p>
-        <div className="doc-tbl-wrap">
-          <table className="doc-tbl">
-            <tbody>
-              <tr><th>Mois</th><th>62263000 sur des chantiers</th><th>62263000 sur FX</th><th>Écart à 115 700</th></tr>
-              <tr><td>Décembre 2025</td><td className="muted">—</td><td>118 007,50</td><td>2 307,50</td></tr>
-              <tr><td>Janvier 2026</td><td className="muted">—</td><td>118 084,50</td><td>2 384,50</td></tr>
-              <tr><td>Février 2026</td><td>3 835,00</td><td>115 775,00</td><td>75,00</td></tr>
-              <tr><td>Mars 2026</td><td>3 347,50</td><td>111 505,50</td><td>−4 194,50</td></tr>
-              <tr><td>Avril 2026</td><td>3 640,00</td><td>115 775,00</td><td>75,00</td></tr>
-              <tr><td>Mai 2026</td><td>3 835,00</td><td>115 775,00</td><td>75,00</td></tr>
-              <tr><td>Juin 2026</td><td>2 437,50</td><td>115 775,00</td><td>75,00</td></tr>
-              <tr className="sum"><td>Total</td><td>17 095,00</td><td colSpan={2} /></tr>
-            </tbody>
-          </table>
-        </div>
-        <p>
-          Les <N>17 095 €</N> imputés à des chantiers (994E, 934D, 919D, 962F, 1032E…) sont
-          déjà lus comme des honoraires de chantier par l&apos;application : seul le compte est
-          à corriger. Les écarts sur le centre FX, eux, sont comptés dans la ligne NJW tant
-          qu&apos;ils restent sur ce compte.
-        </p>
-        <p>
-          S&apos;y ajoutent les deux erreurs de saisie sur le centre FX : <N>595 €</N>{" "}
-          d&apos;intérim (6211, décembre) et <N>1 970 €</N> d&apos;honoraires chantier (62261 :
-          270 en décembre, 1 700 en janvier). Ce sont les deux seuls comptes encore sans ligne
-          dans les Frais généraux.
-        </p>
-        <p className="doc-note">
-          Un mois réimporté est à revalider : novembre, que vous avez validé le 28 septembre,
-          le sera aussi s&apos;il est réédité. C&apos;est pourquoi ce point passe avant les
-          validations.
-        </p>
+        <p>Trois choses restent :</p>
+        <ul>
+          <li>
+            <strong>Le fichier de mai</strong> : la balance analytique reçue sous le nom de mai
+            contient les données d&apos;avril (mêmes totaux au centime : 1 680 439,92 de charges,
+            1 633 147,54 de produits, mêmes 603 lignes). Elle n&apos;a pas été importée : mai reste
+            sur l&apos;export du 23 septembre, sans vos corrections d&apos;honoraires.
+          </li>
+          <li>
+            <strong>Les 595 € d&apos;intérim de décembre</strong> (compte 6211) sont toujours sur
+            le centre FX. C&apos;est le dernier compte sans ligne dans les Frais généraux.
+          </li>
+          <li>
+            <strong>Mars</strong> : la balance générale porte <N>1 283,34 €</N> sur un compte
+            nouveau, 79150000 « remboursement assurance sinistre », absent de la balance
+            analytique de mars. C&apos;est le seul écart entre les deux balances, de novembre à
+            juin.
+          </li>
+        </ul>
       </>
     ),
-    ask: "Le montant mensuel de NJW est-il 115 700 ou 115 775 € ? À quoi correspondent les 4 194,50 € en moins de mars ? Une fois ces écritures corrigées, rééditez et déposez les balances analytiques des mois concernés et la balance générale.",
+    ask: "Pouvez-vous renvoyer la balance analytique de mai ? Les 595 € d'intérim de décembre sont-ils à sortir du centre FX ? Et à quel centre rattacher les 1 283,34 € de mars ?",
   },
   {
     key: "c22",
     n: 2,
-    title: "Juin : la prévision à ventiler par chantier",
-    stake: "bloque la validation de juin",
-    tone: "stop",
+    title: "Juin : les prévisions sont comptabilisées par chantier",
+    stake: "réglé le 1er octobre, juin est validable",
+    tone: "ok",
     body: (
       <>
         <p>
-          La reprise des prévisions de mai est bien passée chantier par chantier
-          (<N>1 054 701 €</N>). En face, la prévision de juin est un bloc de{" "}
-          <N>1 033 201 €</N> sur le centre FX, plus <N>21 500 €</N> sur 994E : le total égale
-          exactement la reprise. C&apos;est une écriture d&apos;attente, pas une prévision par
-          chantier.
+          Le bloc de 1 033 201 € sur le centre FX a disparu. Les prévisions de juin sont
+          passées chantier par chantier, pour <N>502 911 €</N>. Sur les 13 chantiers saisis dans
+          la vue Chantiers, la comptabilité est identique à la saisie : <N>470 661 €</N> des deux
+          côtés, écart nul. Les chantiers sans saisie (964F, 53, 993D, 52, 1007E, 1038C,
+          1000E…) sont à zéro en comptabilité comme à l&apos;écran.
         </p>
         <p>
-          Dans la vue Chantiers, <N>470 661 €</N> de prévisions sont saisis pour juin, sur 13
-          chantiers, encore en brouillon. En mai, 28 chantiers portaient une prévision. Ceux qui
-          n&apos;en ont pas en juin, pour les plus gros :
+          Le résultat comptable de juin passe ainsi de −295 357 € à <N>−847 147 €</N> : la
+          prévision réelle remplace l&apos;écriture d&apos;attente de 1 054 701 €.
         </p>
-        <div className="doc-tbl-wrap">
-          <table className="doc-tbl">
-            <tbody>
-              <tr><th>Chantier</th><th>Prévision de mai</th><th>Saisie de juin</th></tr>
-              <tr><td>964F · Le Meust</td><td>257 240</td><td className="muted">—</td></tr>
-              <tr><td>53 · Travaux divers</td><td>85 000</td><td className="muted">—</td></tr>
-              <tr><td>993D · École de la Bouverie</td><td>80 000</td><td className="muted">—</td></tr>
-              <tr><td>52 · Mairie de Fréjus</td><td>55 000</td><td className="muted">—</td></tr>
-              <tr><td>1007E · Cinéma La Renaissance</td><td>45 000</td><td className="muted">—</td></tr>
-              <tr><td>1038C · Transgourmet</td><td>35 000</td><td className="muted">—</td></tr>
-              <tr><td>1000E · Port de Sainte-Maxime</td><td>20 000</td><td className="muted">—</td></tr>
-            </tbody>
-          </table>
-        </div>
+        <p>
+          <strong>994E</strong> : le 713 de juin porte <N>32 250 €</N> au crédit, soit les
+          21 500 € qui rattrapent la reprise de mai (64 500 € repris pour 43 000 € de prévision
+          en avril) et les 10 750 € de prévision de juin. L&apos;application lit tout crédit du
+          713 comme une prévision : la case affiche donc 32 250 €. Le chiffre d&apos;affaires et
+          le cumul du chantier sont justes ; seule la répartition entre les lignes Annulation et
+          Prévision de juin est décalée de 21 500 €.
+        </p>
+        <p className="doc-note">
+          Ne saisissez pas 10 750 dans la case de 994E : la saisie remplacerait les 32 250 € lus
+          en comptabilité, et un écart de 21 500 € apparaîtrait au contrôle du mois.
+        </p>
       </>
     ),
-    ask: "Faites confirmer par les dirigeants que ces chantiers sont bien à zéro en juin, puis passez le 713 chantier par chantier à la place du bloc FX, et réexportez juin.",
+    ask: "Pour 994E, préférez-vous laisser ainsi, ou corriger la reprise de mai à 43 000 € en comptabilité, ce qui remettrait chaque montant sur sa ligne ?",
   },
   {
     key: "c23",
     n: 3,
-    title: "Juillet : le mois ne paraît pas clôturé",
-    stake: "bloque la validation de juillet",
+    title: "Juillet : la balance générale, les écritures récurrentes et le 713",
+    stake: "bloque la Synthèse et la validation de juillet",
     tone: "stop",
     body: (
       <>
         <p>
-          La balance de juillet ne porte aucune écriture de 713 : ni la reprise de juin, ni la
-          prévision de juillet. Son résultat de <N>+469 803 €</N> n&apos;est donc pas un
-          résultat de gestion.
+          Votre balance générale rééditée s&apos;arrête à juin : la Synthèse s&apos;arrête donc à
+          juin, et juillet n&apos;y reviendra qu&apos;avec une balance générale allant
+          jusqu&apos;à juillet. La balance analytique de juillet en base est celle du 20
+          septembre.
         </p>
         <p>
-          Plusieurs charges qui tombent chaque mois sont à zéro en juillet : crédit-bail (612,
-          2 574 € par mois jusqu&apos;en juin), assurances (616), impôts et taxes (635), ainsi que
-          les comptes 618 et 623.
+          Elle ne porte aucune écriture de 713 : ni la reprise des <N>502 911 €</N> de juin, ni
+          la prévision de juillet. Et plusieurs charges qui tombent chaque mois y sont à zéro :
+          crédit-bail (612, 2 574 € par mois jusqu&apos;en juin), assurances (616), impôts et
+          taxes (635), ainsi que les comptes 618 et 623.
         </p>
       </>
     ),
-    ask: "Pouvez-vous passer les écritures récurrentes de juillet, puis la reprise de juin et la prévision de juillet une fois saisie par les dirigeants, et réexporter le mois ?",
+    ask: "Une fois juin validé : écritures récurrentes de juillet, reprise de juin, prévision de juillet saisie par les dirigeants puis comptabilisée par chantier, et dépôt de la balance analytique de juillet et de la balance générale jusqu'à juillet.",
   },
   {
     key: "c24",
@@ -147,8 +132,8 @@ export const POINTS: Point[] = [
     body: (
       <>
         <p>
-          Nous n&apos;avons pas de balance générale pour août : la Synthèse s&apos;arrête à
-          juillet, et la balance analytique d&apos;août ne peut pas être recoupée.
+          Nous n&apos;avons pas de balance générale pour août, et la balance analytique
+          d&apos;août ne peut pas être recoupée.
         </p>
         <p>
           Cette balance analytique, déposée le 24 septembre, est basse : <N>550 095 €</N> de
@@ -158,24 +143,25 @@ export const POINTS: Point[] = [
         </p>
       </>
     ),
-    ask: "Cette balance d'août est-elle définitive ou un premier brouillon ? Et pouvez-vous déposer la balance générale arrêtée à août ?",
+    ask: "Cette balance d'août est-elle définitive ou un premier brouillon ? Après juillet : même circuit, avec la balance générale arrêtée à août.",
   },
   {
     key: "c25",
     n: 5,
-    title: "Valider les mois, de novembre à mai",
-    stake: "après le point 1",
+    title: "Valider les mois, de novembre à juin",
+    stake: "novembre à avril et juin sont prêts",
     tone: "warn",
     body: (
       <p>
-        Seul novembre est validé. De décembre à mai, les prévisions comptabilisées sont ventilées
-        par chantier et l&apos;écart de contrôle est nul : ces six mois sont validables tels
-        quels. Mieux vaut pourtant attendre les balances rééditées du point 1, puisqu&apos;un mois
-        réimporté est à revalider. L&apos;analyse mensuelle de novembre, sur la page Objectifs,
-        est restée en brouillon.
+        Novembre, que vous aviez validé le 28 septembre, est à revalider : ses balances ont été
+        réimportées. De décembre à juin, les prévisions comptabilisées sont ventilées par
+        chantier et l&apos;écart de contrôle est nul. Novembre à avril et juin peuvent être
+        validés dès maintenant ; mai attend son bon fichier (point 1), sans quoi il serait à
+        revalider. L&apos;analyse mensuelle de novembre, sur la page Objectifs, est restée en
+        brouillon.
       </p>
     ),
-    ask: "Une fois les balances rééditées déposées, validez novembre à mai dans la vue Chantiers, et publiez les analyses mensuelles.",
+    ask: "Validez novembre à avril, puis juin, dans la vue Chantiers ; mai dès que son fichier est déposé.",
   },
   {
     key: "c26",
@@ -187,7 +173,7 @@ export const POINTS: Point[] = [
       <>
         <p>
           Vous aviez répondu ne plus pouvoir corriger les exercices antérieurs. Ces écritures-ci
-          sont de l&apos;exercice en cours :
+          sont de l&apos;exercice en cours, et votre balance rééditée de juin les porte encore :
         </p>
         <div className="doc-tbl-wrap">
           <table className="doc-tbl">
@@ -207,7 +193,7 @@ export const POINTS: Point[] = [
         </p>
       </>
     ),
-    ask: "FORMA est-il le centre FORMATION ? Et pouvez-vous corriger ces quatre codes sur juin, juillet et août, ou au moins ne plus les alimenter ?",
+    ask: "FORMA est-il le centre FORMATION ? Et pouvez-vous corriger ces codes en reprenant juillet et août, ou au moins ne plus les alimenter ?",
   },
   {
     key: "c27",
@@ -273,24 +259,24 @@ export const POINTS: Point[] = [
 
 export const FICHIERS = [
   {
-    nom: "Les balances analytiques de novembre à août, rééditées",
+    nom: "La balance analytique de mai",
     pourquoi:
-      "Après les corrections du point 1 (honoraires de chantier sortis du compte de management NJW, intérim et honoraires retirés du centre FX) et, pour juin à août, celles des codes de centre du point 6.",
-    tag: "point 1 · point 6",
+      "Le fichier reçu sous le nom de mai contient les données d'avril. Mai reste sur l'export du 23 septembre tant que le bon fichier n'est pas déposé.",
+    tag: "point 1",
     tone: "stop" as Tone,
   },
   {
-    nom: "La balance générale arrêtée à août",
+    nom: "Juillet : la balance analytique et la balance générale jusqu'à juillet",
     pourquoi:
-      "Elle manque : la Synthèse s'arrête à juillet. Rééditée après les mêmes corrections, elle remplace celle de juillet en un seul import.",
-    tag: "points 1 et 4",
+      "Après les écritures récurrentes, la reprise des 502 911 € de juin et la prévision de juillet par chantier. La Synthèse s'arrête à juin en attendant.",
+    tag: "point 3",
     tone: "stop" as Tone,
   },
   {
-    nom: "Juin, juillet et août avec le 713 ventilé par chantier",
+    nom: "Août : la balance analytique et la balance générale jusqu'à août",
     pourquoi:
-      "Un mois après l'autre : les dirigeants saisissent, vous comptabilisez par chantier, vous réexportez le mois, l'écart tombe à zéro et vous validez.",
-    tag: "points 2, 3 et 4",
+      "Même circuit que juillet. La balance générale remplace la précédente en un seul import.",
+    tag: "point 4",
     tone: "stop" as Tone,
   },
   {
@@ -311,24 +297,23 @@ export const FICHIERS = [
 
 export const ETAPES = [
   {
-    titre: "Les corrections en comptabilité",
+    titre: "Mai",
     texte:
-      "Honoraires de chantier sortis du compte de management NJW, intérim et honoraires sortis du centre FX, codes de centre corrigés (points 1 et 6).",
+      "Vous déposez la bonne balance analytique de mai depuis l'écran Imports : elle remplace celle du même mois. Au passage, les 595 € d'intérim de décembre et les 1 283,34 € de mars (point 1).",
   },
   {
-    titre: "Les balances rééditées, de novembre à mai",
+    titre: "Les validations, de novembre à juin",
     texte:
-      "Vous les déposez depuis l'écran Imports : chaque fichier remplace celui du même mois. Vous validez ensuite ces sept mois, l'un après l'autre (point 5).",
+      "Novembre à avril et juin sont prêts ; mai suit son fichier. Un mois après l'autre, dans la vue Chantiers (point 5).",
   },
   {
-    titre: "Juin",
+    titre: "Juillet",
     texte:
-      "Les dirigeants terminent leurs prévisions, vous passez le 713 par chantier, vous réexportez juin, l'encart « Validation du mois » tombe à zéro, vous validez (point 2).",
+      "Écritures récurrentes, reprise de juin, prévisions des dirigeants, 713 par chantier, puis balance analytique et balance générale jusqu'à juillet. L'écart tombe à zéro, vous validez (point 3).",
   },
   {
-    titre: "Juillet, puis août",
-    texte:
-      "De la même façon, avec les écritures récurrentes de juillet et la balance générale d'août (points 3 et 4).",
+    titre: "Août",
+    texte: "De la même façon, avec la balance générale arrêtée à août (point 4).",
   },
   {
     titre: "Septembre, octobre et la clôture",

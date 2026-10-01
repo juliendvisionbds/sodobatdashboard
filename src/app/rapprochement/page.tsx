@@ -3,8 +3,10 @@ import AppHeader from "@/components/AppHeader";
 import { db, tables } from "@/db";
 import {
   getEntityByCode,
+  getFx,
   getMonthValidation,
   getPrevisionControl,
+  getSynthese,
   listAnalytiquePeriods,
 } from "@/lib/finance";
 import { fiscalMonths } from "@/lib/parsers";
@@ -67,6 +69,11 @@ export default async function RapprochementPage() {
   const valides = mois.filter((m) => m.valide).length;
   const recoupes = mois.filter((m) => m.control.ventileeCovers).length;
 
+  // Comptes sans ligne d'accueil, sur les dernières balances en base.
+  const [synthese, fx] = await Promise.all([getSynthese(entity), getFx(entity)]);
+  const sansLigneSynthese = synthese?.unmapped.length ?? 0;
+  const sansLigneFx = fx?.unmapped.length ?? 0;
+
   return (
     <>
       <AppHeader active="rapprochement" fiscalYearStart={FISCAL_YEAR_START} />
@@ -77,8 +84,10 @@ export default async function RapprochementPage() {
             Ce document est le vôtre. Il repart de zéro : les quinze points du premier échange
             sont clos et appliqués, vos réponses sont conservées. Il ne reste ici que ce qui
             sépare encore l&apos;application de tableaux de gestion identiques à la comptabilité :
-            l&apos;état de chaque mois (partie A), les huit points à conclure (partie B), les
-            fichiers attendus (partie C) et l&apos;ordre dans lequel les traiter (partie D).
+            l&apos;état de chaque mois (partie A), les huit points et ce qu&apos;il en reste
+            (partie B), les fichiers attendus (partie C) et l&apos;ordre dans lequel les traiter
+            (partie D). Vos balances rééditées de novembre à juin sont en place depuis le
+            1er octobre.
             Sous chaque point, une zone « Votre réponse » est à votre disposition ; chaque
             réponse est enregistrée aussitôt et reste lisible de tous.
           </p>
@@ -97,20 +106,18 @@ export default async function RapprochementPage() {
               <span className={`doc-state-value${recoupes === mois.length ? "" : " warn"}`}>
                 {recoupes} / {mois.length}
               </span>
-              <span className="doc-state-label">
-                Mois couverts par la balance générale, recoupés au centime
-              </span>
+              <span className="doc-state-label">Mois couverts par la balance générale</span>
             </div>
             <div className="doc-state-cell">
-              <span className="doc-state-value">0</span>
-              <span className="doc-state-label">
-                Compte sans ligne dans la Synthèse et la vue Chantiers
+              <span className={`doc-state-value${sansLigneSynthese ? " warn" : ""}`}>
+                {sansLigneSynthese}
               </span>
+              <span className="doc-state-label">Compte sans ligne dans la Synthèse</span>
             </div>
             <div className="doc-state-cell">
-              <span className="doc-state-value warn">2</span>
+              <span className={`doc-state-value${sansLigneFx ? " warn" : ""}`}>{sansLigneFx}</span>
               <span className="doc-state-label">
-                Comptes sans ligne dans les Frais généraux (point 1)
+                Compte sans ligne dans les Frais généraux (point 1)
               </span>
             </div>
             <div className="doc-state-cell">
@@ -164,10 +171,10 @@ export default async function RapprochementPage() {
               </div>
               <p className="doc-note">
                 « Prévisions comptabilisées » : le crédit du compte 713 porté par les chantiers
-                dans la balance analytique du mois. En juin, le bloc passé sur le centre FX
-                n&apos;y figure pas (point 2) ; en juillet et en août, aucune écriture de 713
-                n&apos;est passée (points 3 et 4). Un écart nul sur ces deux mois ne dit donc pas
-                qu&apos;ils sont prêts.
+                dans la balance analytique du mois. En juin, il comprend les 32 250 € de 994E,
+                que personne n&apos;a saisis (point 2). En juillet et en août, aucune écriture de
+                713 n&apos;est passée (points 3 et 4) : un écart nul sur ces deux mois ne dit donc
+                pas qu&apos;ils sont prêts.
               </p>
             </div>
 
@@ -175,16 +182,18 @@ export default async function RapprochementPage() {
               <h3>Ce qui est contrôlé et juste</h3>
               <ul>
                 <li>
-                  De novembre à juillet, chaque balance analytique recoupe la balance générale du
-                  même mois au centime, sur les classes 6 et 7.
+                  De novembre à juin, chaque balance analytique recoupe la balance générale du
+                  même mois au centime, sur les classes 6 et 7. Seule exception : 1 283,34 € de
+                  produits en mars (point 1).
                 </li>
                 <li>
                   Tous les comptes ont une ligne d&apos;accueil dans la Synthèse et dans la vue
-                  Chantiers ; la vue Chantiers ne perd aucun solde, quel que soit le mois.
+                  Chantiers ; la vue Chantiers ne perd aucun solde, quel que soit le mois. Le
+                  management NJW est à 115 700 € tous les mois.
                 </li>
                 <li>
-                  De novembre à mai, les prévisions sont comptabilisées chantier par chantier, la
-                  reprise du mois suivant comprise.
+                  De novembre à juin, les prévisions sont comptabilisées chantier par chantier ;
+                  en juin, la comptabilité est identique aux 13 prévisions saisies.
                 </li>
                 <li>
                   Les conventions arrêtées avec vous sont en place : base comptable, DEPOT et SAV
@@ -199,10 +208,11 @@ export default async function RapprochementPage() {
           <section className="doc-part">
             <div className="doc-part-head">
               <span className="doc-part-tag">Partie B</span>
-              <h2>Les huit points à conclure</h2>
+              <h2>Les huit points, et ce qu&apos;il en reste</h2>
               <p>
-                En rouge, ce qui empêche de valider un mois ; en orange, ce qui suit ou se prépare.
-                Constats relevés le 30 septembre 2026 sur les balances en base.
+                En rouge, ce qui empêche de valider un mois ; en orange, ce qui suit ou se
+                prépare ; en vert, ce qui est réglé. Constats relevés le 1er octobre 2026, après
+                l&apos;import de vos balances rééditées.
               </p>
             </div>
             <div className="doc-points">
@@ -274,7 +284,7 @@ export default async function RapprochementPage() {
 
           <p className="doc-foot">
             L&apos;état mois par mois est lu sur la base de l&apos;application. Les constats des
-            points datent du 30 septembre 2026. Montants en euros.
+            points datent du 1er octobre 2026. Montants en euros.
             {!writer && " Les réponses sont en lecture seule avec votre profil."}
           </p>
         </div>

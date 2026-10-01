@@ -48,6 +48,12 @@ export async function createImportPreview(opts: {
   periodOverride?: string;
   /** balance analytique d'un exercice clos entier (voir ImportSummary.annual) */
   annual?: boolean;
+  /**
+   * Accepte une ventilée qui s'arrête avant celle déjà validée : la DAF a
+   * réédité les mois corrigés sans le dernier, qui sortira donc de la Synthèse
+   * jusqu'à l'export suivant. Réservé à la ligne de commande.
+   */
+  allowOlder?: boolean;
 }): Promise<{ importId: number; summary: ImportSummary }> {
   const { entity, buffer, fileName, createdBy } = opts;
   const parsed = parseBalanceFile(buffer);
@@ -89,7 +95,7 @@ export async function createImportPreview(opts: {
   // Une ventilée remplace tout import validé du même exercice. Importer un export
   // plus ancien que celui déjà en place effacerait donc les mois les plus récents
   // (cas typique : la ventilée de mai importée après celle de juin).
-  if (parsed.type === "ventilee" && replaced && replaced.period > period) {
+  if (parsed.type === "ventilee" && replaced && replaced.period > period && !opts.allowOlder) {
     throw new Error(
       `Cet export s'arrête en ${period.slice(0, 7)}, alors qu'un export plus récent du même ` +
         `exercice est déjà validé (${replaced.fileName}, jusqu'à ${replaced.period.slice(0, 7)}). ` +

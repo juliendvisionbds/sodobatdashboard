@@ -9,6 +9,10 @@
 // son dernier mois. Elle nourrit les colonnes N-1 / N-2 des frais généraux et
 // reste hors du cycle mensuel (pas dans le choix du mois, pas dans les cumuls).
 //
+// --remplace-plus-recent : accepte une ventilée qui s'arrête avant celle déjà
+// validée (réédition de mois corrigés). Les mois que le nouveau fichier ne
+// couvre pas sortent de la Synthèse jusqu'à l'export suivant.
+//
 // Préfixer par DOTENV_CONFIG_PATH=.env.prod.local pour viser la production.
 // La période est obligatoire pour une balance analytique : le fichier ne la porte
 // pas, c'est le mois du snapshot. Les imports faits ici sont signés « import-cli » :
@@ -35,6 +39,7 @@ async function main() {
   }
   const period = arg("--period");
   const annual = process.argv.includes("--annuel");
+  const allowOlder = process.argv.includes("--remplace-plus-recent");
   if (annual && !period) {
     console.error("--annuel demande la période du dernier mois de l'exercice : --period 2024-10.");
     process.exit(1);
@@ -57,6 +62,7 @@ async function main() {
     createdBy: "import-cli",
     periodOverride: period ? `${period}-01` : undefined,
     annual,
+    allowOlder,
   });
 
   const nature =
@@ -66,6 +72,10 @@ async function main() {
   console.log(`Nature  : ${nature} · ${summary.lineCount} lignes`);
   if (summary.replaces)
     console.log(`Remplace : ${summary.replaces.fileName} (${summary.replaces.period.slice(0, 7)})`);
+  if (summary.replaces && summary.replaces.period > summary.period)
+    console.log(
+      `⚠ Le fichier remplacé allait jusqu'à ${summary.replaces.period.slice(0, 7)} : les mois après ${summary.period.slice(0, 7)} sortent de la Synthèse.`
+    );
   if (summary.unmapped.length) {
     console.log(`⚠ ${summary.unmapped.length} compte(s) non mappé(s), une alerte sera levée pour chacun :`);
     for (const u of summary.unmapped.slice(0, 8)) console.log(`     ${u.account}  ${u.label}`);
