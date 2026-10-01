@@ -1457,41 +1457,18 @@ export const fx: NomenclatureLine[] = [
   },
 
   // ▸ HONORAIRES
-  // Code U — la DAF crée deux comptes depuis le début de l'exercice (réponse du
-  // 25 septembre 2026) : 62263000 honoraires de management SDG, 62263100 NJW.
-  // Tant que les balances rééditées ne sont pas importées, tout est sur SDG.
-  {
-    code: "fx_honoraires_sdg",
-    view: "fx",
-    section: FX.honoraires,
-    label: "Honoraires management SDG (holding)",
-    kind: "poste",
-    accounts: ["62263000"],
-    notes: "Code U — compte 62263000",
-  },
-  {
-    code: "fx_honoraires_njw",
-    view: "fx",
-    section: FX.honoraires,
-    label: "Honoraires management NJW",
-    kind: "poste",
-    accounts: ["62263100"],
-    notes: "Code U — compte 62263100, créé par la DAF en septembre 2026",
-  },
+  // Code U — seule NJW perçoit des honoraires de management de Sodobat ; il n'en
+  // existe pas avec SDG (réponse de la DAF du 1er octobre 2026). Tout le compte
+  // 62263000 des centres de structure est donc NJW. Le 62263100, un temps prévu
+  // pour séparer SDG et NJW, reste rattaché ici s'il venait à être utilisé.
   {
     code: "fx_honoraires_management",
     view: "fx",
     section: FX.honoraires,
-    label: "Honoraires management (SDG + NJW)",
-    kind: "subtotal",
-    hidden: true,
-    formula: {
-      op: "sum",
-      operands: [
-        { code: "fx_honoraires_sdg", sign: 1 },
-        { code: "fx_honoraires_njw", sign: 1 },
-      ],
-    },
+    label: "Honoraires management NJW",
+    kind: "poste",
+    accounts: ["62263000", "62263100"],
+    notes: "Code U — compte 62263000",
   },
   {
     code: "fx_honoraires_divers",

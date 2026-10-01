@@ -33,34 +33,50 @@ export const POINTS: Point[] = [
     body: (
       <>
         <p>
-          Vous aviez annoncé trois corrections en comptabilité. Aucune n&apos;est encore dans les
-          balances que nous avons :
+          Vous l&apos;avez précisé le 1er octobre : il n&apos;existe pas d&apos;honoraires de
+          management entre Sodobat et SDG, seule NJW en perçoit. Il n&apos;y a donc pas de
+          second compte à créer : le 62263000 ne porte que NJW, et les Frais généraux
+          n&apos;ont plus qu&apos;une ligne, « Honoraires management NJW ».
         </p>
-        <ul>
-          <li>
-            <strong>Honoraires de management</strong> : tout est encore sur le seul compte
-            62263000. Le compte 62263100 (NJW) n&apos;existe pas dans les balances. Les deux
-            lignes de l&apos;application l&apos;attendent.
-          </li>
-          <li>
-            <strong>Honoraires de chantier saisis en management</strong> : environ{" "}
-            <N>17 100 €</N> sur le compte 62263000, imputés à des chantiers (994E, 934D, 919D,
-            962F, 1032E…), de février à juin.
-          </li>
-          <li>
-            <strong>Deux erreurs de saisie sur le centre FX</strong> : <N>595 €</N> d&apos;intérim
-            (6211, décembre) et <N>1 970 €</N> d&apos;honoraires chantier (62261 : 270 en
-            décembre, 1 700 en janvier). Ce sont les deux seuls comptes encore sans ligne dans
-            les Frais généraux.
-          </li>
-        </ul>
+        <p>
+          Reste à sortir de ce compte ce qui n&apos;est pas du management NJW. Les mois de
+          novembre, juillet et août sont à <N>115 700 €</N> ; voici ce qui s&apos;en écarte :
+        </p>
+        <div className="doc-tbl-wrap">
+          <table className="doc-tbl">
+            <tbody>
+              <tr><th>Mois</th><th>62263000 sur des chantiers</th><th>62263000 sur FX</th><th>Écart à 115 700</th></tr>
+              <tr><td>Décembre 2025</td><td className="muted">—</td><td>118 007,50</td><td>2 307,50</td></tr>
+              <tr><td>Janvier 2026</td><td className="muted">—</td><td>118 084,50</td><td>2 384,50</td></tr>
+              <tr><td>Février 2026</td><td>3 835,00</td><td>115 775,00</td><td>75,00</td></tr>
+              <tr><td>Mars 2026</td><td>3 347,50</td><td>111 505,50</td><td>−4 194,50</td></tr>
+              <tr><td>Avril 2026</td><td>3 640,00</td><td>115 775,00</td><td>75,00</td></tr>
+              <tr><td>Mai 2026</td><td>3 835,00</td><td>115 775,00</td><td>75,00</td></tr>
+              <tr><td>Juin 2026</td><td>2 437,50</td><td>115 775,00</td><td>75,00</td></tr>
+              <tr className="sum"><td>Total</td><td>17 095,00</td><td colSpan={2} /></tr>
+            </tbody>
+          </table>
+        </div>
+        <p>
+          Les <N>17 095 €</N> imputés à des chantiers (994E, 934D, 919D, 962F, 1032E…) sont
+          déjà lus comme des honoraires de chantier par l&apos;application : seul le compte est
+          à corriger. Les écarts sur le centre FX, eux, sont comptés dans la ligne NJW tant
+          qu&apos;ils restent sur ce compte.
+        </p>
+        <p>
+          S&apos;y ajoutent les deux erreurs de saisie sur le centre FX : <N>595 €</N>{" "}
+          d&apos;intérim (6211, décembre) et <N>1 970 €</N> d&apos;honoraires chantier (62261 :
+          270 en décembre, 1 700 en janvier). Ce sont les deux seuls comptes encore sans ligne
+          dans les Frais généraux.
+        </p>
         <p className="doc-note">
           Un mois réimporté est à revalider : novembre, que vous avez validé le 28 septembre,
-          le sera aussi. C&apos;est pourquoi ce point passe avant les validations.
+          le sera aussi s&apos;il est réédité. C&apos;est pourquoi ce point passe avant les
+          validations.
         </p>
       </>
     ),
-    ask: "Passez ces corrections, puis rééditez et déposez les balances analytiques de novembre à août et la balance générale.",
+    ask: "Le montant mensuel de NJW est-il 115 700 ou 115 775 € ? À quoi correspondent les 4 194,50 € en moins de mars ? Une fois ces écritures corrigées, rééditez et déposez les balances analytiques des mois concernés et la balance générale.",
   },
   {
     key: "c22",
@@ -246,7 +262,7 @@ export const FICHIERS = [
   {
     nom: "Les balances analytiques de novembre à août, rééditées",
     pourquoi:
-      "Après les corrections du point 1 (deux comptes d'honoraires de management, honoraires de chantier, intérim et honoraires retirés du centre FX) et, pour juin à août, celles des codes de centre du point 6.",
+      "Après les corrections du point 1 (honoraires de chantier sortis du compte de management NJW, intérim et honoraires retirés du centre FX) et, pour juin à août, celles des codes de centre du point 6.",
     tag: "point 1 · point 6",
     tone: "stop" as Tone,
   },
@@ -284,7 +300,7 @@ export const ETAPES = [
   {
     titre: "Les corrections en comptabilité",
     texte:
-      "Honoraires de management sur deux comptes, honoraires de chantier remis à leur place, intérim et honoraires sortis du centre FX, codes de centre corrigés (points 1 et 6).",
+      "Honoraires de chantier sortis du compte de management NJW, intérim et honoraires sortis du centre FX, codes de centre corrigés (points 1 et 6).",
   },
   {
     titre: "Les balances rééditées, de novembre à mai",
