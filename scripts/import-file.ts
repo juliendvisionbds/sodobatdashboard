@@ -75,7 +75,7 @@ async function main() {
   const nature =
     summary.type === "ventilee"
       ? `ventilée · exercice ${summary.fiscalYearStart}/${summary.fiscalYearStart + 1} · jusqu'à ${summary.period.slice(0, 7)}`
-      : `analytique · ${summary.annual ? `exercice ${summary.fiscalYearStart}/${summary.fiscalYearStart + 1} entier` : `snapshot ${summary.period.slice(0, 7)}`} · ${summary.centreCount} centres`;
+      : `analytique · ${summary.cumulMois ? `cumul de ${summary.cumulMois} mois, arrêté à ${summary.period.slice(0, 7)}` : summary.annual ? `exercice ${summary.fiscalYearStart}/${summary.fiscalYearStart + 1} entier` : `snapshot ${summary.period.slice(0, 7)}`} · ${summary.centreCount} centres`;
   console.log(`Nature  : ${nature} · ${summary.lineCount} lignes`);
   if (summary.replaces)
     console.log(`Remplace : ${summary.replaces.fileName} (${summary.replaces.period.slice(0, 7)})`);

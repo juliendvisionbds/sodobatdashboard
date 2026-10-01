@@ -32,12 +32,15 @@ export type ImportSummary = {
   unmapped: { account: string; label: string; total: number; views: string[] }[];
   replaces: { id: number; fileName: string; period: string } | null;
   /**
-   * Balance analytique d'un exercice clos entier, importée en une fois sur le
-   * dernier mois de l'exercice. Elle sert aux comparaisons N-1 / N-2 des frais
-   * généraux, pas au cycle mensuel : elle n'apparaît pas dans le choix du mois
-   * et n'entre pas dans les cumuls des chantiers.
+   * Balance analytique cumulée depuis l'ouverture de l'exercice : un exercice
+   * clos entier, ou l'exercice en cours arrêté à un mois (`cumulMois`). Elle
+   * donne le cumul des frais généraux — colonnes N, N-1 et N-2 — mais pas le
+   * mouvement d'un mois : elle reste hors du cycle mensuel, n'apparaît pas
+   * dans le choix du mois et n'entre pas dans les cumuls des chantiers.
    */
   annual?: boolean;
+  /** nombre de mois couverts par une balance cumulée de l'exercice en cours */
+  cumulMois?: number;
   /** export Pennylane : famille d'axes analytiques lue, et celles laissées de côté */
   famille?: { retenue: string; ignorees: string[] };
 };
@@ -79,25 +82,28 @@ export async function createImportPreview(opts: {
   let period: string;
   let fiscalYearStart: number;
   let annual = !!opts.annual;
+  let cumulMois: number | undefined;
   if (parsed.type === "ventilee") {
     period = parsed.period;
     fiscalYearStart = parsed.fiscalYearStart;
   } else {
     // Un export Pennylane porte sa période dans son nom, et il est cumulé sur
     // toute cette période. L'application lit une balance analytique comme le
-    // mouvement d'UN mois : un export de plusieurs mois ne peut donc entrer que
-    // s'il couvre un exercice entier (il sert alors aux colonnes N-1 / N-2).
+    // mouvement d'UN mois ; un export de plusieurs mois n'entre que s'il part de
+    // l'ouverture de l'exercice : c'est alors une balance cumulée, qui donne le
+    // cumul des frais généraux mais pas le détail d'un mois.
     const lu = parsed.famille ? periodFromFileName(fileName) : null;
     if (lu && lu.months > 1) {
       const exercice = fiscalMonths(fiscalYearOf(lu.start));
-      const entier = lu.start === exercice[0] && lu.end === exercice[11];
-      if (!entier)
+      if (lu.start !== exercice[0] || !exercice.includes(lu.end))
         throw new Error(
-          `Cet export couvre ${lu.months} mois (de ${lu.start.slice(0, 7)} à ${lu.end.slice(0, 7)}) : ` +
-            "ses montants sont cumulés sur toute la période. L'application attend une balance " +
-            "analytique par mois : dans Pennylane, exportez-la du 1er au dernier jour du mois voulu."
+          `Cet export couvre ${lu.months} mois (de ${lu.start.slice(0, 7)} à ${lu.end.slice(0, 7)}) ` +
+            "sans partir de l'ouverture de l'exercice : ses montants cumulés ne correspondent ni à " +
+            "un mois ni à un exercice. Exportez la balance analytique du mois seul (du 1er au " +
+            "dernier jour), ou depuis le 1er novembre."
         );
       annual = true;
+      if (lu.months < 12) cumulMois = lu.months;
     }
     if (lu && opts.periodOverride && opts.periodOverride !== lu.end)
       throw new Error(
@@ -112,6 +118,29 @@ export async function createImportPreview(opts: {
     }
     period = choisi;
     fiscalYearStart = fiscalYearOf(period);
+  }
+
+  // Une balance cumulée et des balances mensuelles ne se mélangent pas : là où
+  // les mois sont importés, ils font foi, et la cumulée prendrait la place du
+  // mois sur lequel elle est arrêtée.
+  if (parsed.type === "analytique" && annual) {
+    const mensuelles = await db
+      .select({ period: tables.imports.period, summary: tables.imports.summary })
+      .from(tables.imports)
+      .where(
+        and(
+          eq(tables.imports.entityId, entity.id),
+          eq(tables.imports.type, "analytique"),
+          eq(tables.imports.status, "validated"),
+          eq(tables.imports.fiscalYearStart, fiscalYearStart)
+        )
+      );
+    if (mensuelles.some((i) => !(i.summary as ImportSummary | null)?.annual))
+      throw new Error(
+        `Des balances analytiques mensuelles sont déjà validées pour l'exercice ` +
+          `${fiscalYearStart}/${fiscalYearStart + 1} : une balance cumulée n'apporterait rien et ` +
+          `remplacerait le mois de ${period.slice(0, 7)}. Importez plutôt la balance du mois seul.`
+      );
   }
 
   // comptes non mappés, par vue concernée
@@ -146,6 +175,7 @@ export async function createImportPreview(opts: {
       ? { id: replaced.id, fileName: replaced.fileName, period: replaced.period }
       : null,
     ...(annual && parsed.type === "analytique" ? { annual: true } : {}),
+    ...(cumulMois ? { cumulMois } : {}),
     ...(parsed.type === "analytique" && parsed.famille ? { famille: parsed.famille } : {}),
   };
 

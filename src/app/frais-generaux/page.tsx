@@ -68,26 +68,42 @@ export default async function FxPage({
                 extraQuery={mensuel ? "vue=mensuel" : undefined}
               />
             )}
-            <nav className="view-switch" aria-label="Lecture du tableau">
-              <Link
-                href={`/frais-generaux?mois=${data.period}`}
-                className={mensuel ? undefined : "active"}
-              >
-                Exercices
-              </Link>
-              <Link
-                href={`/frais-generaux?mois=${data.period}&vue=mensuel`}
-                className={mensuel ? "active" : undefined}
-              >
-                Mensuel
-              </Link>
-            </nav>
+            {!data.cumulSeul && (
+              <nav className="view-switch" aria-label="Lecture du tableau">
+                <Link
+                  href={`/frais-generaux?mois=${data.period}`}
+                  className={mensuel ? undefined : "active"}
+                >
+                  Exercices
+                </Link>
+                <Link
+                  href={`/frais-generaux?mois=${data.period}&vue=mensuel`}
+                  className={mensuel ? "active" : undefined}
+                >
+                  Mensuel
+                </Link>
+              </nav>
+            )}
           </div>
           <p>
             Centres de structure (FX, dépôt, siège) · cumul exercice à date ·{" "}
             {data.nbMois} mois écoulés
           </p>
         </div>
+
+        {data.cumulSeul && (
+          <div className="alert info" style={{ marginBottom: 20 }}>
+            <div className="alert-ico">ℹ</div>
+            <div>
+              <div className="alert-title">Cumul de l&apos;exercice seulement</div>
+              <div className="alert-desc">
+                Ces frais généraux viennent d&apos;une balance analytique cumulée depuis
+                l&apos;ouverture de l&apos;exercice : le total à fin {monthLabelLong(data.period)} est
+                juste, mais le détail mois par mois demande une balance analytique par mois.
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="kpi-strip">
           <div className="kpi">
@@ -101,10 +117,18 @@ export default async function FxPage({
           <div className="kpi">
             <div className="kpi-label">FX du mois</div>
             <div className="kpi-value">
-              {moisSplit.amount}
-              <span className="unit">{moisSplit.unit}</span>
+              {data.cumulSeul ? (
+                "-"
+              ) : (
+                <>
+                  {moisSplit.amount}
+                  <span className="unit">{moisSplit.unit}</span>
+                </>
+              )}
             </div>
-            <div className="kpi-sub">{monthLabelLong(data.period)}</div>
+            <div className="kpi-sub">
+              {data.cumulSeul ? "balance par mois non reçue" : monthLabelLong(data.period)}
+            </div>
           </div>
           <div className="kpi">
             <div className="kpi-label">Ratio FX / CA</div>

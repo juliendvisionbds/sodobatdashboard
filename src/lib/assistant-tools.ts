@@ -351,7 +351,11 @@ export function buildAssistantTools(entity: Entity, src: AssistantDataSource = D
           nbMoisEcoules: data.nbMois,
           caReferencePourRatios: caN != null ? eur(caN) : null,
           totalCumulExercice: eur(data.totalYtd),
-          totalDuMois: eur(data.totalMois),
+          // Avec une balance cumulée seule, le mouvement du mois n'est pas connu.
+          totalDuMois: data.cumulSeul ? null : eur(data.totalMois),
+          ...(data.cumulSeul
+            ? { avertissement: "Seul le cumul de l'exercice est disponible (balance analytique cumulée) : pas de détail par mois." }
+            : {}),
           ratioFxSurCa: pct(data.totalYtd, caN),
           historique: {
             n1: data.sources.n1 === "absent" ? "exercice non importé" : "disponible",

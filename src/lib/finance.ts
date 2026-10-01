@@ -1588,6 +1588,11 @@ export type FxData = {
   caReference: Record<FxColumn, number | null>;
   /** contrôle de couverture : soldes bruts des centres de structure, mappés ou non */
   controle: { soldeStructure: number; soldeMappe: number };
+  /**
+   * L'exercice en cours n'est connu que par une balance cumulée : le cumul est
+   * juste, mais le mouvement du mois affiché n'est pas disponible.
+   */
+  cumulSeul: boolean;
   /** d'où viennent N-1 et N-2, pour l'avertissement affiché sous le tableau */
   sources: Record<"n1" | "n2", FxColumnSource>;
   unmapped: { account: string; label: string; ytd: number }[];
@@ -1640,6 +1645,51 @@ const analytiqueImportsOfYear = cache(async function analytiqueImportsOfYear(
   return byMonth;
 });
 
+/**
+ * Imports à additionner pour le cumul d'un exercice arrêté à `upTo`. Là où des
+ * balances mensuelles existent, elles font foi ; à défaut, la balance cumulée
+ * la plus récente (exercice clos entier, ou exercice en cours arrêté à un mois)
+ * porte le cumul à elle seule. Les deux ne s'additionnent jamais.
+ */
+async function importsDuCumul(
+  entityId: number,
+  fiscalYearStart: number,
+  upTo?: string
+): Promise<number[]> {
+  const [parMois, annual] = await Promise.all([
+    analytiqueImportsOfYear(entityId, fiscalYearStart, upTo),
+    annualImportIds(entityId),
+  ]);
+  const mensuels = [...parMois].filter(([, id]) => !annual.has(id));
+  if (mensuels.length) return mensuels.map(([, id]) => id);
+  const cumules = [...parMois].sort(([a], [b]) => a.localeCompare(b));
+  return cumules.length ? [cumules[cumules.length - 1][1]] : [];
+}
+
+/**
+ * Balance cumulée de l'exercice que montre la Synthèse (celui de la dernière
+ * balance ventilée), quand aucune balance mensuelle n'existe : elle permet de
+ * lire le cumul des frais généraux en attendant les balances de chaque mois.
+ */
+async function balanceCumulee(entityId: number, period?: string) {
+  const ventilee = await latestValidatedImport(entityId, "ventilee");
+  if (!ventilee) return null;
+  const rows = await db
+    .select()
+    .from(tables.imports)
+    .where(
+      and(
+        eq(tables.imports.entityId, entityId),
+        eq(tables.imports.type, "analytique"),
+        eq(tables.imports.status, "validated"),
+        eq(tables.imports.fiscalYearStart, ventilee.fiscalYearStart),
+        sql`${tables.imports.summary}->>'annual' = 'true'`
+      )
+    )
+    .orderBy(desc(tables.imports.period), desc(tables.imports.id));
+  return rows.find((r) => !period || r.period === period) ?? null;
+}
+
 /** Cumul des centres de structure sur plusieurs mois : la somme des fichiers mensuels. */
 async function structureCumul(
   importIds: Iterable<number>,
@@ -1671,9 +1721,9 @@ async function priorYear(
   kindOf: (code: string) => CentreKind,
   fxAccounts: Set<string>
 ): Promise<{ soldes: Map<string, number>; source: FxColumnSource }> {
-  const analytiques = await analytiqueImportsOfYear(entity.id, fiscalYearStart);
-  if (analytiques.size) {
-    const cumuls = await structureCumul(analytiques.values(), kindOf);
+  const analytiques = await importsDuCumul(entity.id, fiscalYearStart);
+  if (analytiques.length) {
+    const cumuls = await structureCumul(analytiques, kindOf);
     return {
       soldes: new Map([...cumuls].map(([a, v]) => [a, v.solde])),
       source: "analytique",
@@ -1710,10 +1760,12 @@ export async function getFx(
   entity: Entity,
   opts?: { period?: string }
 ): Promise<FxData | null> {
-  const imp = await latestValidatedImport(entity.id, "analytique", {
+  const mensuelle = await latestValidatedImport(entity.id, "analytique", {
     atPeriod: opts?.period,
   });
+  const imp = mensuelle ?? (await balanceCumulee(entity.id, opts?.period));
   if (!imp) return null;
+  const cumulSeul = !mensuelle;
   const referenceId = await referenceEntityId();
   const [kindOf, mapper, ruleRows] = await Promise.all([
     loadCentreKinds(entity.id),
@@ -1744,10 +1796,11 @@ export async function getFx(
   // de travail « mois » reprend le seul fichier du mois.
   // Les trois exercices et le CA de référence de chacun se lisent indépendamment.
   const [current, moisSoldes, n1, n2, caN] = await Promise.all([
-    analytiqueImportsOfYear(entity.id, imp.fiscalYearStart, imp.period).then((imports) =>
-      structureCumul(imports.values(), kindOf)
+    importsDuCumul(entity.id, imp.fiscalYearStart, imp.period).then((imports) =>
+      structureCumul(imports, kindOf)
     ),
-    structureSoldes(imp.id, kindOf),
+    // Une balance cumulée ne dit rien du seul mois affiché.
+    cumulSeul ? new Map<string, { label: string; solde: number }>() : structureSoldes(imp.id, kindOf),
     priorYear(entity, imp.fiscalYearStart - 1, kindOf, fxAccounts),
     priorYear(entity, imp.fiscalYearStart - 2, kindOf, fxAccounts),
     caOfYear(entity, imp.fiscalYearStart, imp.period),
@@ -1816,7 +1869,7 @@ export async function getFx(
         .filter((m) => m <= imp.period)
         .reduce((t, m) => t + (dotations.lissee[m] ?? 0), 0)
     );
-    dotationsVec[MOIS_COLUMN] = dotations.lissee[imp.period] ?? 0;
+    dotationsVec[MOIS_COLUMN] = cumulSeul ? 0 : (dotations.lissee[imp.period] ?? 0);
   }
 
   // ── CA de référence, un par exercice ───────────────────────────────────────
@@ -1888,6 +1941,7 @@ export async function getFx(
     totalMois: round2(totalMois),
     caReference,
     controle: { soldeStructure: round2(soldeStructure), soldeMappe: round2(soldeMappe) },
+    cumulSeul,
     sources: { n1: n1Source, n2: n2Source },
     unmapped: [...unmapped.values()].sort((a, b) => Math.abs(b.ytd) - Math.abs(a.ytd)),
     importId: imp.id,

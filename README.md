@@ -169,7 +169,9 @@ lettres, et pas de ligne de total (le contrôle porte sur la colonne Solde). Les
 comptes sont sur 11 chiffres, ramenés à 8. La balance analytique est répétée par
 famille d'axes (« Centre », « Nature ») : seule celle des chantiers est lue. Elle
 est cumulée sur la période exportée, lue dans le nom du fichier : il faut un
-export par mois (du 1er au dernier jour) ; un export d'exercice entier entre
-comme balance annuelle (colonnes N-1 / N-2 des frais généraux), un export de
-plusieurs mois est refusé. Un centre exporté sans code est rangé sous
+export par mois (du 1er au dernier jour). Un export qui part de l'ouverture de
+l'exercice entre comme balance cumulée : exercice entier (colonnes N-1 / N-2 des
+frais généraux) ou exercice en cours arrêté à un mois (cumul N des frais
+généraux, sans détail mensuel, tant qu'aucune balance mensuelle n'existe). Tout
+autre export de plusieurs mois est refusé. Un centre exporté sans code est rangé sous
 « # » suivi de son libellé, et signalé par une alerte.
