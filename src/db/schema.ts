@@ -255,8 +255,10 @@ export const rapprochementDecisions = pgTable(
 
 // Validation mensuelle du tableau de gestion par la DAF : une fois les
 // prévisions comptabilisées et le contrôle passé, le mois est figé d'un bloc.
-// La validation mémorise les imports sur lesquels elle a porté : si l'un est
-// remplacé ensuite, elle devient caduque et le mois est à revalider.
+// La validation mémorise les imports sur lesquels elle a porté. Elle devient
+// caduque si la balance analytique du mois est réimportée, ou si la colonne du
+// mois change dans la balance ventilée (empreinte gardée dans `snapshot`) : un
+// nouvel export qui ne fait qu'ajouter un mois ne remet pas les précédents en cause.
 export const monthValidations = pgTable(
   "month_validations",
   {

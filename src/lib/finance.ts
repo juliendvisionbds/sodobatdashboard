@@ -1,4 +1,5 @@
 import { cache } from "react";
+import { createHash } from "crypto";
 import { and, desc, eq, inArray, lt, sql } from "drizzle-orm";
 import { db, tables } from "@/db";
 import { CentreKind, classifyCentre, fiscalMonths, poleOf } from "./parsers";
@@ -857,6 +858,8 @@ export type PrevisionControl = {
   ventileeImportId: number | null;
   /** la balance ventilée reçue couvre-t-elle ce mois ? */
   ventileeCovers: boolean;
+  /** empreinte de la colonne du mois dans cette balance ventilée (null si non couverte) */
+  ventileeEmpreinte: string | null;
   /** chantiers ayant une prévision saisie */
   rows: {
     centreCode: string;
@@ -874,6 +877,26 @@ export type PrevisionControl = {
   resultatComptable: number | null;
   resultatGestion: number | null;
 };
+
+/**
+ * Empreinte de la colonne d'un mois dans une balance ventilée : elle ne change
+ * que si un montant de ce mois change. Sert à dire si un nouvel export, qui
+ * couvre tout l'exercice, a touché un mois déjà validé.
+ */
+async function empreinteVentilee(importId: number, period: string): Promise<string | null> {
+  const parCompte = new Map<string, number>();
+  for (const l of await generalLinesOf(importId)) {
+    if (l.month !== period) continue;
+    parCompte.set(l.account, round2((parCompte.get(l.account) ?? 0) + num(l.amount)));
+  }
+  if (parCompte.size === 0) return null;
+  const texte = [...parCompte]
+    .filter(([, v]) => v !== 0)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([compte, v]) => `${compte}:${v.toFixed(2)}`)
+    .join("|");
+  return createHash("sha256").update(texte).digest("hex").slice(0, 16);
+}
 
 export async function getPrevisionControl(entity: Entity, period: string): Promise<PrevisionControl> {
   const [imp, ventilee, kindOf, saisies, synthese] = await Promise.all([
@@ -925,6 +948,7 @@ export async function getPrevisionControl(entity: Entity, period: string): Promi
     analytiqueImportId: imp?.id ?? null,
     ventileeImportId: ventileeCovers ? ventilee!.id : null,
     ventileeCovers,
+    ventileeEmpreinte: ventileeCovers ? await empreinteVentilee(ventilee!.id, period) : null,
     rows,
     totalComptabilise: round2([...compta.values()].reduce((t, c) => t + c.credit, 0)),
     totalSaisi: round2(rows.reduce((t, r) => t + r.saisie, 0)),
@@ -958,8 +982,18 @@ export async function getMonthValidation(
   const reasons: string[] = [];
   if (v.analytiqueImportId !== control.analytiqueImportId)
     reasons.push("la balance analytique du mois a été réimportée");
-  if (v.ventileeImportId !== control.ventileeImportId)
-    reasons.push("la balance ventilée a été réimportée");
+  // La balance ventilée couvre tout l'exercice : chaque envoi la remplace en
+  // entier. Le mois n'est à revalider que si sa propre colonne a changé — pas
+  // parce qu'un mois suivant est arrivé. Une validation antérieure à l'empreinte
+  // se compare à l'export sur lequel elle a porté, tant qu'il est conservé.
+  if (v.ventileeImportId !== control.ventileeImportId) {
+    const avant =
+      (v.snapshot as { ventileeEmpreinte?: string | null } | null)?.ventileeEmpreinte ??
+      (v.ventileeImportId ? await empreinteVentilee(v.ventileeImportId, control.period) : null);
+    if (!control.ventileeCovers) reasons.push("la balance ventilée ne couvre plus ce mois");
+    else if (!avant || avant !== control.ventileeEmpreinte)
+      reasons.push("les montants du mois ont changé dans la balance ventilée");
+  }
   return {
     validatedBy: v.validatedBy,
     validatedAt: new Date(v.validatedAt).toLocaleDateString("fr-FR"),
