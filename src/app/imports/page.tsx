@@ -2,10 +2,10 @@ import { desc, eq } from "drizzle-orm";
 import { db, tables } from "@/db";
 import AppHeader from "@/components/AppHeader";
 import UploadForm from "./UploadForm";
-import { getEntityByCode } from "@/lib/finance";
 import { requireWriterOrRedirect } from "@/lib/auth";
 import { monthLabelLong } from "@/lib/format";
 import Link from "next/link";
+import { getCurrentEntity } from "@/lib/entity";
 
 export const dynamic = "force-dynamic";
 
@@ -18,7 +18,7 @@ const STATUS_LABEL: Record<string, { label: string; cls: string }> = {
 
 export default async function ImportsPage() {
   await requireWriterOrRedirect();
-  const entity = await getEntityByCode("sodobat");
+  const entity = await getCurrentEntity();
   if (!entity) return null;
 
   const rows = await db
@@ -56,7 +56,8 @@ export default async function ImportsPage() {
         <div className="page-header">
           <h1>Imports mensuels</h1>
           <p>
-            Déposez les exports Cegid (balance ventilée et balance analytique). Chaque
+            Déposez les exports comptables, Cegid ou Pennylane (balance ventilée et balance
+            analytique). Chaque
             import est prévisualisé et contrôlé avant intégration. Ré-importer une
             période remplace la version précédente.
           </p>

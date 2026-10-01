@@ -2,11 +2,11 @@ import Link from "next/link";
 import { and, desc, eq } from "drizzle-orm";
 import { db, tables } from "@/db";
 import AppHeader from "@/components/AppHeader";
-import { getEntityByCode } from "@/lib/finance";
 import { canWrite, getSession } from "@/lib/auth";
 import { currentFiscalCutoff, splitAlerts } from "@/lib/alerts";
 import { fmtEur, monthLabelLong } from "@/lib/format";
 import { forgetAlertAction, resolveAlertAction } from "@/app/actions";
+import { getCurrentEntity } from "@/lib/entity";
 
 export const dynamic = "force-dynamic";
 
@@ -39,15 +39,15 @@ const TYPE_META: Record<
       "Montant strictement identique plusieurs mois de suite : abonnement ou forfait légitime, ou saisie recopiée par erreur. Si c'est normal, « Marquer comme normal » : l'alerte ne reviendra plus pour ce montant.",
   },
   centre_import_ascii: {
-    label: "Centre créé par import",
-    action: "Faire corriger dans Cegid",
+    label: "Centre créé par import ou sans code",
+    action: "Faire corriger en comptabilité",
     conseil:
-      "Cegid a créé ce centre tout seul parce qu'une écriture importée citait un code inexistant — presque toujours une faute de frappe sur le code chantier. Les montants sont réels mais rangés sur ce centre fantôme au lieu du bon chantier, dont la marge est faussée d'autant. Transmettre au cabinet le code à corriger : l'alerte revient chaque mois tant que le centre subsiste.",
+      "Le logiciel comptable a rangé des écritures sur un centre qui n'est pas un vrai chantier : centre créé tout seul parce qu'une écriture citait un code inexistant (presque toujours une faute de frappe), ou centre exporté sans code. Les montants sont réels mais ne sont pas sur le bon chantier, dont la marge est faussée d'autant. Transmettre au cabinet le code à corriger : l'alerte revient chaque mois tant que le centre subsiste.",
   },
 };
 
 export default async function AlertesPage() {
-  const entity = await getEntityByCode("sodobat");
+  const entity = await getCurrentEntity();
   if (!entity) return null;
   const session = await getSession();
   const writer = !!session && canWrite(session);

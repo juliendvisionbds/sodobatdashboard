@@ -1,7 +1,6 @@
 import { and, asc, eq } from "drizzle-orm";
 import { db, tables } from "@/db";
 import AppHeader from "@/components/AppHeader";
-import { getEntityByCode } from "@/lib/finance";
 import { requireWriterOrRedirect } from "@/lib/auth";
 import { fmtEur } from "@/lib/format";
 import {
@@ -12,6 +11,9 @@ import {
   resolveAlertAction,
 } from "@/app/actions";
 import NewRuleForm, { CategoryOption, RuleLite } from "./NewRuleForm";
+import { getCurrentEntity } from "@/lib/entity";
+import { inEntityScope, referenceEntityId, ruleRank, suggestCategory } from "@/lib/mapping";
+import { entiteConfig } from "@/lib/nomenclature/entites";
 
 export const dynamic = "force-dynamic";
 
@@ -44,7 +46,7 @@ function CategoryOptions({ categories }: { categories: CategoryOption[] }) {
 
 export default async function MappingPage() {
   await requireWriterOrRedirect();
-  const entity = await getEntityByCode("sodobat");
+  const entity = await getCurrentEntity();
   if (!entity) return null;
 
   const unmappedAlerts = await db
@@ -59,17 +61,40 @@ export default async function MappingPage() {
     )
     .orderBy(asc(tables.alerts.account));
 
-  const categories = await db
-    .select()
-    .from(tables.categories)
-    .orderBy(asc(tables.categories.view), asc(tables.categories.sortOrder));
-
-  const rules = await db
-    .select()
-    .from(tables.accountRules)
-    .orderBy(asc(tables.accountRules.pattern));
-
+  // La maquette est commune au groupe : l'écran ne montre que les lignes et les
+  // règles qui valent pour l'entité affichée.
+  const { libelles } = entiteConfig(entity.code);
+  const categories = (
+    await db
+      .select()
+      .from(tables.categories)
+      .orderBy(asc(tables.categories.view), asc(tables.categories.sortOrder))
+  )
+    .filter((c) => c.active && inEntityScope(c.entityScope, entity.code))
+    .map((c) => (libelles[c.code] ? { ...c, label: libelles[c.code] } : c));
   const catById = new Map(categories.map((c) => [c.id, c]));
+
+  // Règles applicables : celles de l'entité, celles de l'entité de référence
+  // (Sodobat, dont le plan de comptes prévaut) et les règles communes.
+  const referenceId = await referenceEntityId();
+  const rank = (r: { entityId: number | null }) => ruleRank(r.entityId, entity.id, referenceId);
+  const rules = (
+    await db.select().from(tables.accountRules).orderBy(asc(tables.accountRules.pattern))
+  ).filter(
+    (r) =>
+      catById.has(r.categoryId) &&
+      (r.entityId == null || r.entityId === entity.id || r.entityId === referenceId)
+  );
+  const keyOf = (r: { categoryId: number; matchType: string; pattern: string }) =>
+    `${catById.get(r.categoryId)?.view}|${r.matchType}|${r.pattern}`;
+  // Pour un même compte dans une même vue, seule la règle de plus haut rang s'applique.
+  const winners = new Map<string, (typeof rules)[number]>();
+  for (const r of rules) {
+    if (!r.active) continue;
+    const held = winners.get(keyOf(r));
+    if (!held || rank(r) > rank(held)) winners.set(keyOf(r), r);
+  }
+
   const categoryOptions: CategoryOption[] = categories.map((c) => ({
     id: c.id,
     view: c.view,
@@ -87,6 +112,19 @@ export default async function MappingPage() {
 
   const activeRules = rules.filter((r) => r.active);
   const inactiveRules = rules.filter((r) => !r.active);
+  const effectiveRules = [...winners.values()];
+
+  // Suggestion pour un compte en attente : le poste du compte voisin déjà affecté.
+  const suggestionsOf = (account: string) =>
+    (["synthese", "chantier", "fx"] as const).flatMap((view) => {
+      const ofView = effectiveRules.filter((r) => catById.get(r.categoryId)?.view === view);
+      // déjà affecté dans cette vue : rien à suggérer
+      if (ofView.some((r) => (r.matchType === "exact" ? r.pattern === account : account.startsWith(r.pattern))))
+        return [];
+      const s = suggestCategory(account, ofView);
+      const cat = s ? catById.get(s.rule.categoryId) : undefined;
+      return s && cat ? [{ view, cat, voisin: s.rule.pattern }] : [];
+    });
 
   return (
     <>
@@ -108,9 +146,10 @@ export default async function MappingPage() {
             <div className="alert-desc">
               <strong>1.</strong> Règle exacte (compte précis) ·{" "}
               <strong>2.</strong> Préfixe le plus long (ex. 6135… gagne sur 613…) ·{" "}
-              <strong>3.</strong> À égalité, la règle propre à l&apos;entité gagne sur la
-              règle commune du groupe. Une règle plus spécifique surcharge donc les
-              autres sans avoir à les supprimer.
+              <strong>3.</strong> À égalité, la règle propre à l&apos;entité gagne sur celle
+              de Sodobat, dont le plan de comptes fait référence, qui gagne sur la règle
+              commune du groupe. Une règle plus spécifique surcharge donc les autres sans
+              avoir à les supprimer.
             </div>
           </div>
         </div>
@@ -130,7 +169,9 @@ export default async function MappingPage() {
               </div>
             </div>
           )}
-          {unmappedAlerts.map((a) => (
+          {unmappedAlerts.map((a) => {
+            const suggestions = a.account ? suggestionsOf(a.account) : [];
+            return (
             <div
               key={a.id}
               style={{
@@ -147,13 +188,26 @@ export default async function MappingPage() {
                 <div className="charge-code">
                   {a.amount != null ? fmtEur(Number(a.amount)) : ""} · {a.description}
                 </div>
+                {suggestions.length > 0 && (
+                  <div className="charge-code" style={{ color: "var(--blue)" }}>
+                    Suggestion :{" "}
+                    {suggestions
+                      .map((s) => `${VIEW_LABEL[s.view]} → ${s.cat.label} (comme le ${s.voisin})`)
+                      .join(" ; ")}
+                  </div>
+                )}
               </div>
               <form
                 action={assignAccountAction}
                 style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}
               >
                 <input type="hidden" name="account" value={a.account ?? ""} />
-                <select name="categoryId" className="tctl-select" required defaultValue="">
+                <select
+                  name="categoryId"
+                  className="tctl-select"
+                  required
+                  defaultValue={suggestions[0]?.cat.id ?? ""}
+                >
                   <option value="" disabled>
                     Affecter à une catégorie…
                   </option>
@@ -189,7 +243,8 @@ export default async function MappingPage() {
                 </button>
               </form>
             </div>
-          ))}
+            );
+          })}
         </div>
 
         <div style={{ marginBottom: 20 }}>
@@ -198,8 +253,8 @@ export default async function MappingPage() {
 
         <div className="card" style={{ marginBottom: 20 }}>
           <div className="card-label">
-            Toutes les règles ({activeRules.length} actives
-            {inactiveRules.length > 0 ? ` · ${inactiveRules.length} remplacée(s)` : ""})
+            Règles de {entity.name} ({effectiveRules.length} appliquées
+            {inactiveRules.length > 0 ? ` · ${inactiveRules.length} désactivée(s)` : ""})
           </div>
           <div style={{ maxHeight: 520, overflowY: "auto" }}>
             {(["synthese", "chantier", "fx"] as const).map((view) => {
@@ -223,7 +278,17 @@ export default async function MappingPage() {
                   </div>
                   {viewRules.map((r) => {
                     const cat = catById.get(r.categoryId);
-                    const isSeed = r.createdBy === "seed";
+                    const own = r.entityId === entity.id;
+                    const winner = winners.get(keyOf(r));
+                    const overridden = winner != null && winner.id !== r.id;
+                    // Origine de la règle, du point de vue de l'entité affichée.
+                    const origine = own
+                      ? r.createdBy?.startsWith("seed")
+                        ? `nomenclature ${entity.name}`
+                        : `par ${r.createdBy}`
+                      : r.entityId != null
+                        ? `règle Sodobat${r.createdBy && !r.createdBy.startsWith("seed") ? ` · ${r.createdBy}` : ""}`
+                        : "nomenclature groupe";
                     return (
                       <div
                         key={r.id}
@@ -237,16 +302,23 @@ export default async function MappingPage() {
                         }}
                       >
                         <div style={{ flex: "1 1 280px" }}>
-                          <div className="charge-name">
+                          <div
+                            className="charge-name"
+                            style={overridden ? { color: "var(--gray3)" } : undefined}
+                          >
                             {r.pattern}
                             {r.matchType === "prefix" ? "…" : ""} → {cat?.label}
                           </div>
-                          <div className="charge-code">{cat?.section}</div>
+                          <div className="charge-code">
+                            {overridden
+                              ? `remplacée pour ${entity.name} par : → ${catById.get(winner.categoryId)?.label}`
+                              : cat?.section}
+                          </div>
                         </div>
-                        <span className={`tag ${isSeed ? "gray" : "blue"}`}>
-                          {isSeed ? "nomenclature groupe" : `par ${r.createdBy}`}
+                        <span className={`tag ${own && !r.createdBy?.startsWith("seed") ? "blue" : "gray"}`}>
+                          {origine}
                         </span>
-                        {isSeed ? (
+                        {overridden ? null : !own ? (
                           <details style={{ position: "relative" }}>
                             <summary
                               className="btn secondary"
@@ -305,7 +377,7 @@ export default async function MappingPage() {
                   marginBottom: 6,
                 }}
               >
-                Règles remplacées (désactivées, réversibles)
+                Règles désactivées (réversibles)
               </div>
               {inactiveRules.map((r) => {
                 const cat = catById.get(r.categoryId);

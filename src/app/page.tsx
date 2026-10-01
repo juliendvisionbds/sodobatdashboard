@@ -2,11 +2,12 @@ import Link from "next/link";
 import { and, desc, eq } from "drizzle-orm";
 import { db, tables } from "@/db";
 import AppHeader from "@/components/AppHeader";
-import { getEntityByCode, getSynthese, listVentileePeriods } from "@/lib/views";
+import { getSynthese, listVentileePeriods } from "@/lib/views";
 import { fmtEurAuto, fmtPct, monthLabel, monthLabelLong, splitAutoEur } from "@/lib/format";
 import MonthSelect from "@/components/MonthSelect";
 import { currentFiscalCutoff, splitAlerts } from "@/lib/alerts";
 import SyntheseTable from "./SyntheseTable";
+import { getCurrentEntity } from "@/lib/entity";
 
 export const dynamic = "force-dynamic";
 
@@ -15,7 +16,7 @@ export default async function SynthesePage({
 }: {
   searchParams: Promise<{ mois?: string }>;
 }) {
-  const entity = await getEntityByCode("sodobat");
+  const entity = await getCurrentEntity();
   if (!entity) return null;
 
   const [periods, { mois }] = await Promise.all([listVentileePeriods(entity), searchParams]);
@@ -45,7 +46,7 @@ export default async function SynthesePage({
           <div className="card" style={{ maxWidth: 520 }}>
             <div className="card-label">Pour démarrer</div>
             <p style={{ fontSize: 13, color: "var(--gray2)", marginBottom: 16 }}>
-              Importez la balance ventilée mensuelle (export Cegid) : la synthèse, les
+              Importez la balance ventilée mensuelle (export Cegid ou Pennylane) : la synthèse, les
               ratios et les alertes seront calculés automatiquement.
             </p>
             <Link href="/imports" className="btn">Aller aux imports →</Link>
@@ -106,7 +107,7 @@ export default async function SynthesePage({
             )}
           </div>
           <p>
-            Données issues de la balance Cegid · {monthLabelLong(shown[0])} →{" "}
+            Données issues de la balance générale · {monthLabelLong(shown[0])} →{" "}
             {monthLabelLong(shown[nbMois - 1])}
           </p>
         </div>

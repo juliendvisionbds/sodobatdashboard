@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import AppHeader from "@/components/AppHeader";
-import { getAccountDetail, getEntityByCode } from "@/lib/views";
+import { getAccountDetail } from "@/lib/views";
 import { fmtEur, monthLabel, monthLabelLong } from "@/lib/format";
+import { getCurrentEntity } from "@/lib/entity";
 
 export const dynamic = "force-dynamic";
 
@@ -18,7 +19,7 @@ export default async function ComptePage({
   params: Promise<{ account: string }>;
 }) {
   const { account } = await params;
-  const entity = await getEntityByCode("sodobat");
+  const entity = await getCurrentEntity();
   if (!entity) return null;
 
   const data = await getAccountDetail(entity, account);

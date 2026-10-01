@@ -4,6 +4,7 @@
 // incohérente doit échouer bruyamment plutôt que produire des totaux faux.
 
 import { formulaOperandCodes, type NomenclatureLine, type View } from "./types";
+import type { EntiteConfig } from "./entites";
 
 export type ValidationIssue = { severity: "error" | "warn"; message: string };
 
@@ -22,7 +23,9 @@ export function validateNomenclature(lines: NomenclatureLine[]): ValidationIssue
   // 2 — un compte n'appartient qu'à un seul poste par vue
   // Les lignes qui reçoivent une part « structure » n'ont pas de compte en
   // propre : elles sont alimentées par transfert depuis un autre poste.
-  const receveurs = new Set(lines.map((l) => l.structureTo).filter(Boolean) as string[]);
+  const receveurs = new Set(
+    lines.flatMap((l) => [l.structureTo, l.partage?.vers]).filter(Boolean) as string[]
+  );
   const perView = new Map<View, Map<string, string>>();
   for (const l of lines) {
     if (l.kind !== "poste") {
@@ -31,7 +34,10 @@ export function validateNomenclature(lines: NomenclatureLine[]): ValidationIssue
       continue;
     }
     if (!l.accounts?.length) {
-      if (!receveurs.has(l.code)) warn(`${l.code} : poste sans aucun compte`);
+      // Un poste propre à une entité n'a pas de compte commun : ses comptes
+      // viennent des règles de cette entité (src/lib/nomenclature/entites.ts).
+      if (!receveurs.has(l.code) && (l.entityScope ?? "all") === "all")
+        warn(`${l.code} : poste sans aucun compte`);
       continue;
     }
     const seen = perView.get(l.view) ?? new Map<string, string>();
@@ -64,6 +70,19 @@ export function validateNomenclature(lines: NomenclatureLine[]): ValidationIssue
           ` — la part structure y serait comptée deux fois`
       );
   }
+
+  // 2 ter — un partage part vers un poste de la même vue, sans compte en propre
+  for (const l of lines) {
+    if (!l.partage) continue;
+    const target = byCode.get(l.partage.vers);
+    if (!target || target.view !== l.view || target.kind !== "poste" || target.accounts?.length)
+      err(`${l.code} : partage vers ${l.partage.vers}, qui n'est pas un poste sans compte de la vue ${l.view}`);
+    if (!(l.partage.part > 0 && l.partage.part < 1))
+      err(`${l.code} : la part partagée doit être strictement entre 0 et 1`);
+  }
+  for (const l of lines)
+    if (l.quotePart != null && !(l.quotePart > 0 && l.quotePart <= 1))
+      err(`${l.code} : quote-part hors de l'intervalle ]0 ; 1]`);
 
   // 3 — les formules ne référencent que des codes existants de la même vue
   for (const l of lines) {
@@ -123,3 +142,62 @@ export function structureRouting(lines: NomenclatureLine[], view: View) {
     if (l.view === view && l.structureTo) out.set(l.code, l.structureTo);
   return out;
 }
+
+/** Postes partagés d'une vue : { code du poste, ligne qui reçoit la part, part }. */
+export function partageRouting(lines: NomenclatureLine[], view: View) {
+  return lines
+    .filter((l) => l.view === view && l.partage)
+    .map((l) => ({ from: l.code, to: l.partage!.vers, part: l.partage!.part }));
+}
+
+/** Quote-part retenue par poste, pour les lignes qui n'en comptent qu'une fraction. */
+export function quoteParts(lines: NomenclatureLine[], view: View) {
+  const out = new Map<string, number>();
+  for (const l of lines)
+    if (l.view === view && l.quotePart != null) out.set(l.code, l.quotePart);
+  return out;
+}
+
+/**
+ * Contrôle des règles propres à une entité : chaque code désigne un poste de
+ * la maquette qui la concerne, et un compte n'y figure qu'une fois par vue.
+ */
+export function validateEntite(
+  entityCode: string,
+  config: EntiteConfig,
+  lines: NomenclatureLine[]
+): ValidationIssue[] {
+  const issues: ValidationIssue[] = [];
+  const err = (message: string) => issues.push({ severity: "error", message });
+  const byCode = new Map(lines.map((l) => [l.code, l]));
+  const perView = new Map<View, Map<string, string>>();
+  for (const [code, accounts] of Object.entries(config.regles)) {
+    const line = byCode.get(code);
+    if (!line) {
+      err(`${entityCode} : règles déclarées sur un code inconnu (${code})`);
+      continue;
+    }
+    if (line.kind !== "poste") err(`${entityCode} : ${code} est une ligne ${line.kind}, pas un poste`);
+    const scope = line.entityScope ?? "all";
+    if (scope !== "all" && !scope.split(",").map((s) => s.trim()).includes(entityCode))
+      err(`${entityCode} : ${code} ne concerne pas cette entité (${scope})`);
+    const seen = perView.get(line.view) ?? new Map<string, string>();
+    perView.set(line.view, seen);
+    for (const a of accounts) {
+      if (!/^\d{8}$/.test(a)) err(`${entityCode} / ${code} : « ${a} » n'est pas un compte à 8 chiffres`);
+      const other = seen.get(a);
+      if (other) err(`${entityCode} : compte ${a} rattaché deux fois dans la vue ${line.view} (${other}, ${code})`);
+      else seen.set(a, code);
+    }
+  }
+  for (const code of Object.keys(config.libelles))
+    if (!byCode.has(code)) err(`${entityCode} : libellé déclaré sur un code inconnu (${code})`);
+  if (!lines.some((l) => l.kind === "poste" && accountsOfLine(l, config).includes(config.provisions.compte)))
+    err(`${entityCode} : le compte de prévision ${config.provisions.compte} n'est rattaché à aucun poste`);
+  return issues;
+}
+
+const accountsOfLine = (l: NomenclatureLine, config: EntiteConfig) => [
+  ...(l.accounts ?? []),
+  ...(config.regles[l.code] ?? []),
+];

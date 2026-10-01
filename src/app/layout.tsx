@@ -8,7 +8,7 @@ const INTER =
   "https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap";
 
 export const metadata: Metadata = {
-  title: "Sodobat | Tableaux de gestion | Groupe SDG",
+  title: "Tableaux de gestion | Groupe SDG",
   description: "Tableaux de gestion intelligents du Groupe SDG",
 };
 

@@ -1,11 +1,12 @@
 import Link from "next/link";
 import AppHeader from "@/components/AppHeader";
-import { getEntityByCode, getObjectifs } from "@/lib/views";
+import { getObjectifs } from "@/lib/views";
 import { getSession, canFiger, canWrite } from "@/lib/auth";
 import { fmtEurAuto, fmtPct, monthLabelLong } from "@/lib/format";
 import { listAnalyses, listMoisAnalysables } from "@/lib/analyse-mensuelle";
 import ObjectifsTable from "./ObjectifsTable";
 import AnalysesMensuelles from "./AnalysesMensuelles";
+import { getCurrentEntity } from "@/lib/entity";
 
 export const dynamic = "force-dynamic";
 // L'analyse mensuelle calcule puis fait rédiger le texte par l'IA : les actions
@@ -17,7 +18,7 @@ export default async function ObjectifsPage({
 }: {
   searchParams: Promise<{ analyse?: string }>;
 }) {
-  const entity = await getEntityByCode("sodobat");
+  const entity = await getCurrentEntity();
   if (!entity) return null;
 
   const [session, data, { analyse }] = await Promise.all([

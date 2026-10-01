@@ -3,6 +3,7 @@ import { getSession, canWrite } from "@/lib/auth";
 import { fiscalYearLabel } from "@/lib/format";
 import UserMenu from "@/components/UserMenu";
 import EntityMenu from "@/components/EntityMenu";
+import { allowedEntities, getCurrentEntity, listEntities } from "@/lib/entity";
 import { NAV_TABS } from "@/components/nav-tabs";
 
 export default async function AppHeader({
@@ -23,6 +24,16 @@ export default async function AppHeader({
 }) {
   const session = await getSession();
   const writer = session ? canWrite(session) : false;
+  const [entity, entities, allowed] = await Promise.all([
+    getCurrentEntity(),
+    listEntities(),
+    allowedEntities(session),
+  ]);
+  const choices = entities.map((e) => ({
+    code: e.code,
+    name: e.name,
+    available: allowed.some((a) => a.id === e.id),
+  }));
 
   return (
     <header className="header">
@@ -46,7 +57,7 @@ export default async function AppHeader({
               />
             </svg>
           </Link>
-          <EntityMenu />
+          <EntityMenu current={entity?.code} entities={choices} />
           <div className="brand-sep" />
           <div className="brand-group">Groupe SDG</div>
         </div>
@@ -70,6 +81,7 @@ export default async function AppHeader({
               name={session.name}
               role={session.role}
               showAdminLinks={writer}
+              showRapprochement={entity?.code === "sodobat"}
             />
           )}
         </div>

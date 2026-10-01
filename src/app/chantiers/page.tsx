@@ -1,6 +1,6 @@
 import Link from "next/link";
 import AppHeader from "@/components/AppHeader";
-import { getChantiers, getEntityByCode, listAnalytiquePeriods } from "@/lib/views";
+import { getChantiers, listAnalytiquePeriods } from "@/lib/views";
 import { getMonthValidation, getPrevisionControl } from "@/lib/finance";
 import MonthValidation from "./MonthValidation";
 import { getSession, canFiger, canSaisir } from "@/lib/auth";
@@ -9,6 +9,7 @@ import { fmtEurAuto, monthLabelLong } from "@/lib/format";
 import MonthSelect from "@/components/MonthSelect";
 import ChantiersTable from "./ChantiersTable";
 import { CHANTIER_CODES } from "@/lib/nomenclature/codes";
+import { getCurrentEntity } from "@/lib/entity";
 
 export const dynamic = "force-dynamic";
 
@@ -17,7 +18,7 @@ export default async function ChantiersPage({
 }: {
   searchParams: Promise<{ mois?: string }>;
 }) {
-  const entity = await getEntityByCode("sodobat");
+  const entity = await getCurrentEntity();
   if (!entity) return null;
 
   const [periods, { mois }, session] = await Promise.all([
@@ -52,8 +53,9 @@ export default async function ChantiersPage({
           <div className="card" style={{ maxWidth: 520 }}>
             <div className="card-label">Pour démarrer</div>
             <p style={{ fontSize: 13, color: "var(--gray2)", marginBottom: 16 }}>
-              Importez la balance analytique mensuelle (export Cegid par centre) : la vue
-              chantiers se lit dans la balance de chaque mois.
+              Importez la balance analytique de chaque mois (export par centre ; depuis
+              Pennylane, du 1er au dernier jour du mois) : la vue chantiers se lit dans la
+              balance de chaque mois.
             </p>
             <Link href="/imports" className="btn">Aller aux imports →</Link>
           </div>

@@ -11,7 +11,6 @@ import {
 } from "ai";
 import { db, tables } from "@/db";
 import { getSession } from "@/lib/auth";
-import { getEntityByCode } from "@/lib/finance";
 import { buildAssistantTools } from "@/lib/assistant-tools";
 import {
   ASSISTANT_MODEL,
@@ -26,6 +25,7 @@ import {
   saveMessage,
   truncateAfter,
 } from "@/lib/assistant-conversations";
+import { getCurrentEntity } from "@/lib/entity";
 
 export const maxDuration = 60;
 
@@ -56,7 +56,7 @@ export async function POST(req: Request) {
   if (!session) {
     return Response.json({ error: "Non authentifié" }, { status: 401 });
   }
-  const entity = await getEntityByCode("sodobat");
+  const entity = await getCurrentEntity();
   if (!entity) {
     return Response.json({ error: "Entité introuvable" }, { status: 500 });
   }
@@ -127,7 +127,7 @@ export async function POST(req: Request) {
   const started = Date.now();
   const result = streamText({
     model: openai.chat(ASSISTANT_MODEL),
-    system: assistantSystemPrompt(),
+    system: assistantSystemPrompt(entity.name),
     providerOptions: ASSISTANT_PROVIDER_OPTIONS,
     // Une réponse arrêtée par l'utilisateur pendant la lecture d'un outil laisse
     // un appel sans résultat : on l'ignore pour que la question suivante passe.

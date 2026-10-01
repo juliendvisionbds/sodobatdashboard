@@ -67,6 +67,18 @@ export type NomenclatureLine = {
    * DAF opère à la main dans son tableau de gestion.
    */
   structureTo?: string;
+  /**
+   * Poste partagé entre deux lignes de la Synthèse : la part indiquée de son
+   * montant part vers la ligne `vers`, le reste demeure ici. Sert à la
+   * rémunération du gérant, comptée pour moitié en production et pour moitié
+   * en frais généraux.
+   */
+  partage?: { vers: string; part: number };
+  /**
+   * Quote-part du montant des comptes retenue par ce poste (frais généraux) :
+   * le complément relève d'une autre vue et n'y est pas compté.
+   */
+  quotePart?: number;
   /** "all" ou codes d'entités séparés par des virgules */
   entityScope?: string;
   /**

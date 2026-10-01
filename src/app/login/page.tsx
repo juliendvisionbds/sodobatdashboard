@@ -12,7 +12,7 @@ function LoginForm() {
     <form action={action} className="card" style={{ width: 380 }}>
       <div style={{ marginBottom: 24, textAlign: "center" }}>
         <div style={{ fontSize: 20, fontWeight: 700, letterSpacing: "-0.02em" }}>
-          Sodobat <span style={{ color: "var(--gray3)", fontWeight: 400 }}>· Groupe SDG</span>
+          Groupe SDG
         </div>
         <div style={{ fontSize: 13, color: "var(--gray2)", marginTop: 4 }}>
           Tableaux de gestion

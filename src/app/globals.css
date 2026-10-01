@@ -119,6 +119,10 @@ body {
 .entity-dropdown-item.current { font-weight: 600; background: var(--blue-lt); }
 .entity-dropdown-item.current .entity-check { color: var(--blue); font-weight: 700; }
 .entity-dropdown-item.disabled { color: var(--gray3); cursor: default; }
+button.entity-switch {
+  width: 100%; border: 0; background: none; font-family: inherit; text-align: left; cursor: pointer;
+}
+button.entity-switch:hover { background: var(--gray5); }
 .entity-soon {
   font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;
   padding: 2px 7px; border-radius: 10px;

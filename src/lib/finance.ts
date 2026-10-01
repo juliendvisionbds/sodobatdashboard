@@ -1,9 +1,9 @@
 import { cache } from "react";
 import { createHash } from "crypto";
-import { and, desc, eq, inArray, lt, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull, lt, or, sql } from "drizzle-orm";
 import { db, tables } from "@/db";
 import { CentreKind, classifyCentre, fiscalMonths, poleOf } from "./parsers";
-import { Category, loadMapper, type View } from "./mapping";
+import { Category, loadMapper, referenceEntityId, type View } from "./mapping";
 import { evaluate, type Vector } from "./nomenclature/evaluate";
 import {
   FX_COLUMNS,
@@ -19,8 +19,9 @@ import {
   PREMIER_EXERCICE_DOTATIONS_MENSUELLES,
   SYNTHESE_CODES,
 } from "./nomenclature/codes";
-import { synthese as nomenclatureSynthese } from "./nomenclature/sodobat";
-import { structureRouting } from "./nomenclature/validate";
+import { fx as nomenclatureFx, synthese as nomenclatureSynthese } from "./nomenclature/sodobat";
+import { partageRouting, quoteParts, structureRouting } from "./nomenclature/validate";
+import { entiteConfig } from "./nomenclature/entites";
 import { OBJECTIFS, statutObjectif, type ObjectifStatut } from "./objectifs";
 
 export { TOTAL_COLUMN, CHANTIER_CODES, FX_CODES, SYNTHESE_CODES };
@@ -518,15 +519,38 @@ const syntheseMemo = cache(async function syntheseMemo(
   }
 
   // ── Annulation M-1 et Prévision M ──────────────────────────────────────────
-  // La balance ventilée ne porte que le mouvement net du compte 71331000 : la
-  // prévision du mois moins la reprise de celle du mois précédent. La balance
-  // analytique du même mois, elle, distingue le débit (reprise) du crédit
-  // (prévision) : quand elle est là, la Synthèse présente les deux lignes,
-  // comme le tableau de gestion. La somme reste le net de la ventilée, le CA
-  // total ne bouge pas. Sans analytique, tout reste sur la ligne Prévision.
+  // La balance ventilée ne porte que le mouvement net du compte de prévision
+  // (71331000 chez Sodobat) : la prévision du mois moins la reprise de celle du
+  // mois précédent. La balance analytique du même mois, elle, distingue le
+  // débit (reprise) du crédit (prévision) : quand elle est là, la Synthèse
+  // présente les deux lignes, comme le tableau de gestion. La somme reste le
+  // net de la ventilée, le CA total ne bouge pas. Sans analytique, tout reste
+  // sur la ligne Prévision.
+  const { provisions } = entiteConfig(entity.code);
   const annulationVec: Vector = Object.fromEntries(months.map((m) => [m, 0]));
   const prevVec = leaves.get(SYNTHESE_CODES.tecProvision);
-  if (prevVec) {
+  if (prevVec && provisions.mode === "saisie") {
+    // La comptabilité ne ventile pas la prévision par chantier : c'est la saisie
+    // qui la porte. La prévision d'un mois est la somme des saisies du mois ;
+    // l'annulation, celle du mois précédent, de signe opposé. Le compte mêle
+    // ces écritures à de vraies ventes : ce qui en reste, une fois la prévision
+    // et l'annulation retirées, est du chiffre d'affaires facturé. Le transfert
+    // est additif, le CA total reste celui de la balance.
+    const saisies = await previsionsSaisiesTotales(entity.id, [moisPrecedent(months[0]), ...months]);
+    const poste = mapper.resolve(provisions.compte);
+    const ventes = poste ? leaves.get(poste.code) : undefined;
+    for (const m of monthsWithData) {
+      const prevision = saisies.get(m) ?? 0;
+      const annulation = round2(-(saisies.get(moisPrecedent(m)) ?? 0));
+      prevVec[m] = prevision;
+      annulationVec[m] = annulation;
+      if (ventes) ventes[m] = round2((ventes[m] ?? 0) - prevision - annulation);
+    }
+    const total = (vec: Vector) => round2(months.reduce((t, m) => t + ((vec[m] as number) ?? 0), 0));
+    annulationVec[TOTAL_COLUMN] = total(annulationVec);
+    prevVec[TOTAL_COLUMN] = total(prevVec);
+    if (ventes) ventes[TOTAL_COLUMN] = total(ventes);
+  } else if (prevVec) {
     const upTo = opts.period && opts.period < imp.period ? opts.period : undefined;
     const annual = await annualImportIds(entity.id);
     const mensuels = [...(await analytiqueImportsOfYear(entity.id, imp.fiscalYearStart, upTo))].filter(
@@ -537,7 +561,7 @@ const syntheseMemo = cache(async function syntheseMemo(
       let debit = 0;
       let credit = 0;
       for (const l of await analyticLinesOf(importId)) {
-        if (l.account !== "71331000") continue;
+        if (l.account !== provisions.compte) continue;
         debit += num(l.debit);
         credit += num(l.credit);
       }
@@ -585,6 +609,32 @@ const syntheseMemo = cache(async function syntheseMemo(
     }
   };
   transfert(leaves, (code, m) => structByCat.get(code)?.[m] ?? 0, months);
+
+  // ── Postes partagés ────────────────────────────────────────────────────────
+  // Une part fixe du poste rejoint une autre ligne (rémunération du gérant :
+  // moitié production, moitié frais généraux). Additif, comme le découpage.
+  const partages = partageRouting(nomenclatureSynthese, "synthese");
+  const partager = (valeurs: Map<string, number>) => {
+    for (const { from, to, part } of partages) {
+      if (!valeurs.has(from)) continue;
+      const v = round2((valeurs.get(from) ?? 0) * part);
+      valeurs.set(from, round2((valeurs.get(from) ?? 0) - v));
+      valeurs.set(to, round2((valeurs.get(to) ?? 0) + v));
+    }
+  };
+  for (const { from, to, part } of partages) {
+    const source = leaves.get(from);
+    const cible = leaves.get(to);
+    if (!source || !cible) continue;
+    for (const m of months) {
+      const v = round2((source[m] ?? 0) * part);
+      if (!v) continue;
+      source[m] = round2((source[m] ?? 0) - v);
+      cible[m] = round2((cible[m] ?? 0) + v);
+    }
+    source[TOTAL_COLUMN] = round2(months.reduce((t, m) => t + ((source[m] as number) ?? 0), 0));
+    cible[TOTAL_COLUMN] = round2(months.reduce((t, m) => t + ((cible[m] as number) ?? 0), 0));
+  }
 
   // ── N-1 ────────────────────────────────────────────────────────────────────
   // Comparaison à périmètre égal : le cumul N-1 est tronqué au même rang de mois
@@ -641,6 +691,8 @@ const syntheseMemo = cache(async function syntheseMemo(
         bucket.set(target, round2((bucket.get(target) ?? 0) + v));
       }
     }
+    partager(prevYtd);
+    partager(prevFull);
   }
 
   // Dotations lissées : N sur les mois affichés, N-1 au même rang de mois.
@@ -667,7 +719,12 @@ const syntheseMemo = cache(async function syntheseMemo(
   const provided = new Map<string, Vector>();
   const resultatBg = bgResult(lines, months);
   provided.set(SYNTHESE_CODES.resultatBg, resultatBg);
-  const previsionsSaisies = await previsionsSaisiesParMois(entity.id, months);
+  // En mode « saisie », les prévisions sont déjà dans le CA : il n'y a pas
+  // d'écart avec une prévision comptabilisée par chantier à faire apparaître.
+  const previsionsSaisies =
+    provisions.mode === "saisie"
+      ? (Object.fromEntries([...months, TOTAL_COLUMN].map((m) => [m, 0])) as Vector)
+      : await previsionsSaisiesParMois(entity.id, months, provisions.compte);
   provided.set(SYNTHESE_CODES.previsionsSaisies, previsionsSaisies);
   provided.set(SYNTHESE_CODES.annulation, annulationVec);
   provided.set(SYNTHESE_CODES.fxDotations, dotationsVec);
@@ -805,11 +862,48 @@ function bgResult(
 // de valider le mois. Il ne porte que sur les chantiers ayant une saisie ; pour
 // les autres, la valeur du fichier fait foi des deux côtés.
 
-/** Crédit du compte 71331000 (prévision du mois) par chantier, dans la balance du mois. */
-async function previsionsComptabilisees(importId: number, kindOf: (code: string) => CentreKind) {
+/** Mois qui précède : « 2025-11-01 » → « 2025-10-01 ». */
+function moisPrecedent(month: string): string {
+  const [y, m] = month.split("-").map(Number);
+  return m === 1 ? `${y - 1}-12-01` : `${y}-${String(m - 1).padStart(2, "0")}-01`;
+}
+
+/** Prévisions saisies dans la vue Chantiers, tous chantiers confondus, par mois. */
+const previsionsSaisiesTotales = cache(async function previsionsSaisiesTotales(
+  entityId: number,
+  months: string[]
+): Promise<Map<string, number>> {
+  const saisies = await db
+    .select({
+      period: tables.manualEntries.period,
+      centreCode: tables.manualEntries.centreCode,
+      valueNum: tables.manualEntries.valueNum,
+    })
+    .from(tables.manualEntries)
+    .where(
+      and(
+        eq(tables.manualEntries.entityId, entityId),
+        eq(tables.manualEntries.field, "tec_provision"),
+        inArray(tables.manualEntries.period, months)
+      )
+    );
+  const out = new Map<string, number>();
+  for (const s of saisies) {
+    if (!s.centreCode || s.valueNum == null) continue;
+    out.set(s.period, round2((out.get(s.period) ?? 0) + num(s.valueNum)));
+  }
+  return out;
+});
+
+/** Crédit du compte de prévision (prévision du mois) par chantier, dans la balance du mois. */
+async function previsionsComptabilisees(
+  importId: number,
+  kindOf: (code: string) => CentreKind,
+  compte: string
+) {
   const out = new Map<string, { label: string; credit: number }>();
   for (const l of await analyticLinesOf(importId)) {
-    if (l.account !== "71331000" || kindOf(l.centreCode) !== "chantier") continue;
+    if (l.account !== compte || kindOf(l.centreCode) !== "chantier") continue;
     const prev = out.get(l.centreCode);
     out.set(l.centreCode, {
       label: prev?.label ?? l.centreLabel,
@@ -822,7 +916,8 @@ async function previsionsComptabilisees(importId: number, kindOf: (code: string)
 /** Écart prévisions saisies − comptabilisées, mois par mois, pour la Synthèse. */
 const previsionsSaisiesParMois = cache(async function previsionsSaisiesParMois(
   entityId: number,
-  months: string[]
+  months: string[],
+  compte: string
 ): Promise<Vector> {
   const vec: Vector = Object.fromEntries(months.map((m) => [m, 0]));
   const saisies = await db
@@ -839,7 +934,7 @@ const previsionsSaisiesParMois = cache(async function previsionsSaisiesParMois(
   let total = 0;
   for (const month of new Set(saisies.map((s) => s.period))) {
     const imp = await latestValidatedImport(entityId, "analytique", { atPeriod: month });
-    const compta = imp ? await previsionsComptabilisees(imp.id, kindOf) : new Map();
+    const compta = imp ? await previsionsComptabilisees(imp.id, kindOf, compte) : new Map();
     let ecart = 0;
     for (const s of saisies) {
       if (s.period !== month || !s.centreCode || s.valueNum == null) continue;
@@ -915,7 +1010,13 @@ export async function getPrevisionControl(entity: Entity, period: string): Promi
       ),
     getSynthese(entity),
   ]);
-  const compta = imp ? await previsionsComptabilisees(imp.id, kindOf) : new Map<string, { label: string; credit: number }>();
+  const { provisions } = entiteConfig(entity.code);
+  // En mode « saisie », la comptabilité ne porte pas la prévision par chantier :
+  // il n'y a rien à lui comparer, la saisie est la référence.
+  const compta =
+    imp && provisions.mode === "compte"
+      ? await previsionsComptabilisees(imp.id, kindOf, provisions.compte)
+      : new Map<string, { label: string; credit: number }>();
   const referentiel = await db
     .select({ code: tables.centres.code, name: tables.centres.name })
     .from(tables.centres)
@@ -927,12 +1028,13 @@ export async function getPrevisionControl(entity: Entity, period: string): Promi
     if (!s.centreCode || s.valueNum == null) continue;
     const c = compta.get(s.centreCode);
     const saisie = num(s.valueNum);
+    const comptabilisee = provisions.mode === "saisie" ? saisie : (c?.credit ?? 0);
     rows.push({
       centreCode: s.centreCode,
       centreLabel: c?.label ?? names.get(s.centreCode) ?? s.centreCode,
       saisie,
-      comptabilisee: c?.credit ?? 0,
-      ecart: round2(saisie - (c?.credit ?? 0)),
+      comptabilisee,
+      ecart: round2(saisie - comptabilisee),
       status: s.status as "draft" | "final",
       by: s.updatedBy,
     });
@@ -1612,6 +1714,7 @@ export async function getFx(
     atPeriod: opts?.period,
   });
   if (!imp) return null;
+  const referenceId = await referenceEntityId();
   const [kindOf, mapper, ruleRows] = await Promise.all([
     loadCentreKinds(entity.id),
     loadMapper("fx", entity.id, entity.code),
@@ -1619,8 +1722,18 @@ export async function getFx(
     db
       .select({ pattern: tables.accountRules.pattern, categoryId: tables.accountRules.categoryId })
       .from(tables.accountRules)
-      .where(eq(tables.accountRules.active, true)),
+      .where(
+        and(
+          eq(tables.accountRules.active, true),
+          or(
+            isNull(tables.accountRules.entityId),
+            eq(tables.accountRules.entityId, entity.id),
+            ...(referenceId != null ? [eq(tables.accountRules.entityId, referenceId)] : [])
+          )
+        )
+      ),
   ]);
+  const quotes = quoteParts(nomenclatureFx, "fx");
 
   const fxAccounts = new Set<string>();
   const fxCategoryIds = new Set(mapper.categories.map((c) => c.id));
@@ -1674,9 +1787,11 @@ export async function getFx(
       continue;
     }
     soldeMappe += solde;
-    const signed = round2(cat.sign * solde);
+    // Un poste à quote-part ne retient que sa fraction du compte.
+    const quote = quotes.get(cat.code) ?? 1;
+    const signed = round2(cat.sign * solde * quote);
     bump(cat.code, "n", signed);
-    bump(cat.code, MOIS_COLUMN, round2(cat.sign * (moisSoldes.get(account)?.solde ?? 0)));
+    bump(cat.code, MOIS_COLUMN, round2(cat.sign * quote * (moisSoldes.get(account)?.solde ?? 0)));
     const list = accountsByCat.get(cat.code) ?? [];
     list.push({ account, label, ytd: signed });
     accountsByCat.set(cat.code, list);
@@ -1687,7 +1802,7 @@ export async function getFx(
   ] as const) {
     for (const [account, solde] of soldes) {
       const cat = mapper.resolve(account);
-      if (cat) bump(cat.code, col, round2(cat.sign * solde));
+      if (cat) bump(cat.code, col, round2(cat.sign * solde * (quotes.get(cat.code) ?? 1)));
     }
   }
 
@@ -1841,6 +1956,7 @@ export async function getFxMensuel(
     loadMapper("fx", entity.id, entity.code),
   ]);
   const columns = [...months, TOTAL_COLUMN];
+  const quotes = quoteParts(nomenclatureFx, "fx");
 
   const blank = (): Vector =>
     Object.fromEntries(columns.map((c) => [c, missing.includes(c) ? null : 0]));
@@ -1858,7 +1974,7 @@ export async function getFxMensuel(
         continue;
       }
       const vec = leaves.get(cat.code) ?? blank();
-      const signed = cat.sign * solde;
+      const signed = cat.sign * solde * (quotes.get(cat.code) ?? 1);
       vec[month] = round2((vec[month] ?? 0) + signed);
       vec[TOTAL_COLUMN] = round2((vec[TOTAL_COLUMN] ?? 0) + signed);
       leaves.set(cat.code, vec);

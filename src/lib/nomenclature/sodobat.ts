@@ -1,4 +1,9 @@
-// Nomenclature Sodobat — source de vérité des trois vues.
+// Nomenclature Sodobat — source de vérité des trois vues, et base commune du
+// groupe : la DAF a demandé que les tableaux des autres entités partent de
+// celui de Sodobat. Les comptes cités ici valent pour toutes les entités ; ce
+// qu'une entité a en propre (comptes, libellés) est déclaré à part, dans
+// src/lib/nomenclature/entites.ts. Une ligne qui ne concerne que certaines
+// entités porte leur code dans `entityScope`.
 //
 // Source : "Doc de travail-Maquette_Structurelle_Sodobat.xlsx" (maquette validée)
 // croisée avec "2026_PLAN COMPTABLE SODOBAT.xlsx" (167 comptes, colonnes Onglet /
@@ -282,6 +287,7 @@ export const synthese: NomenclatureLine[] = [
     label: "Sous-traitance paiement direct",
     kind: "poste",
     accounts: SOUS_TRAITANCE_PAIEMENT_DIRECT,
+    entityScope: "sodobat",
     notes: "Code D — compte 60412100, objectif « Sous-traitants 1 »",
   },
   {
@@ -464,6 +470,19 @@ export const synthese: NomenclatureLine[] = [
     accounts: [...MASSE_SALARIALE, ...TRANSFERTS_CHARGES, "64600000", "64601000"],
     notes: "Code F, cotisations exploitant/RSI incluses",
   },
+  // CovarBat : la rémunération du gérant est affectée pour moitié à la
+  // production et pour moitié aux frais généraux (cahier des charges, TG
+  // CovarBat). Cette ligne reçoit la moitié « production » ; les comptes sont
+  // captés par la ligne des frais généraux, qui garde l'autre moitié.
+  {
+    code: "syn_ms_gerant_production",
+    view: "synthese",
+    section: SYN.personnel,
+    label: "Rémunération du gérant — part production (50 %)",
+    kind: "poste",
+    entityScope: "covarbat",
+    notes: "Moitié de la rémunération du gérant, cf. « part frais généraux »",
+  },
   {
     code: "syn_interims",
     view: "synthese",
@@ -483,6 +502,7 @@ export const synthese: NomenclatureLine[] = [
       op: "sum",
       operands: [
         { code: "syn_masse_salariale", sign: 1 },
+        { code: "syn_ms_gerant_production", sign: 1 },
         { code: "syn_interims", sign: 1 },
       ],
     },
@@ -712,6 +732,17 @@ export const synthese: NomenclatureLine[] = [
     kind: "poste",
     notes: "Salaires et charges imputés aux centres de structure",
   },
+  {
+    code: "syn_ms_gerant_fx",
+    view: "synthese",
+    section: SYN.fx,
+    label: "Rémunération du gérant — part frais généraux (50 %)",
+    kind: "poste",
+    entityScope: "covarbat",
+    partage: { vers: "syn_ms_gerant_production", part: 0.5 },
+    notes:
+      "La rémunération du gérant est affectée à 50 % aux frais généraux et à 50 % à la production (ligne « Régularisation salaires gérant » de la maquette)",
+  },
   // Les dotations aux amortissements ne sont comptabilisées qu'une ou deux fois
   // par exercice, en bloc. La DAF les lit lissées : la ligne reçoit chaque mois
   // une part égale du cumul comptabilisé, et, pour les mois que la comptabilité
@@ -741,6 +772,7 @@ export const synthese: NomenclatureLine[] = [
     label: "Résultat SEP",
     kind: "poste",
     accounts: ["65550000", "75550000", "75510000"],
+    entityScope: "sodobat",
     notes: "Code ZZ — Sodobat : SEP Bougé, Bouverie, Chausse, Théoule",
   },
   {
@@ -767,6 +799,7 @@ export const synthese: NomenclatureLine[] = [
         { code: "syn_fx_edf_eau_structure", sign: 1 },
         { code: "syn_fx_carburant_structure", sign: 1 },
         { code: "syn_fx_ms_structure", sign: 1 },
+        { code: "syn_ms_gerant_fx", sign: 1 },
         { code: "syn_fx_dotations", sign: 1 },
         { code: "syn_autres_charges", sign: 1 },
         { code: "syn_resultat_sep", sign: 1 },
@@ -1096,6 +1129,7 @@ export const chantier: NomenclatureLine[] = [
     label: "Sous-traitance paiement direct",
     kind: "poste",
     accounts: SOUS_TRAITANCE_PAIEMENT_DIRECT,
+    entityScope: "sodobat",
     notes: "Code D — compte 60412100, colonne « Sous traitance PD » du tableau de gestion",
   },
   {
@@ -1523,6 +1557,17 @@ export const fx: NomenclatureLine[] = [
     notes: "Code F",
   },
   {
+    code: "fx_remuneration_gerant",
+    view: "fx",
+    section: FX.generaux,
+    label: "Rémunération du gérant (50 % en frais généraux)",
+    kind: "poste",
+    entityScope: "covarbat",
+    quotePart: 0.5,
+    notes:
+      "Ligne « Régularisation salaires gérant » de la maquette : seule la moitié de la rémunération pèse sur les frais généraux, l'autre moitié est comptée en production dans la Synthèse",
+  },
+  {
     code: "fx_carburant",
     view: "fx",
     section: FX.generaux,
@@ -1727,6 +1772,7 @@ export const fx: NomenclatureLine[] = [
     label: "Résultat SEP",
     kind: "poste",
     accounts: ["65550000", "75550000", "75510000"],
+    entityScope: "sodobat",
     notes: "Code ZZ",
   },
   {
@@ -1758,6 +1804,7 @@ export const fx: NomenclatureLine[] = [
       operands: [
         { code: "fx_ms_structure", sign: 1 },
         { code: "fx_cotisations_exploitant", sign: 1 },
+        { code: "fx_remuneration_gerant", sign: 1 },
         { code: "fx_carburant", sign: 1 },
         { code: "fx_edf_eau", sign: 1 },
         { code: "fx_achats_fournitures", sign: 1 },

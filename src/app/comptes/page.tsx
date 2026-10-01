@@ -1,12 +1,13 @@
 import Link from "next/link";
 import AppHeader from "@/components/AppHeader";
-import { getEntityByCode, listAccounts } from "@/lib/views";
+import { listAccounts } from "@/lib/views";
 import AccountSearch from "./AccountSearch";
+import { getCurrentEntity } from "@/lib/entity";
 
 export const dynamic = "force-dynamic";
 
 export default async function ComptesPage() {
-  const entity = await getEntityByCode("sodobat");
+  const entity = await getCurrentEntity();
   if (!entity) return null;
 
   const accounts = await listAccounts(entity);

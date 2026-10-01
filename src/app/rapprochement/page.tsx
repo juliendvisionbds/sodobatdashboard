@@ -1,8 +1,8 @@
+import { redirect } from "next/navigation";
 import { eq } from "drizzle-orm";
 import AppHeader from "@/components/AppHeader";
 import { db, tables } from "@/db";
 import {
-  getEntityByCode,
   getFx,
   getMonthValidation,
   getPrevisionControl,
@@ -14,6 +14,7 @@ import { fmtNum, monthLabelLong } from "@/lib/format";
 import { getSession, canWrite } from "@/lib/auth";
 import DecisionBox from "./DecisionBox";
 import { ETAPES, FICHIERS, POINTS } from "./points";
+import { getCurrentEntity } from "@/lib/entity";
 
 // Écran « Rapprochement » : ce qu'il reste à recevoir de la DAF pour que les
 // tableaux de gestion soient ceux de la comptabilité. L'état mois par mois est
@@ -31,8 +32,10 @@ const dateFr = (d: Date) =>
 type Etat = { label: string; tone: "ok" | "warn" | "muted" };
 
 export default async function RapprochementPage() {
-  const entity = await getEntityByCode("sodobat");
+  const entity = await getCurrentEntity();
   if (!entity) return null;
+  // Les points de ce rapprochement sont ceux du tableau de gestion de Sodobat.
+  if (entity.code !== "sodobat") redirect("/");
 
   const session = await getSession();
   const writer = session ? canWrite(session) : false;

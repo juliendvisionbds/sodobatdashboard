@@ -6,6 +6,7 @@ import { ImportSummary } from "@/lib/import-service";
 import { fmtEur, monthLabel, monthLabelLong } from "@/lib/format";
 import { rejectImportAction, validateImportAction } from "@/app/actions";
 import { requireWriterOrRedirect } from "@/lib/auth";
+import { getCurrentEntity } from "@/lib/entity";
 
 export const dynamic = "force-dynamic";
 
@@ -20,7 +21,9 @@ export default async function ImportPreviewPage({
     .select()
     .from(tables.imports)
     .where(eq(tables.imports.id, Number(id)));
-  if (!imp) notFound();
+  // Un import ne se consulte que depuis l'entité à laquelle il appartient.
+  const entity = await getCurrentEntity();
+  if (!imp || imp.entityId !== entity?.id) notFound();
 
   const s = imp.summary as ImportSummary;
   const koChecks = (s.classChecks ?? []).filter((c) => !c.ok);

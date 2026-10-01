@@ -2,10 +2,13 @@ import { createHash } from "crypto";
 import { and, eq } from "drizzle-orm";
 import { db, tables } from "@/db";
 import {
+  PREFIXE_CENTRE_SANS_CODE,
   ParsedAnalytique,
   ParsedVentilee,
+  fiscalMonths,
   fiscalYearOf,
   parseBalanceFile,
+  periodFromFileName,
   poleOf,
 } from "./parsers";
 import { loadMapper } from "./mapping";
@@ -35,6 +38,8 @@ export type ImportSummary = {
    * et n'entre pas dans les cumuls des chantiers.
    */
   annual?: boolean;
+  /** export Pennylane : famille d'axes analytiques lue, et celles laissées de côté */
+  famille?: { retenue: string; ignorees: string[] };
 };
 
 // ── Création (statut preview) ────────────────────────────────────────────────
@@ -73,16 +78,39 @@ export async function createImportPreview(opts: {
 
   let period: string;
   let fiscalYearStart: number;
+  let annual = !!opts.annual;
   if (parsed.type === "ventilee") {
     period = parsed.period;
     fiscalYearStart = parsed.fiscalYearStart;
   } else {
-    if (!opts.periodOverride) {
+    // Un export Pennylane porte sa période dans son nom, et il est cumulé sur
+    // toute cette période. L'application lit une balance analytique comme le
+    // mouvement d'UN mois : un export de plusieurs mois ne peut donc entrer que
+    // s'il couvre un exercice entier (il sert alors aux colonnes N-1 / N-2).
+    const lu = parsed.famille ? periodFromFileName(fileName) : null;
+    if (lu && lu.months > 1) {
+      const exercice = fiscalMonths(fiscalYearOf(lu.start));
+      const entier = lu.start === exercice[0] && lu.end === exercice[11];
+      if (!entier)
+        throw new Error(
+          `Cet export couvre ${lu.months} mois (de ${lu.start.slice(0, 7)} à ${lu.end.slice(0, 7)}) : ` +
+            "ses montants sont cumulés sur toute la période. L'application attend une balance " +
+            "analytique par mois : dans Pennylane, exportez-la du 1er au dernier jour du mois voulu."
+        );
+      annual = true;
+    }
+    if (lu && opts.periodOverride && opts.periodOverride !== lu.end)
+      throw new Error(
+        `Le mois indiqué (${opts.periodOverride.slice(0, 7)}) n'est pas celui du fichier, ` +
+          `exporté jusqu'à ${lu.end.slice(0, 7)}.`
+      );
+    const choisi = opts.periodOverride ?? lu?.end;
+    if (!choisi) {
       throw new Error(
         "La balance analytique ne contient pas sa période : sélectionnez le mois de la balance."
       );
     }
-    period = opts.periodOverride;
+    period = choisi;
     fiscalYearStart = fiscalYearOf(period);
   }
 
@@ -117,7 +145,8 @@ export async function createImportPreview(opts: {
     replaces: replaced
       ? { id: replaced.id, fileName: replaced.fileName, period: replaced.period }
       : null,
-    ...(opts.annual && parsed.type === "analytique" ? { annual: true } : {}),
+    ...(annual && parsed.type === "analytique" ? { annual: true } : {}),
+    ...(parsed.type === "analytique" && parsed.famille ? { famille: parsed.famille } : {}),
   };
 
   const [imp] = await db
@@ -475,13 +504,46 @@ async function generateAlerts(importId: number) {
       .from(tables.centres)
       .where(eq(tables.centres.entityId, imp.entityId));
     const aliasOf = new Map(connus.filter((c) => c.aliasOf).map((c) => [c.code, c.aliasOf!]));
+
+    // 5 bis) centres que l'export Pennylane ne numérote pas : écritures sans axe
+    //    analytique, ou plusieurs chantiers confondus sous un même libellé
+    const sansCode = new Map<string, { label: string; lignes: number; produits: number; charges: number }>();
+    for (const l of anaLines) {
+      if (!l.centreCode.startsWith(PREFIXE_CENTRE_SANS_CODE)) continue;
+      const e = sansCode.get(l.centreCode) ?? { label: l.centreLabel, lignes: 0, produits: 0, charges: 0 };
+      e.lignes++;
+      if (l.account.startsWith("7")) e.produits -= num(l.solde);
+      else if (l.account.startsWith("6")) e.charges += num(l.solde);
+      sansCode.set(l.centreCode, e);
+    }
+    for (const [code, e] of sansCode) {
+      if (!round2(e.produits) && !round2(e.charges)) continue;
+      alerts.push({
+        entityId: imp.entityId,
+        importId,
+        type: "centre_import_ascii",
+        severity: "warn",
+        title: `Centre sans code analytique : « ${e.label} »`,
+        description:
+          `${fmt(e.produits)} € de produits et ${fmt(e.charges)} € de charges (${e.lignes} ligne${e.lignes > 1 ? "s" : ""}) ` +
+          `sont exportés par Pennylane sans code analytique : écritures non affectées, ou chantiers ` +
+          `confondus sous un même libellé. L'application ne peut pas les répartir : affecter ces ` +
+          `écritures, ou donner à chaque chantier un code et un libellé qui lui sont propres dans Pennylane.`,
+        account: code,
+        amount: String(round2(Math.abs(e.produits) + Math.abs(e.charges))),
+        period: imp.period,
+      });
+    }
+
     const fantomes = detectAsciiCentres(
-      anaLines.map((l) => ({
-        centreCode: l.centreCode,
-        centreLabel: l.centreLabel,
-        account: l.account,
-        solde: num(l.solde),
-      })),
+      anaLines
+        .filter((l) => !l.centreCode.startsWith(PREFIXE_CENTRE_SANS_CODE))
+        .map((l) => ({
+          centreCode: l.centreCode,
+          centreLabel: l.centreLabel,
+          account: l.account,
+          solde: num(l.solde),
+        })),
       connus
     );
     for (const f of fantomes) {

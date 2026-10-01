@@ -694,7 +694,7 @@ function briefing(f: AnalyseFigures) {
   };
 }
 
-const CONSIGNES = `Tu rédiges l'analyse mensuelle de performance de Sodobat (BTP) pour la DAF et les dirigeants.
+const consignes = (entite: string) => `Tu rédiges l'analyse mensuelle de performance de ${entite} (BTP) pour la DAF et les dirigeants.
 Règles :
 - Français, ton factuel et direct, phrases courtes. Pas de formule de politesse, pas de jargon inutile.
 - N'utilise QUE les chiffres fournis. N'invente aucun montant, aucun pourcentage, aucune cause certaine.
@@ -710,11 +710,11 @@ Règles :
 - S'il y a des réserves sur les données, termine les points d'attention par une puce qui les résume. Ne cite jamais la validation du mois ni la qualité des données comme point fort.
 - Un point fort doit être un fait favorable du mois (poste en baisse, marge qui progresse, CA en hausse) ; s'il n'y en a pas, donne moins de puces plutôt que d'en inventer.`;
 
-export async function rediger(figures: AnalyseFigures) {
+export async function rediger(figures: AnalyseFigures, entite = "Sodobat") {
   const { output, usage } = await generateText({
     model: openai.chat(ANALYSE_MODEL),
     providerOptions: { openai: { reasoningEffort: "low" } },
-    system: CONSIGNES,
+    system: consignes(entite),
     prompt: JSON.stringify(briefing(figures)),
     output: Output.object({ schema: redactionSchema }),
   });
@@ -797,7 +797,7 @@ export async function genererAnalyse(entity: Entity, period: string, by: string)
   let outputTokens: number | null = null;
   let redactionError: string | null = null;
   try {
-    ({ redaction, inputTokens, outputTokens } = await rediger(figures));
+    ({ redaction, inputTokens, outputTokens } = await rediger(figures, entity.name));
   } catch (e) {
     console.error("analyse mensuelle: rédaction impossible", e);
     redactionError = "Les chiffres sont prêts, mais le texte n'a pas pu être rédigé. Relancez l'analyse.";

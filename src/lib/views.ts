@@ -34,7 +34,7 @@ export const dataVersion = cache(async (entityId: number): Promise<string> => {
     select md5(concat_ws('|',
       (select coalesce(string_agg(t::text, ',' order by t.id), '') from imports t where t.entity_id = ${entityId}),
       (select coalesce(string_agg(t::text, ',' order by t.id), '') from manual_entries t where t.entity_id = ${entityId}),
-      (select coalesce(string_agg(t::text, ',' order by t.id), '') from account_rules t where t.entity_id is null or t.entity_id = ${entityId}),
+      (select coalesce(string_agg(t::text, ',' order by t.id), '') from account_rules t),
       (select coalesce(string_agg(t::text, ',' order by t.id), '') from categories t),
       (select coalesce(string_agg(t::text, ',' order by t.id), '') from centres t where t.entity_id = ${entityId})
     )) as v

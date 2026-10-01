@@ -1,6 +1,6 @@
-# Dashboard financier — Groupe SDG (Sodobat, Phase 1)
+# Dashboard financier — Groupe SDG
 
-Tableaux de gestion intelligents alimentés par les exports Cegid (balance ventilée + balance analytique).
+Tableaux de gestion intelligents alimentés par les exports comptables (balance ventilée + balance analytique), Cegid ou Pennylane. Entités ouvertes : Sodobat, CovarBat.
 
 ## Fonctionnement
 
@@ -38,6 +38,48 @@ Le remplacement ne touche ni les imports, ni les balances, ni les saisies manuel
 les vues étant recalculées à la volée, aucun réimport n'est nécessaire. Le rapport
 liste les comptes présents dans les imports validés qu'aucun poste ne couvrirait —
 à passer en `--dry-run` sur la base de production avant d'appliquer.
+
+### Entités
+
+L'application affiche une entité à la fois, choisie dans le menu de l'en-tête
+(cookie de préférence ; le serveur ne sert qu'une entité ouverte et à laquelle
+le compte a droit). La maquette des trois vues est commune au groupe : c'est
+celle de Sodobat, comme l'a demandé la DAF.
+
+Ce qu'une entité a en propre est déclaré dans `src/lib/nomenclature/entites.ts` :
+
+- **comptes** que Sodobat n'a pas, et exceptions (même numéro, autre nature).
+  Pour un compte donné, la règle de l'entité l'emporte sur celle de Sodobat
+  (y compris celles créées depuis l'écran Mapping), qui l'emporte sur la règle
+  commune : « c'est le code de Sodobat qui prévaut » ;
+- **libellés** qui diffèrent ;
+- **prévisions de travaux** : `compte` (Sodobat, la balance analytique porte la
+  prévision par chantier sur le 71331000) ou `saisie` (CovarBat, le cabinet ne
+  la ventile pas : la prévision saisie dans l'application fait foi, l'annulation
+  d'un mois est la prévision du mois précédent, et le reste du compte 70400000
+  est du chiffre d'affaires).
+
+Une ligne de la maquette qui ne concerne que certaines entités porte leur code
+dans `entityScope`.
+
+```bash
+npm run entite:installer -- covarbat            # rapport seul
+npm run entite:installer -- covarbat --apply    # aligne la maquette, installe les règles, ouvre l'entité
+npm run import:file -- "<balance>" --entite covarbat
+npm run init:provisions -- "<tableau de gestion.xlsx>" --entite covarbat [--apply]
+npm run rapprochement:synthese -- "<tableau de gestion.xlsx>" --entite covarbat
+```
+
+`entite:installer` remplace `db:nomenclature` sur une base en service : il ne
+supprime rien et ne modifie aucune règle créée par un utilisateur.
+
+Pour répéter une opération avant de la lancer en production, copier une
+sauvegarde dans une base locale jetable :
+
+```bash
+PGLITE_DIR=/tmp/clone npx drizzle-kit push --force
+PGLITE_DIR=/tmp/clone npm run clone:local -- ../backups/sodobat-AAAA-MM-JJ-….json
+```
 
 ### Recette
 
@@ -121,3 +163,13 @@ pour ne pas effacer les règles créées depuis l'écran Mapping.
 | --- | --- | --- |
 | `*_BALANCE VENTILEE.xlsx` | Balance générale, une colonne par mois de l'exercice | Vues Synthèse et ratios / CA |
 | `*_BALANCE ANALYTIQUE.xlsx` | Mouvements **du mois** par centre (chantier / FX) × compte — ses totaux de classe 6 et 7 recoupent la colonne du même mois de la ventilée | Vue Chantiers (le mois se lit dans son fichier) et vue Frais généraux (cumul = somme des mois) |
+
+Exports Pennylane : la balance ventilée a un mois par colonne, écrit en toutes
+lettres, et pas de ligne de total (le contrôle porte sur la colonne Solde). Les
+comptes sont sur 11 chiffres, ramenés à 8. La balance analytique est répétée par
+famille d'axes (« Centre », « Nature ») : seule celle des chantiers est lue. Elle
+est cumulée sur la période exportée, lue dans le nom du fichier : il faut un
+export par mois (du 1er au dernier jour) ; un export d'exercice entier entre
+comme balance annuelle (colonnes N-1 / N-2 des frais généraux), un export de
+plusieurs mois est refusé. Un centre exporté sans code est rangé sous
+« # » suivi de son libellé, et signalé par une alerte.

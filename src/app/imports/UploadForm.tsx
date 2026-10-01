@@ -20,6 +20,8 @@ export default function UploadForm() {
             <br />
             <strong>2.</strong> Balance <strong>analytique</strong> : déposer le fichier{" "}
             <strong>et renseigner le mois de la balance</strong> → contrôler → valider.
+            Depuis Pennylane, exporter la balance analytique <strong>du mois seul</strong>
+            (du 1er au dernier jour du mois).
             <br />
             La ventilée alimente la Synthèse ; l&apos;analytique alimente Chantiers et
             Frais généraux.
@@ -42,7 +44,8 @@ export default function UploadForm() {
 
       <label className="field-label" htmlFor="period">
         Mois de la balance <span style={{ fontWeight: 400, textTransform: "none" }}>
-          (requis pour la balance analytique, la ventilée est détectée automatiquement)
+          (requis pour une balance analytique Cegid ; pour la ventilée et pour un export
+          Pennylane, il est lu dans le fichier ou dans son nom)
         </span>
       </label>
       <input

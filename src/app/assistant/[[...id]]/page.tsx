@@ -2,11 +2,12 @@ import { notFound } from "next/navigation";
 import { generateId, type UIMessage } from "ai";
 import AppHeader from "@/components/AppHeader";
 import { getSession } from "@/lib/auth";
-import { getEntityByCode, latestValidatedImport } from "@/lib/finance";
+import { latestValidatedImport } from "@/lib/finance";
 import { getFrequentQuestions } from "@/lib/assistant-questions";
 import { listConversations, loadConversation } from "@/lib/assistant-conversations";
 import { monthLabelLong } from "@/lib/format";
 import AssistantShell from "../AssistantShell";
+import { getCurrentEntity } from "@/lib/entity";
 
 export const dynamic = "force-dynamic";
 
@@ -19,7 +20,7 @@ export default async function AssistantPage({
   const [{ id: segments }, session, entity] = await Promise.all([
     params,
     getSession(),
-    getEntityByCode("sodobat"),
+    getCurrentEntity(),
   ]);
   if (!session || !entity) notFound();
   if (segments && segments.length > 1) notFound();

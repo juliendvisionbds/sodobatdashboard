@@ -3,11 +3,10 @@
 import { revalidatePath } from "next/cache";
 import { and, eq } from "drizzle-orm";
 import { db, tables } from "@/db";
-import { canFiger, getSession } from "@/lib/auth";
-import { getEntityByCode } from "@/lib/finance";
+import { canFiger, getSession, ownsEntity } from "@/lib/auth";
 import { genererAnalyse, type Redaction } from "@/lib/analyse-mensuelle";
+import { getCurrentEntity } from "@/lib/entity";
 
-const ENTITY = "sodobat"; // phase 1 : entité pilote
 const PERIOD = /^\d{4}-\d{2}-01$/;
 
 // La DAF génère, relit et publie les analyses mensuelles. Les dirigeants les
@@ -15,8 +14,9 @@ const PERIOD = /^\d{4}-\d{2}-01$/;
 async function requireDaf() {
   const session = await getSession();
   if (!session || !canFiger(session)) throw new Error("Seule la DAF peut gérer les analyses mensuelles.");
-  const entity = await getEntityByCode(ENTITY);
+  const entity = await getCurrentEntity();
   if (!entity) throw new Error("Entité introuvable.");
+  if (!ownsEntity(session, entity.id)) throw new Error("Accès refusé : autre entité.");
   return { session, entity };
 }
 

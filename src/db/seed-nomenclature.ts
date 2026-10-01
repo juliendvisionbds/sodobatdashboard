@@ -26,6 +26,8 @@ import { classifyCentre } from "../lib/parsers";
 import { COMPTES_TOUJOURS_FX } from "../lib/nomenclature/codes";
 import type { View } from "../lib/nomenclature/types";
 import { describeTarget, requireEnvTarget } from "../lib/env-target";
+import { ENTITES_DECLAREES, entiteConfig } from "../lib/nomenclature/entites";
+import { appliquerEntite, planEntite } from "./install-entite";
 
 const VIEWS: View[] = ["synthese", "chantier", "fx"];
 
@@ -228,6 +230,15 @@ async function main() {
   console.log(
     `Nomenclature installée : ${nomenclature.length} lignes, ${ruleCount} règles.`
   );
+
+  // Règles propres aux entités qui en déclarent (src/lib/nomenclature/entites.ts).
+  // L'ouverture d'une entité dans le menu reste du ressort de entite:installer.
+  for (const code of ENTITES_DECLAREES) {
+    if (Object.keys(entiteConfig(code).regles).length === 0) continue;
+    const plan = await planEntite(code);
+    await appliquerEntite({ ...plan, activer: false }, code);
+    console.log(`Règles ${code} : ${plan.ajouts.length} installées.`);
+  }
   console.log("Les vues se recalculent à la volée — aucun réimport nécessaire.");
   process.exit(0);
 }

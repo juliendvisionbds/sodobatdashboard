@@ -1,18 +1,33 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { switchEntityAction } from "@/app/actions";
+import { ENTITY_COOKIE, GROUP_ENTITIES } from "@/components/entity-cookie";
 
-const ENTITIES = [
-  { name: "Sodobat", available: true },
-  { name: "Easy Mat", available: false },
-  { name: "Easy Home", available: false },
-  { name: "VBTP", available: false },
-  { name: "CovarBat", available: false },
-];
+export type EntityChoice = { code: string; name: string; available: boolean };
 
-export default function EntityMenu() {
+// Écran d'attente : l'en-tête est rendu dans le navigateur, sans la liste que
+// le serveur fournit. Le nom affiché se lit dans le cookie de préférence.
+const noSubscription = () => () => {};
+function entityNameFromCookie(): string {
+  const code = document.cookie
+    .split("; ")
+    .find((c) => c.startsWith(`${ENTITY_COOKIE}=`))
+    ?.split("=")[1];
+  return (GROUP_ENTITIES.find((e) => e.code === code) ?? GROUP_ENTITIES[0]).name;
+}
+
+export default function EntityMenu({
+  current,
+  entities,
+}: {
+  /** code de l'entité affichée ; absent sur l'écran d'attente */
+  current?: string;
+  entities?: EntityChoice[];
+}) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
+  const waitingName = useSyncExternalStore(noSubscription, entityNameFromCookie, () => "");
 
   useEffect(() => {
     if (!open) return;
@@ -30,6 +45,8 @@ export default function EntityMenu() {
     };
   }, [open]);
 
+  const name = entities?.find((e) => e.code === current)?.name ?? waitingName;
+
   return (
     <div className="entity-menu" ref={rootRef}>
       <button
@@ -40,22 +57,29 @@ export default function EntityMenu() {
         title="Entités du Groupe SDG"
         onClick={() => setOpen((v) => !v)}
       >
-        Sodobat
+        {name}
         <span style={{ fontSize: 10, color: "var(--gray3)" }}>▼</span>
       </button>
 
-      {open && (
+      {open && entities && (
         <div className="entity-dropdown" role="menu">
           <div className="user-dropdown-meta">Entités du Groupe SDG</div>
-          {ENTITIES.map((e) =>
-            e.available ? (
-              <div key={e.name} className="entity-dropdown-item current" role="menuitem">
+          {entities.map((e) =>
+            e.code === current ? (
+              <div key={e.code} className="entity-dropdown-item current" role="menuitem">
                 <span>{e.name}</span>
                 <span className="entity-check">✓</span>
               </div>
+            ) : e.available ? (
+              <form key={e.code} action={switchEntityAction} onSubmit={() => setOpen(false)}>
+                <input type="hidden" name="entity" value={e.code} />
+                <button type="submit" className="entity-dropdown-item entity-switch" role="menuitem">
+                  <span>{e.name}</span>
+                </button>
+              </form>
             ) : (
               <div
-                key={e.name}
+                key={e.code}
                 className="entity-dropdown-item disabled"
                 role="menuitem"
                 aria-disabled="true"

@@ -4,6 +4,10 @@
 //   npm run import:file -- "<fichier ventilée>"
 //   npm run import:file -- "<fichier analytique>" --period 2026-06
 //   npm run import:file -- "<analytique d'un exercice clos>" --period 2024-10 --annuel
+//   npm run import:file -- "<fichier>" --entite covarbat
+//
+// --entite : entité visée (sodobat par défaut). Un export Pennylane porte sa
+// période dans son nom : --period et --annuel sont alors déduits du fichier.
 //
 // --annuel : balance analytique d'un exercice entier, importée en une fois sur
 // son dernier mois. Elle nourrit les colonnes N-1 / N-2 des frais généraux et
@@ -24,6 +28,7 @@ import { basename } from "path";
 import { getEntityByCode } from "../src/lib/finance";
 import { createImportPreview, validateImport } from "../src/lib/import-service";
 import { describeTarget, requireEnvTarget } from "../src/lib/env-target";
+import { periodFromFileName } from "../src/lib/parsers";
 
 const arg = (name: string) => {
   const i = process.argv.indexOf(name);
@@ -40,7 +45,7 @@ async function main() {
   const period = arg("--period");
   const annual = process.argv.includes("--annuel");
   const allowOlder = process.argv.includes("--remplace-plus-recent");
-  if (annual && !period) {
+  if (annual && !period && !periodFromFileName(basename(file))) {
     console.error("--annuel demande la période du dernier mois de l'exercice : --period 2024-10.");
     process.exit(1);
   }
@@ -49,10 +54,12 @@ async function main() {
     process.exit(1);
   }
 
-  const entity = await getEntityByCode("sodobat");
-  if (!entity) throw new Error("entité sodobat absente");
+  const code = arg("--entite") ?? "sodobat";
+  const entity = await getEntityByCode(code);
+  if (!entity) throw new Error(`entité ${code} absente`);
 
   console.log(`Base    : ${describeTarget()}`);
+  console.log(`Entité  : ${entity.name}`);
   console.log(`Fichier : ${basename(file)}`);
 
   const { importId, summary } = await createImportPreview({
@@ -79,6 +86,7 @@ async function main() {
   if (summary.unmapped.length) {
     console.log(`⚠ ${summary.unmapped.length} compte(s) non mappé(s), une alerte sera levée pour chacun :`);
     for (const u of summary.unmapped.slice(0, 8)) console.log(`     ${u.account}  ${u.label}`);
+    if (summary.unmapped.length > 8) console.log(`     … et ${summary.unmapped.length - 8} autre(s)`);
   }
 
   await validateImport(importId);

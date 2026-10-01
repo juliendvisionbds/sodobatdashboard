@@ -2,10 +2,13 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import { cookies } from "next/headers";
 import { and, eq, inArray, isNull } from "drizzle-orm";
 import { db, tables } from "@/db";
 import { canFiger, canSaisir, canWrite, getSession, login, logout, ownsEntity } from "@/lib/auth";
-import { getEntityByCode, getPrevisionControl } from "@/lib/finance";
+import { getPrevisionControl } from "@/lib/finance";
+import { allowedEntities, getCurrentEntity } from "@/lib/entity";
+import { ENTITY_COOKIE } from "@/components/entity-cookie";
 import type { ManualField } from "@/lib/nomenclature/types";
 import {
   assignAccountToCategory,
@@ -14,14 +17,35 @@ import {
   validateImport,
 } from "@/lib/import-service";
 
-const ENTITY = "sodobat"; // phase 1 : entité pilote
-
+/** Écriture sur l'entité affichée : réservée à l'admin et à la DAF, sur une entité qui est la leur. */
 async function requireWriter() {
   const session = await getSession();
   if (!session || !canWrite(session)) throw new Error("Accès en écriture refusé.");
-  const entity = await getEntityByCode(ENTITY);
+  const entity = await getCurrentEntity();
   if (!entity) throw new Error("Entité introuvable.");
+  if (!ownsEntity(session, entity.id)) throw new Error("Accès en écriture refusé : autre entité.");
   return { session, entity };
+}
+
+// ── Entité affichée ──────────────────────────────────────────────────────────
+
+/** Change l'entité affichée. Le cookie n'est posé que pour une entité ouverte à ce compte. */
+export async function switchEntityAction(formData: FormData) {
+  const session = await getSession();
+  if (!session) redirect("/login");
+  const code = String(formData.get("entity") ?? "");
+  const allowed = await allowedEntities(session);
+  if (allowed.some((e) => e.code === code)) {
+    const jar = await cookies();
+    jar.set(ENTITY_COOKIE, code, {
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      maxAge: 365 * 24 * 3600,
+      path: "/",
+    });
+  }
+  // Le mois ou le chantier consulté n'existe pas forcément dans l'autre entité.
+  redirect("/");
 }
 
 // ── Auth ─────────────────────────────────────────────────────────────────────
@@ -71,15 +95,25 @@ export async function uploadImportAction(
   redirect(`/imports/${importId}`);
 }
 
+/** Un import ne se valide ni ne se rejette depuis une autre entité que la sienne. */
+async function requireImportOfEntity(importId: number) {
+  const { entity } = await requireWriter();
+  const [imp] = await db
+    .select({ entityId: tables.imports.entityId })
+    .from(tables.imports)
+    .where(eq(tables.imports.id, importId));
+  if (!imp || imp.entityId !== entity.id) throw new Error("Import introuvable pour cette entité.");
+}
+
 export async function validateImportAction(importId: number) {
-  await requireWriter();
+  await requireImportOfEntity(importId);
   await validateImport(importId);
   revalidatePath("/", "layout");
   redirect("/imports");
 }
 
 export async function rejectImportAction(importId: number) {
-  await requireWriter();
+  await requireImportOfEntity(importId);
   await rejectImport(importId);
   revalidatePath("/imports");
   redirect("/imports");
@@ -103,11 +137,14 @@ export async function assignAccountAction(formData: FormData) {
   revalidatePath("/", "layout");
 }
 
+/** Supprime une règle de l'entité affichée. Les règles communes au groupe ne se suppriment pas d'ici. */
 export async function deleteRuleAction(formData: FormData) {
-  await requireWriter();
+  const { entity } = await requireWriter();
   const id = Number(formData.get("ruleId"));
   if (!id) return;
-  await db.delete(tables.accountRules).where(eq(tables.accountRules.id, id));
+  await db
+    .delete(tables.accountRules)
+    .where(and(eq(tables.accountRules.id, id), eq(tables.accountRules.entityId, entity.id)));
   revalidatePath("/", "layout");
 }
 
@@ -152,7 +189,12 @@ export async function createRuleAction(
   return { ok: `Règle créée : ${pattern}${matchType === "prefix" ? "…" : ""}` };
 }
 
-/** Remplace une règle seed : la désactive (réversible) et crée la règle entité. */
+/**
+ * Remplace une règle commune (ou héritée de Sodobat) pour l'entité affichée :
+ * une règle de l'entité est créée sur le même compte, et l'emporte. La règle
+ * d'origine n'est pas touchée — elle continue de valoir pour les autres
+ * entités — et reprend effet dès que la règle de l'entité est supprimée.
+ */
 export async function replaceRuleAction(formData: FormData) {
   const { session, entity } = await requireWriter();
   const ruleId = Number(formData.get("ruleId"));
@@ -163,12 +205,8 @@ export async function replaceRuleAction(formData: FormData) {
     .select()
     .from(tables.accountRules)
     .where(eq(tables.accountRules.id, ruleId));
-  if (!rule) return;
+  if (!rule || rule.entityId === entity.id) return;
 
-  await db
-    .update(tables.accountRules)
-    .set({ active: false })
-    .where(eq(tables.accountRules.id, ruleId));
   await db.insert(tables.accountRules).values({
     categoryId,
     entityId: entity.id,
@@ -189,7 +227,7 @@ export async function reactivateRuleAction(formData: FormData) {
     .select()
     .from(tables.accountRules)
     .where(eq(tables.accountRules.id, ruleId));
-  if (!rule) return;
+  if (!rule || (rule.entityId != null && rule.entityId !== entity.id)) return;
 
   // supprime la règle de remplacement associée pour éviter deux règles actives
   // sur le même pattern (la règle entité gagnerait silencieusement sinon)
@@ -218,7 +256,7 @@ const CHAMPS_ENTITE = new Set<ManualField>(["tec_provision", "note", "statut"]);
 export async function saveManualEntryAction(formData: FormData) {
   const session = await getSession();
   if (!session) throw new Error("Accès en écriture refusé.");
-  const entity = await getEntityByCode(ENTITY);
+  const entity = await getCurrentEntity();
   if (!entity) throw new Error("Entité introuvable.");
   const period = String(formData.get("period") ?? "");
   const centreCode = String(formData.get("centreCode") ?? "") || null;
@@ -303,7 +341,7 @@ export async function saveManualEntryAction(formData: FormData) {
 export async function validateMonthAction(formData: FormData) {
   const session = await getSession();
   if (!session || !canFiger(session)) throw new Error("Seule la DAF peut valider un mois.");
-  const entity = await getEntityByCode(ENTITY);
+  const entity = await getCurrentEntity();
   if (!entity) throw new Error("Entité introuvable.");
   const period = String(formData.get("period") ?? "");
   if (!/^\d{4}-\d{2}-01$/.test(period)) return;
@@ -350,7 +388,7 @@ export async function validateMonthAction(formData: FormData) {
 export async function reopenMonthAction(formData: FormData) {
   const session = await getSession();
   if (!session || !canFiger(session)) throw new Error("Seule la DAF peut rouvrir un mois.");
-  const entity = await getEntityByCode(ENTITY);
+  const entity = await getCurrentEntity();
   if (!entity) throw new Error("Entité introuvable.");
   const period = String(formData.get("period") ?? "");
   if (!/^\d{4}-\d{2}-01$/.test(period)) return;
