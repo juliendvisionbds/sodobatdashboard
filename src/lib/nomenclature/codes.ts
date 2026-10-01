@@ -49,6 +49,14 @@ export const COMPTES_TOUJOURS_FX = new Set(["68112000", "65700000", "67500000"])
 /** Compte des dotations aux amortissements, lissé sur l'exercice. */
 export const COMPTE_DOTATIONS = "68112000";
 
+/**
+ * Premier exercice dont les dotations sont comptabilisées chaque mois, donc
+ * lues telles quelles : celui ouvert en novembre 2026, à l'arrivée de Sodobat
+ * sur Pennylane (décision de la DAF du 1er octobre 2026). Les exercices
+ * antérieurs, comptabilisés en bloc, restent lissés.
+ */
+export const PREMIER_EXERCICE_DOTATIONS_MENSUELLES = 2026;
+
 export const FX_CODES = {
   dotations: "fx_dotations",
   caReference: "fx_ca_reference",

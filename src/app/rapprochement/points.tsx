@@ -212,18 +212,27 @@ export const POINTS: Point[] = [
   {
     key: "c27",
     n: 7,
-    title: "Pennylane : un export de chaque nature, et la date de bascule",
-    stake: "conditionne la lecture des prochains mois",
+    title: "Pennylane en novembre : un export de chaque nature avant le premier envoi",
+    stake: "à recevoir avant le tableau de novembre",
     tone: "warn",
     body: (
-      <p>
-        L&apos;application lit aujourd&apos;hui la balance ventilée Cegid (une colonne par mois) et
-        la balance analytique Cegid par centre. Vous ne pourrez plus sortir de balance ventilée
-        depuis Pennylane : il faut adapter l&apos;import avant votre premier envoi dans ce format.
-        Si août ou septembre nous arrivent déjà depuis Pennylane, ce point passe devant le point 4.
-      </p>
+      <>
+        <p>
+          Vous l&apos;avez précisé le 1er octobre : Sodobat passe sur Pennylane en novembre.
+          Août, septembre et octobre nous arrivent donc encore au format Cegid, comme
+          aujourd&apos;hui : rien ne change pour la fin de l&apos;exercice, et la balance
+          générale d&apos;août peut être déposée telle quelle (point 4).
+        </p>
+        <p>
+          L&apos;application lit la balance ventilée Cegid (une colonne par mois) et la balance
+          analytique Cegid par centre. Pennylane ne sort pas de balance ventilée : l&apos;import
+          est à adapter avant votre premier envoi dans ce format, celui du tableau de novembre,
+          attendu fin décembre. Les autres entités étant déjà sur Pennylane, un export de
+          l&apos;une d&apos;elles suffit pour commencer.
+        </p>
+      </>
     ),
-    ask: "À partir de quel mois les balances sortiront-elles de Pennylane ? Envoyez-nous un export de balance générale et un de balance analytique, sur n'importe quel mois.",
+    ask: "Pouvez-vous nous envoyer dès maintenant un export Pennylane de balance générale et un de balance analytique, sur n'importe quel mois et n'importe quelle entité ?",
   },
   {
     key: "c28",
@@ -240,9 +249,13 @@ export const POINTS: Point[] = [
           amortissements, si vous le souhaitez.
         </li>
         <li>
-          <strong>Amortissements</strong> : une seule écriture cet exercice, <N>31 147 €</N> en
-          juin. L&apos;application lisse à 3 893 € par mois jusqu&apos;en juin et à 4 774 €
-          ensuite ; l&apos;écriture de clôture recalera le tout.
+          <strong>Amortissements</strong> : réglé selon votre réponse du 1er octobre. Jusqu&apos;à
+          la clôture, rien ne change : l&apos;application lisse le cumul comptabilisé
+          (<N>31 147 €</N> passés en juin, soit 3 893 € par mois jusqu&apos;en juin et 4 774 €
+          ensuite). L&apos;écriture de clôture recalera les douze mois à parts égales : les mois
+          déjà affichés bougeront de quelques centaines d&apos;euros chacun. À partir de
+          novembre, les dotations passées chaque mois dans Pennylane seront lues telles
+          quelles, sans lissage : l&apos;application est prête.
         </li>
         <li>
           <strong>Septembre et octobre</strong> : les deux dernières balances de l&apos;exercice,
@@ -283,7 +296,7 @@ export const FICHIERS = [
   {
     nom: "Un export Pennylane de balance générale et un de balance analytique",
     pourquoi:
-      "Pour adapter l'import avant votre premier envoi dans ce format. N'importe quel mois convient.",
+      "Pour adapter l'import avant le tableau de novembre, premier mois de Sodobat sur Pennylane. N'importe quel mois convient, d'une entité déjà sur Pennylane.",
     tag: "point 7",
     tone: "warn" as Tone,
   },
@@ -320,6 +333,6 @@ export const ETAPES = [
   {
     titre: "Septembre, octobre et la clôture",
     texte:
-      "Dans le format Cegid ou Pennylane selon la date de bascule (points 7 et 8).",
+      "Au format Cegid, comme aujourd'hui. Pennylane prend le relais avec le tableau de novembre (points 7 et 8).",
   },
 ];
