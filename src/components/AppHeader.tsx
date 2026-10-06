@@ -5,6 +5,7 @@ import UserMenu from "@/components/UserMenu";
 import EntityMenu from "@/components/EntityMenu";
 import { allowedEntities, getCurrentEntity, listEntities } from "@/lib/entity";
 import { NAV_TABS } from "@/components/nav-tabs";
+import { ENTITES_RAPPROCHEMENT } from "@/app/rapprochement/contenus";
 
 export default async function AppHeader({
   active,
@@ -81,7 +82,7 @@ export default async function AppHeader({
               name={session.name}
               role={session.role}
               showAdminLinks={writer}
-              showRapprochement={entity?.code === "sodobat"}
+              showRapprochement={!!entity && ENTITES_RAPPROCHEMENT.has(entity.code)}
             />
           )}
         </div>
