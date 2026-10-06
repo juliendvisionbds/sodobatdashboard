@@ -551,22 +551,20 @@ const syntheseMemo = cache(async function syntheseMemo(
     prevVec[TOTAL_COLUMN] = total(prevVec);
     if (ventes) ventes[TOTAL_COLUMN] = total(ventes);
   } else if (prevVec) {
+    // Lecture par chantier du compte de prévision (voir provisionsLues), tous
+    // centres confondus : la somme des deux lignes reste le net de la ventilée.
     const upTo = opts.period && opts.period < imp.period ? opts.period : undefined;
-    const annual = await annualImportIds(entity.id);
-    const mensuels = [...(await analytiqueImportsOfYear(entity.id, imp.fiscalYearStart, upTo))].filter(
-      ([, id]) => !annual.has(id)
-    );
-    for (const [month, importId] of mensuels) {
-      if (!months.includes(month)) continue;
-      let debit = 0;
-      let credit = 0;
-      for (const l of await analyticLinesOf(importId)) {
-        if (l.account !== provisions.compte) continue;
-        debit += num(l.debit);
-        credit += num(l.credit);
+    const lues = await provisionsLues(entity.id, imp.fiscalYearStart, provisions.compte);
+    for (const [month, parCentre] of lues) {
+      if (!months.includes(month) || (upTo && month > upTo)) continue;
+      let prevision = 0;
+      let annulation = 0;
+      for (const p of parCentre.values()) {
+        prevision += p.prevision;
+        annulation += p.annulation;
       }
-      annulationVec[month] = round2(-debit);
-      prevVec[month] = round2(credit);
+      annulationVec[month] = round2(annulation);
+      prevVec[month] = round2(prevision);
     }
     annulationVec[TOTAL_COLUMN] = round2(months.reduce((t, m) => t + (annulationVec[m] as number), 0));
     prevVec[TOTAL_COLUMN] = round2(months.reduce((t, m) => t + ((prevVec[m] as number) ?? 0), 0));
@@ -895,21 +893,71 @@ const previsionsSaisiesTotales = cache(async function previsionsSaisiesTotales(
   return out;
 });
 
-/** Crédit du compte de prévision (prévision du mois) par chantier, dans la balance du mois. */
+// ── Lecture du compte de prévision (71331000 chez Sodobat) ──────────────────
+// La prévision d'un mois est la provision encore en cours à la fin du mois,
+// soit le solde créditeur du compte pour le chantier depuis l'ouverture de
+// l'exercice ; l'annulation du mois est la prévision du mois précédent, de signe
+// opposé (convention de la DAF, réponse du 5 octobre 2026). Dans le cas courant
+// — reprise intégrale de M-1 au débit, nouvelle prévision au crédit — c'est
+// exactement le débit et le crédit du mois. Quand la reprise diffère de la
+// prévision qu'elle reprend (994E en mai 2026 : 64 500 repris pour 43 000
+// prévus), l'écart est lu comme une prévision négative, que le mois suivant
+// reprend à son tour : chaque montant reste sur sa ligne, le net du compte est
+// inchangé.
+// Au premier mois importé de l'exercice, la prévision d'octobre n'est pas
+// connue : le débit est pris pour la reprise, le crédit pour la prévision.
+// Un chantier sans écriture sur le compte dans le mois ne montre rien : sa
+// provision reste simplement en cours, reprise le mois où l'on y touche.
+
+type ProvisionLue = { label: string; prevision: number; annulation: number };
+
+const provisionsLues = cache(async function provisionsLues(
+  entityId: number,
+  fiscalYearStart: number,
+  compte: string
+): Promise<Map<string, Map<string, ProvisionLue>>> {
+  const annual = await annualImportIds(entityId);
+  const mensuels = [...(await analytiqueImportsOfYear(entityId, fiscalYearStart))]
+    .filter(([, id]) => !annual.has(id))
+    .sort(([a], [b]) => a.localeCompare(b));
+  const out = new Map<string, Map<string, ProvisionLue>>();
+  // Provision en cours par chantier, à la fin du mois précédent.
+  const enCours = new Map<string, number>();
+  const labels = new Map<string, string>();
+  let premier = true;
+  for (const [month, importId] of mensuels) {
+    const mouvements = new Map<string, { debit: number; credit: number }>();
+    for (const l of await analyticLinesOf(importId)) {
+      if (l.account !== compte) continue;
+      const m = mouvements.get(l.centreCode) ?? { debit: 0, credit: 0 };
+      m.debit += num(l.debit);
+      m.credit += num(l.credit);
+      mouvements.set(l.centreCode, m);
+      if (!labels.has(l.centreCode)) labels.set(l.centreCode, l.centreLabel);
+    }
+    const lu = new Map<string, ProvisionLue>();
+    for (const [centre, m] of mouvements) {
+      if (!round2(m.debit) && !round2(m.credit)) continue;
+      const avant = premier ? m.debit : (enCours.get(centre) ?? 0);
+      const prevision = round2(avant + m.credit - m.debit);
+      lu.set(centre, { label: labels.get(centre) ?? centre, prevision, annulation: round2(-avant) });
+      enCours.set(centre, prevision);
+    }
+    out.set(month, lu);
+    premier = false;
+  }
+  return out;
+});
+
+/** Prévision et annulation lues en comptabilité, par chantier, pour le mois d'un import. */
 async function previsionsComptabilisees(
-  importId: number,
+  imp: { entityId: number; fiscalYearStart: number; period: string },
   kindOf: (code: string) => CentreKind,
   compte: string
-) {
-  const out = new Map<string, { label: string; credit: number }>();
-  for (const l of await analyticLinesOf(importId)) {
-    if (l.account !== compte || kindOf(l.centreCode) !== "chantier") continue;
-    const prev = out.get(l.centreCode);
-    out.set(l.centreCode, {
-      label: prev?.label ?? l.centreLabel,
-      credit: round2((prev?.credit ?? 0) + num(l.credit)),
-    });
-  }
+): Promise<Map<string, ProvisionLue>> {
+  const lu = (await provisionsLues(imp.entityId, imp.fiscalYearStart, compte)).get(imp.period);
+  const out = new Map<string, ProvisionLue>();
+  for (const [centre, p] of lu ?? []) if (kindOf(centre) === "chantier") out.set(centre, p);
   return out;
 }
 
@@ -934,11 +982,13 @@ const previsionsSaisiesParMois = cache(async function previsionsSaisiesParMois(
   let total = 0;
   for (const month of new Set(saisies.map((s) => s.period))) {
     const imp = await latestValidatedImport(entityId, "analytique", { atPeriod: month });
-    const compta = imp ? await previsionsComptabilisees(imp.id, kindOf, compte) : new Map();
+    const compta = imp
+      ? await previsionsComptabilisees(imp, kindOf, compte)
+      : new Map<string, ProvisionLue>();
     let ecart = 0;
     for (const s of saisies) {
       if (s.period !== month || !s.centreCode || s.valueNum == null) continue;
-      ecart += num(s.valueNum) - (compta.get(s.centreCode)?.credit ?? 0);
+      ecart += num(s.valueNum) - (compta.get(s.centreCode)?.prevision ?? 0);
     }
     vec[month] = round2(ecart);
     total += ecart;
@@ -1015,8 +1065,8 @@ export async function getPrevisionControl(entity: Entity, period: string): Promi
   // il n'y a rien à lui comparer, la saisie est la référence.
   const compta =
     imp && provisions.mode === "compte"
-      ? await previsionsComptabilisees(imp.id, kindOf, provisions.compte)
-      : new Map<string, { label: string; credit: number }>();
+      ? await previsionsComptabilisees(imp, kindOf, provisions.compte)
+      : new Map<string, ProvisionLue>();
   const referentiel = await db
     .select({ code: tables.centres.code, name: tables.centres.name })
     .from(tables.centres)
@@ -1028,7 +1078,7 @@ export async function getPrevisionControl(entity: Entity, period: string): Promi
     if (!s.centreCode || s.valueNum == null) continue;
     const c = compta.get(s.centreCode);
     const saisie = num(s.valueNum);
-    const comptabilisee = provisions.mode === "saisie" ? saisie : (c?.credit ?? 0);
+    const comptabilisee = provisions.mode === "saisie" ? saisie : (c?.prevision ?? 0);
     rows.push({
       centreCode: s.centreCode,
       centreLabel: c?.label ?? names.get(s.centreCode) ?? s.centreCode,
@@ -1052,7 +1102,7 @@ export async function getPrevisionControl(entity: Entity, period: string): Promi
     ventileeCovers,
     ventileeEmpreinte: ventileeCovers ? await empreinteVentilee(ventilee!.id, period) : null,
     rows,
-    totalComptabilise: round2([...compta.values()].reduce((t, c) => t + c.credit, 0)),
+    totalComptabilise: round2([...compta.values()].reduce((t, c) => t + c.prevision, 0)),
     totalSaisi: round2(rows.reduce((t, r) => t + r.saisie, 0)),
     ecart,
     resultatComptable,
@@ -1115,9 +1165,10 @@ export async function getMonthValidation(
 // classe 6 et 7 recoupent, au centime, la colonne du même mois de la balance
 // ventilée. Le mois affiché se lit donc directement dans son fichier, sans
 // différence avec le mois précédent.
-// Sur le compte de travaux en cours (71331000), le débit du mois est la reprise
-// de la provision de M-1 et le crédit la provision de M : ce sont les colonnes
-// « Annulation Mois-1 » et « Prévision Mois » du tableau de gestion de la DAF.
+// Sur le compte de travaux en cours (71331000), la prévision du mois est la
+// provision en cours à la fin du mois et l'annulation celle du mois précédent
+// (voir provisionsLues) : ce sont les colonnes « Annulation Mois-1 » et
+// « Prévision Mois » du tableau de gestion de la DAF.
 // Les quatre lignes « cumuls sur la durée de vie du chantier » additionnent tous
 // les mois importés, sans se borner à l'exercice.
 
@@ -1169,7 +1220,9 @@ type FoldResult = {
 /**
  * Mouvements d'une balance analytique, par centre chantier × catégorie (signe
  * d'affichage appliqué). Le compte de travaux en cours est scindé : son crédit
- * alimente la provision du mois, son débit l'annulation de la provision M-1.
+ * alimente la provision du mois, son débit l'annulation de la provision M-1 —
+ * lecture brute, que getChantiers affine pour le mois affiché (provisionsLues) ;
+ * en cumul, seule leur somme compte.
  */
 function foldSnapshot(
   lines: {
@@ -1283,6 +1336,17 @@ export async function getChantiers(
 
   const currentFold = foldSnapshot(currentLines, mapper, kindOf);
   const currentMonth = currentFold.byCentre;
+  // Prévision et annulation du mois lues sur l'exercice, chantier par chantier
+  // (voir provisionsLues) : elles remplacent le crédit et le débit bruts du mois.
+  const lecture = entiteConfig(entity.code).provisions;
+  if (lecture.mode === "compte") {
+    for (const [centre, p] of await previsionsComptabilisees(imp, kindOf, lecture.compte)) {
+      const byCat = currentMonth.get(centre) ?? new Map<string, number>();
+      byCat.set(CHANTIER_CODES.provision, p.prevision);
+      byCat.set(CHANTIER_CODES.annulation, p.annulation);
+      currentMonth.set(centre, byCat);
+    }
+  }
   // Reports : tout ce qui a été importé avant le mois affiché.
   const [lifeBefore, lifeNow] = await Promise.all([
     lifetimeCumul(entity, { period: imp.period, inclusive: false }, mapper, kindOf),

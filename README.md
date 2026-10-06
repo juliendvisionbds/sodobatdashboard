@@ -54,7 +54,9 @@ Ce qu'une entité a en propre est déclaré dans `src/lib/nomenclature/entites.t
   commune : « c'est le code de Sodobat qui prévaut » ;
 - **libellés** qui diffèrent ;
 - **prévisions de travaux** : `compte` (Sodobat, la balance analytique porte la
-  prévision par chantier sur le 71331000) ou `saisie` (CovarBat, le cabinet ne
+  prévision par chantier sur le 71331000 : la prévision du mois est la provision
+  en cours à la fin du mois, l'annulation celle du mois précédent de signe
+  opposé, convention de la DAF) ou `saisie` (CovarBat, le cabinet ne
   la ventile pas : la prévision saisie dans l'application fait foi, l'annulation
   d'un mois est la prévision du mois précédent, et le reste du compte 70400000
   est du chiffre d'affaires).

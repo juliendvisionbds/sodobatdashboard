@@ -11,16 +11,13 @@ import {
 } from "@/lib/finance";
 import { fiscalMonths } from "@/lib/parsers";
 import { fmtNum, monthLabelLong } from "@/lib/format";
-import { getSession, canWrite } from "@/lib/auth";
-import DecisionBox from "./DecisionBox";
-import { ETAPES, FICHIERS, POINTS } from "./points";
+import { POINTS_CLOS, SUITE } from "./points";
 import { getCurrentEntity } from "@/lib/entity";
 
-// Écran « Rapprochement » : ce qu'il reste à recevoir de la DAF pour que les
-// tableaux de gestion soient ceux de la comptabilité. L'état mois par mois est
-// lu en base à chaque affichage ; les points et les fichiers attendus sont du
-// contenu rédigé (points.tsx). Les réponses sont enregistrées en base —
-// partagées, pas conservées dans le navigateur.
+// Écran « Rapprochement » : où en est l'exercice, et ce qui a été fait des
+// réponses de la DAF. L'état mois par mois est lu en base à chaque affichage ;
+// les points clos sont du contenu rédigé (points.tsx), accompagnés de la
+// réponse enregistrée en base le 5 octobre 2026.
 
 export const dynamic = "force-dynamic";
 
@@ -37,15 +34,11 @@ export default async function RapprochementPage() {
   // Les points de ce rapprochement sont ceux du tableau de gestion de Sodobat.
   if (entity.code !== "sodobat") redirect("/");
 
-  const session = await getSession();
-  const writer = session ? canWrite(session) : false;
-
   const rows = await db
     .select()
     .from(tables.rapprochementDecisions)
     .where(eq(tables.rapprochementDecisions.entityId, entity.id));
   const decisions = new Map(rows.map((r) => [r.pointKey, r]));
-  const repondus = POINTS.filter((p) => (decisions.get(p.key)?.answer ?? "").trim()).length;
 
   // ── État de chaque mois de l'exercice, lu en base ──────────────────────────
   const exercice = new Set(fiscalMonths(FISCAL_YEAR_START));
@@ -84,15 +77,12 @@ export default async function RapprochementPage() {
         <div className="page-header">
           <h1>Rapprochement</h1>
           <p>
-            Ce document est le vôtre. Il repart de zéro : les quinze points du premier échange
-            sont clos et appliqués, vos réponses sont conservées. Il ne reste ici que ce qui
-            sépare encore l&apos;application de tableaux de gestion identiques à la comptabilité :
-            l&apos;état de chaque mois (partie A), les huit points et ce qu&apos;il en reste
-            (partie B), les fichiers attendus (partie C) et l&apos;ordre dans lequel les traiter
-            (partie D). Vos balances rééditées de novembre à juin sont en place depuis le
-            1er octobre.
-            Sous chaque point, une zone « Votre réponse » est à votre disposition ; chaque
-            réponse est enregistrée aussitôt et reste lisible de tous.
+            Ce document est le vôtre. Les huit points du 1er octobre sont clos avec vos réponses
+            du 5 octobre, et vos trois balances rééditées sont en place depuis le 6 octobre : de
+            novembre à juin, les tableaux de gestion de l&apos;application sont ceux de la
+            comptabilité. Il reste ici l&apos;état de chaque mois (partie A), lu en base à chaque
+            affichage, ce qui a été fait de chacune de vos réponses (partie B) et la suite du
+            calendrier (partie C). Il n&apos;y a plus de question en attente.
           </p>
         </div>
 
@@ -119,15 +109,7 @@ export default async function RapprochementPage() {
             </div>
             <div className="doc-state-cell">
               <span className={`doc-state-value${sansLigneFx ? " warn" : ""}`}>{sansLigneFx}</span>
-              <span className="doc-state-label">
-                Compte sans ligne dans les Frais généraux (point 1)
-              </span>
-            </div>
-            <div className="doc-state-cell">
-              <span className={`doc-state-value${repondus === POINTS.length ? "" : " warn"}`}>
-                {repondus} / {POINTS.length}
-              </span>
-              <span className="doc-state-label">Points auxquels vous avez répondu</span>
+              <span className="doc-state-label">Compte sans ligne dans les Frais généraux</span>
             </div>
           </div>
 
@@ -138,7 +120,7 @@ export default async function RapprochementPage() {
               <h2>Où en est chaque mois</h2>
               <p>
                 Ce tableau est lu dans la base à chaque affichage : il avance de lui-même à mesure
-                que vous déposez des balances et validez des mois.
+                que vous déposez des balances et que les mois sont validés.
               </p>
             </div>
 
@@ -173,11 +155,10 @@ export default async function RapprochementPage() {
                 </table>
               </div>
               <p className="doc-note">
-                « Prévisions comptabilisées » : le crédit du compte 713 porté par les chantiers
-                dans la balance analytique du mois. En juin, il comprend les 32 250 € de 994E,
-                que personne n&apos;a saisis (point 2). En juillet et en août, aucune écriture de
-                713 n&apos;est passée (points 3 et 4) : un écart nul sur ces deux mois ne dit donc
-                pas qu&apos;ils sont prêts.
+                « Prévisions comptabilisées » : la provision en cours à la fin du mois, lue
+                chantier par chantier sur le compte 713 (point 2). En juillet et en août, aucune
+                écriture de 713 n&apos;est encore passée : un écart nul sur ces deux mois ne dit
+                donc pas qu&apos;ils sont prêts.
               </p>
             </div>
 
@@ -186,13 +167,12 @@ export default async function RapprochementPage() {
               <ul>
                 <li>
                   De novembre à juin, chaque balance analytique recoupe la balance générale du
-                  même mois au centime, sur les classes 6 et 7. Seule exception : 1 283,34 € de
-                  produits en mars (point 1).
+                  même mois au centime, sur les classes 6 et 7, sans exception.
                 </li>
                 <li>
-                  Tous les comptes ont une ligne d&apos;accueil dans la Synthèse et dans la vue
-                  Chantiers ; la vue Chantiers ne perd aucun solde, quel que soit le mois. Le
-                  management NJW est à 115 700 € tous les mois.
+                  Tous les comptes ont une ligne d&apos;accueil dans la Synthèse, dans la vue
+                  Chantiers et dans les Frais généraux ; la vue Chantiers ne perd aucun solde,
+                  quel que soit le mois. Le management NJW est à 115 700 € tous les mois.
                 </li>
                 <li>
                   De novembre à juin, les prévisions sont comptabilisées chantier par chantier ;
@@ -201,79 +181,69 @@ export default async function RapprochementPage() {
                 <li>
                   Les conventions arrêtées avec vous sont en place : base comptable, DEPOT et SAV
                   en chantier, cumuls avec leur part de prévisions, amortissements lissés,
-                  Synthèse comptable avec son résultat de gestion.
+                  assurances telles qu&apos;en comptabilité, Synthèse comptable avec son résultat
+                  de gestion.
                 </li>
               </ul>
             </div>
           </section>
 
-          {/* ── B · les points à conclure ──────────────────────────────────── */}
+          {/* ── B · les points clos ────────────────────────────────────────── */}
           <section className="doc-part">
             <div className="doc-part-head">
               <span className="doc-part-tag">Partie B</span>
-              <h2>Les huit points, et ce qu&apos;il en reste</h2>
+              <h2>Vos réponses, et ce qui en est fait</h2>
               <p>
-                En rouge, ce qui empêche de valider un mois ; en orange, ce qui suit ou se
-                prépare ; en vert, ce qui est réglé. Constats relevés le 1er octobre 2026, après
-                l&apos;import de vos balances rééditées.
+                Les huit points du 1er octobre, avec votre réponse du 5 octobre telle que vous
+                l&apos;avez écrite, et ce que l&apos;application en a fait le 6.
               </p>
             </div>
             <div className="doc-points">
-              {POINTS.map((p) => {
+              {POINTS_CLOS.map((p) => {
                 const d = decisions.get(p.key);
+                const reponse = (d?.answer ?? "").trim();
                 return (
-                  <article key={p.key} className={`doc-q doc-q--${p.tone}`}>
+                  <article key={p.key} className="doc-q doc-q--ok">
                     <div className="doc-q-top">
                       <h3>
                         {p.n}. {p.title}
                       </h3>
-                      <span className="doc-stake">{p.stake}</span>
+                      <span className="doc-stake">clos le 6 octobre 2026</span>
                     </div>
-                    {p.body}
-                    <p className="doc-ask">{p.ask}</p>
-                    <DecisionBox
-                      pointKey={p.key}
-                      initial={d?.answer ?? ""}
-                      updatedBy={d?.updatedBy ?? null}
-                      updatedAt={d ? dateFr(new Date(d.updatedAt)) : null}
-                      canEdit={writer}
-                    />
+                    <div className="doc-decision">
+                      <span className="doc-decision-label">Votre réponse</span>
+                      {reponse ? (
+                        <p className="doc-decision-read">{reponse}</p>
+                      ) : (
+                        <p className="doc-decision-read muted">{p.sansReponse ?? "Pas de réponse."}</p>
+                      )}
+                      {d && reponse && (
+                        <p className="doc-note">
+                          Le {dateFr(new Date(d.updatedAt))}
+                          {d.updatedBy ? `, ${d.updatedBy}` : ""}.
+                        </p>
+                      )}
+                    </div>
+                    <p className="doc-ask">Ce qui en est fait</p>
+                    {p.suite}
                   </article>
                 );
               })}
             </div>
           </section>
 
-          {/* ── C · fichiers attendus ──────────────────────────────────────── */}
+          {/* ── C · la suite ───────────────────────────────────────────────── */}
           <section className="doc-part">
             <div className="doc-part-head">
               <span className="doc-part-tag">Partie C</span>
-              <h2>Les fichiers que nous attendons</h2>
-              <p>Vous les déposez vous-même depuis l&apos;écran Imports.</p>
-            </div>
-            <div className="doc-files">
-              {FICHIERS.map((f) => (
-                <div key={f.nom} className={`doc-file doc-file--${f.tone}`}>
-                  <h3>{f.nom}</h3>
-                  <p>{f.pourquoi}</p>
-                  <span className="doc-file-tag">{f.tag}</span>
-                </div>
-              ))}
-            </div>
-          </section>
-
-          {/* ── D · l'ordre ────────────────────────────────────────────────── */}
-          <section className="doc-part">
-            <div className="doc-part-head">
-              <span className="doc-part-tag">Partie D</span>
-              <h2>Dans quel ordre</h2>
+              <h2>La suite</h2>
               <p>
-                Un mois réimporté est à revalider : les corrections passent donc avant les
-                validations, et les mois se concluent dans l&apos;ordre.
+                Le circuit mensuel, sans autre échange que vos dépôts : l&apos;application signale
+                d&apos;elle-même ce qui manque, dans la partie A et dans les alertes.
               </p>
             </div>
             <div className="doc-steps">
-              {ETAPES.map((e, i) => (
+              {SUITE.map((e, i) => (
                 <article key={e.titre} className="doc-step">
                   <div className="doc-step-num">{String(i + 1).padStart(2, "0")}</div>
                   <div>
@@ -286,9 +256,8 @@ export default async function RapprochementPage() {
           </section>
 
           <p className="doc-foot">
-            L&apos;état mois par mois est lu sur la base de l&apos;application. Les constats des
-            points datent du 1er octobre 2026. Montants en euros.
-            {!writer && " Les réponses sont en lecture seule avec votre profil."}
+            L&apos;état mois par mois est lu sur la base de l&apos;application. Les points sont
+            clos au 6 octobre 2026. Montants en euros.
           </p>
         </div>
       </div>

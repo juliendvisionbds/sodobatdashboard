@@ -2,6 +2,10 @@
   "version": "0.0.1",
   "configurations": [
     {
+      "name": "dashboard-running",
+      "url": "http://localhost:3000"
+    },
+    {
       "name": "dashboard-dev",
       "runtimeExecutable": "npm",
       "runtimeArgs": [

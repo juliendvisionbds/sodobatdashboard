@@ -1023,9 +1023,9 @@ export const chantier: NomenclatureLine[] = [
     label: "Autres produits chantier (indemnités, différences de règlement)",
     kind: "poste",
     sign: -1,
-    accounts: ["75800000", "75870000"],
+    accounts: ["75800000", "75870000", "79150000"],
     notes:
-      "Codes ZW — indemnités d'assurance et produits divers imputés à un chantier : hors CA HT total, dans le résultat (réponse de la DAF au point 9, 25 septembre 2026)",
+      "Codes ZW — indemnités d'assurance, remboursements de sinistre et produits divers imputés à un chantier : hors CA HT total, dans le résultat (réponses de la DAF des 25 septembre et 5 octobre 2026 ; 79150000 affecté au chantier 766D en mars 2026)",
   },
   {
     code: "cha_achats_mp",
@@ -1815,7 +1815,10 @@ export const fx: NomenclatureLine[] = [
         { code: "fx_entretien", sign: 1 },
         { code: "fx_credit_bail", sign: 1 },
         { code: "fx_assurances", sign: 1 },
-        { code: "fx_exception", sign: 1 },
+        // Indemnités d'assurance : un produit, affiché positif sur sa ligne,
+        // qui vient en déduction du total (réponse de la DAF : ne pas le
+        // déduire de la ligne Assurances, d'où une ligne à part).
+        { code: "fx_exception", sign: -1 },
         { code: "fx_sponsoring", sign: 1 },
         { code: "fx_telecom", sign: 1 },
         { code: "fx_cotisations", sign: 1 },
