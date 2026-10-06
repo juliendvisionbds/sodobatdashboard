@@ -26,6 +26,7 @@ import {
   truncateAfter,
 } from "@/lib/assistant-conversations";
 import { getCurrentEntity } from "@/lib/entity";
+import { debutExercice } from "@/lib/nomenclature/entites";
 
 export const maxDuration = 60;
 
@@ -127,7 +128,7 @@ export async function POST(req: Request) {
   const started = Date.now();
   const result = streamText({
     model: openai.chat(ASSISTANT_MODEL),
-    system: assistantSystemPrompt(entity.name),
+    system: assistantSystemPrompt(entity.name, new Date(), debutExercice(entity.code)),
     providerOptions: ASSISTANT_PROVIDER_OPTIONS,
     // Une réponse arrêtée par l'utilisateur pendant la lecture d'un outil laisse
     // un appel sans résultat : on l'ignore pour que la question suivante passe.

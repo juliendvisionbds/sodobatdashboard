@@ -4,6 +4,7 @@
 //   npm run init:reports -- "<TABLEAU GESTION.xlsx>" --apply    → écrit en base
 //   npm run init:reports -- "<TABLEAU GESTION.xlsx>" --sheet "TG 11-12 2025"
 //   npm run init:reports -- "<Tableau gestion CVB.xlsx>" --entite covarbat [--apply]
+//   npm run init:reports -- "<2026 06_TG VBTP.xlsx>" --entite vbtp [--apply]
 //
 // Préfixer par DOTENV_CONFIG_PATH=.env.local pour viser la production.
 //
@@ -16,8 +17,9 @@
 //
 // Deux dispositions de tableau :
 //   · Sodobat : un chantier par ligne, les reports en colonnes (onglet « TG MM AAAA ») ;
-//   · CovarBat : un chantier par colonne, les reports sur deux lignes de l'onglet
-//     du premier mois (« COVARBAT 30 11 25 »), celui de la plus ancienne période.
+//   · CovarBat et VBTP : un chantier par colonne, les reports sur deux lignes de
+//     l'onglet du premier mois (« COVARBAT 30 11 25 », « VBTP 01 2026 »), celui
+//     de la plus ancienne période.
 //
 // Relançable : chaque exécution remplace les reports d'ouverture existants de
 // l'entité. N'écrit que dans manual_entries — ni imports, ni balances, ni
@@ -75,12 +77,15 @@ function lireLignes(wb: XLSX.WorkBook, sheet: string): Lecture {
   return { sheet, period: openingPeriod(sheet), reports };
 }
 
-/** « COVARBAT 30 11 25 » ou « COVARBAT 31 07 2026 » → « 2025-11-01 ». */
+/** « COVARBAT 30 11 25 », « COVARBAT 31 07 2026 » ou « VBTP 01 2026 » → « 2025-11-01 », « 2026-01-01 ». */
 function periodOfSheet(name: string): string | null {
   const m = /(\d{2})\s+(\d{2})\s+(\d{2}|\d{4})\s*$/.exec(name.trim());
-  if (!m) return null;
-  const year = m[3].length === 2 ? `20${m[3]}` : m[3];
-  return `${year}-${m[2]}-01`;
+  if (m) {
+    const year = m[3].length === 2 ? `20${m[3]}` : m[3];
+    return `${year}-${m[2]}-01`;
+  }
+  const mm = /(\d{2})\s+(\d{4})\s*$/.exec(name.trim());
+  return mm ? `${mm[2]}-${mm[1]}-01` : null;
 }
 
 /** Disposition CovarBat : un chantier par colonne, les reports sur deux lignes. */
@@ -98,7 +103,9 @@ function lireColonnes(wb: XLSX.WorkBook, sheetArg?: string): Lecture {
   // Les colonnes de chantiers s'arrêtent là où commence le tableau croisé de
   // travail laissé à droite de l'onglet.
   const fin = codes.findIndex((c) => typeof c === "string" && /tiquettes/i.test(c));
-  const ligne = (re: RegExp) => g.findIndex((r) => re.test(String(r?.[0] ?? "").trim()));
+  // L'intitulé des lignes est en colonne A (CovarBat) ou B (VBTP).
+  const ligne = (re: RegExp) =>
+    g.findIndex((r) => re.test(String(r?.[0] ?? "").trim()) || re.test(String(r?.[1] ?? "").trim()));
   const rResultat = ligne(/^Report Cumul R[ée]sultat/i);
   const rFacturation = ligne(/^Report Cumul facturation/i);
   if (rResultat < 0 || rFacturation < 0)

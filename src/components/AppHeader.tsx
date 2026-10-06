@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getSession, canWrite } from "@/lib/auth";
 import { fiscalYearLabel } from "@/lib/format";
+import { debutExercice } from "@/lib/nomenclature/entites";
 import UserMenu from "@/components/UserMenu";
 import EntityMenu from "@/components/EntityMenu";
 import { allowedEntities, getCurrentEntity, listEntities } from "@/lib/entity";
@@ -75,7 +76,9 @@ export default async function AppHeader({
         </nav>
         <div className="header-right">
           {fiscalYearStart != null && (
-            <span className="header-meta">Exercice {fiscalYearLabel(fiscalYearStart)}</span>
+            <span className="header-meta">
+              Exercice {fiscalYearLabel(fiscalYearStart, entity ? debutExercice(entity.code) : undefined)}
+            </span>
           )}
           {session && (
             <UserMenu

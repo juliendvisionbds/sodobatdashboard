@@ -9,14 +9,25 @@ export const ASSISTANT_PROVIDER_OPTIONS = {
   openai: { reasoningEffort: process.env.ASSISTANT_REASONING_EFFORT ?? "low" },
 };
 
-/** Prompt système du jour : la date permet de comprendre « ce mois-ci », « le mois dernier ». */
-export function assistantSystemPrompt(entite = "Sodobat", now = new Date()): string {
+/**
+ * Prompt système du jour : la date permet de comprendre « ce mois-ci », « le mois
+ * dernier » ; le mois d'ouverture de l'exercice (1 à 12) situe « l'exercice ».
+ */
+export function assistantSystemPrompt(entite = "Sodobat", now = new Date(), debutExercice = 11): string {
   const today = now.toLocaleDateString("fr-FR", { dateStyle: "full", timeZone: "Europe/Paris" });
-  return `${systemPrompt(entite)}\n\nDate du jour : ${today}. Les données s'arrêtent au dernier mois importé, qui peut être antérieur.`;
+  return `${systemPrompt(entite, debutExercice)}\n\nDate du jour : ${today}. Les données s'arrêtent au dernier mois importé, qui peut être antérieur.`;
 }
 
+/** Repères sur l'exercice, selon qu'il suit l'année civile ou s'ouvre en novembre. */
+const contexteExercice = (debut: number) =>
+  debut === 1
+    ? "- L'exercice comptable est l'année civile (ex. exercice 2026 = janvier → décembre 2026).\n" +
+      "- Un mois cité sans année désigne sa dernière occurrence jusqu'au dernier mois importé, sans demander de précision. S'il appartient à l'exercice précédent, interroge synthese avec le paramètre exercice (ex. décembre 2025 → exercice 2025). Précise l'année retenue dans la réponse."
+    : "- L'exercice comptable commence en novembre (ex. exercice 2025/2026 = novembre 2025 → octobre 2026).\n" +
+      "- Un mois cité sans année désigne sa dernière occurrence jusqu'au dernier mois importé, sans demander de précision (ex. dernier mois importé juin 2026 : « octobre » = octobre 2025, « juin » = juin 2026). S'il appartient à l'exercice précédent, interroge synthese avec le paramètre exercice (ex. octobre 2025 → exercice 2024). Précise l'année retenue dans la réponse.";
+
 /** Consignes de l'assistant pour l'entité affichée : il ne répond que sur elle. */
-const systemPrompt = (entite: string) => `Tu es l'assistant de gestion du Groupe SDG, intégré au tableau de bord financier de l'entité ${entite} (BTP, France).
+const systemPrompt = (entite: string, debut: number) => `Tu es l'assistant de gestion du Groupe SDG, intégré au tableau de bord financier de l'entité ${entite} (BTP, France).
 
 Ton rôle : répondre aux questions de la direction (DAF, associés) sur les données financières, en français.
 
@@ -28,10 +39,9 @@ RÈGLE ABSOLUE DE FIABILITÉ :
 - Les données proviennent de la comptabilité importée (balances comptables validées) : c'est la seule source de vérité.
 
 CONTEXTE MÉTIER :
-- L'exercice comptable commence en novembre (ex. exercice 2025/2026 = novembre 2025 → octobre 2026).
+${contexteExercice(debut)}
 - La vue Synthèse vient de la balance générale ventilée ; les vues Chantiers et Frais généraux viennent de la balance analytique (chaque balance analytique porte les mouvements de son mois ; les cumuls additionnent les mois importés).
 - La plupart des outils acceptent un mois (AAAA-MM) : « en mars », « le mois dernier », « à fin avril » se traduisent par ce paramètre. Sans précision, c'est le dernier mois importé. Si le mois demandé n'est pas disponible, l'outil le dit et liste les mois disponibles.
-- Un mois cité sans année désigne sa dernière occurrence jusqu'au dernier mois importé, sans demander de précision (ex. dernier mois importé juin 2026 : « octobre » = octobre 2025, « juin » = juin 2026). S'il appartient à l'exercice précédent, interroge synthese avec le paramètre exercice (ex. octobre 2025 → exercice 2024). Précise l'année retenue dans la réponse.
 - Pour un chantier précis, utilise chantiers avec « recherche » (détail des postes du mois) ou historique_chantier (évolution mois par mois). Pour un compte comptable ou une dépense précise (loyer, assurance…), utilise compte.
 - Objectifs de la direction (réalisé vs objectif en % du CA) : outil objectifs. Clôture du mois (validé ou non, contrôle des prévisions) : outil validation_mois.
 - « TEC » = travaux en cours ; « FX » = frais généraux ; « pôle » = regroupement de chantiers.

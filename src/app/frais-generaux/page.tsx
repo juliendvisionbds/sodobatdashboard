@@ -1,7 +1,6 @@
 import Link from "next/link";
 import AppHeader from "@/components/AppHeader";
 import { getFx, getFxMensuel, listAnalytiquePeriods } from "@/lib/views";
-import { fiscalYearOf } from "@/lib/parsers";
 import { fmtEurAuto, fmtPct, monthLabelLong, splitAutoEur } from "@/lib/format";
 import MonthSelect from "@/components/MonthSelect";
 import FxTable from "./FxTable";
@@ -55,7 +54,7 @@ export default async function FxPage({
 
   return (
     <>
-      <AppHeader active="fx" fiscalYearStart={fiscalYearOf(data.period)} />
+      <AppHeader active="fx" fiscalYearStart={data.fiscalYearStart} />
       <div className="page">
         <div className="page-header">
           <div className="page-header-row">

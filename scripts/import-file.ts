@@ -29,6 +29,8 @@ import { getEntityByCode } from "../src/lib/finance";
 import { createImportPreview, validateImport } from "../src/lib/import-service";
 import { describeTarget, requireEnvTarget } from "../src/lib/env-target";
 import { periodFromFileName } from "../src/lib/parsers";
+import { fiscalYearLabel } from "../src/lib/format";
+import { debutExercice } from "../src/lib/nomenclature/entites";
 
 const arg = (name: string) => {
   const i = process.argv.indexOf(name);
@@ -72,10 +74,11 @@ async function main() {
     allowOlder,
   });
 
+  const exercice = fiscalYearLabel(summary.fiscalYearStart, debutExercice(entity.code));
   const nature =
     summary.type === "ventilee"
-      ? `ventilée · exercice ${summary.fiscalYearStart}/${summary.fiscalYearStart + 1} · jusqu'à ${summary.period.slice(0, 7)}`
-      : `analytique · ${summary.cumulMois ? `cumul de ${summary.cumulMois} mois, arrêté à ${summary.period.slice(0, 7)}` : summary.annual ? `exercice ${summary.fiscalYearStart}/${summary.fiscalYearStart + 1} entier` : `snapshot ${summary.period.slice(0, 7)}`} · ${summary.centreCount} centres`;
+      ? `ventilée · exercice ${exercice} · jusqu'à ${summary.period.slice(0, 7)}`
+      : `analytique · ${summary.cumulMois ? `cumul de ${summary.cumulMois} mois, arrêté à ${summary.period.slice(0, 7)}` : summary.annual ? `exercice ${exercice} entier` : `snapshot ${summary.period.slice(0, 7)}`} · ${summary.centreCount} centres`;
   console.log(`Nature  : ${nature} · ${summary.lineCount} lignes`);
   if (summary.replaces)
     console.log(`Remplace : ${summary.replaces.fileName} (${summary.replaces.period.slice(0, 7)})`);

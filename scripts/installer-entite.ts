@@ -2,6 +2,8 @@
 //
 //   npm run entite:installer -- covarbat             → rapport seul, rien n'est écrit
 //   npm run entite:installer -- covarbat --apply     → écrit en base
+//   npm run entite:installer -- vbtp --apply
+//   npm run entite:installer -- easymat --apply
 //
 // Préfixer par DOTENV_CONFIG_PATH=.env.local pour viser la production.
 //
@@ -69,7 +71,8 @@ async function main() {
       console.log(
         `  ! ${c.account} : déjà affecté à ${c.existing} par ${c.by ?? "?"}, règle gardée (le code prévoyait ${c.code})`
       );
-    for (const c of plan.centres) console.log(`  centre ${c.code} : ${c.kind}`);
+    for (const c of plan.centres)
+      console.log(`  centre ${c.code} : ${c.kind}${c.aliasOf ? ` → lu comme ${c.aliasOf}` : ""}`);
     console.log(plan.activer ? `  entité ${plan.entity.name} ouverte` : `  entité ${plan.entity.name} déjà ouverte`);
     if (apply) await appliquerEntite(plan, code);
   }

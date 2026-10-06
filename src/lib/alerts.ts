@@ -7,13 +7,14 @@
 
 import { fiscalMonths } from "./parsers";
 import { latestValidatedImport } from "./finance";
+import { debutExercice } from "./nomenclature/entites";
 
 /** Premier mois de l'exercice en cours (celui de la dernière balance ventilée). */
-export async function currentFiscalCutoff(entityId: number): Promise<string | null> {
+export async function currentFiscalCutoff(entity: { id: number; code: string }): Promise<string | null> {
   const imp =
-    (await latestValidatedImport(entityId, "ventilee")) ??
-    (await latestValidatedImport(entityId, "analytique"));
-  return imp ? fiscalMonths(imp.fiscalYearStart)[0] : null;
+    (await latestValidatedImport(entity.id, "ventilee")) ??
+    (await latestValidatedImport(entity.id, "analytique"));
+  return imp ? fiscalMonths(imp.fiscalYearStart, debutExercice(entity.code))[0] : null;
 }
 
 /** Une alerte d'exercice clos : sa période précède l'exercice en cours. */

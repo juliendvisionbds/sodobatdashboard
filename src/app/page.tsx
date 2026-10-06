@@ -28,7 +28,7 @@ export default async function SynthesePage({
       .from(tables.alerts)
       .where(and(eq(tables.alerts.entityId, entity.id), eq(tables.alerts.status, "open")))
       .orderBy(desc(tables.alerts.severity), desc(tables.alerts.createdAt)),
-    currentFiscalCutoff(entity.id),
+    currentFiscalCutoff(entity),
   ]);
   // Les alertes des exercices clos (imports annuels) restent hors du compteur.
   const openAlerts = splitAlerts(allOpenAlerts, cutoff).current.slice(0, 6);

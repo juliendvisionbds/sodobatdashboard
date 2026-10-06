@@ -14,14 +14,14 @@ import {
 import {
   CHANTIER_CODES,
   COMPTES_TOUJOURS_FX,
-  COMPTE_DOTATIONS,
+  COMPTES_DOTATIONS,
   FX_CODES,
   PREMIER_EXERCICE_DOTATIONS_MENSUELLES,
   SYNTHESE_CODES,
 } from "./nomenclature/codes";
 import { fx as nomenclatureFx, synthese as nomenclatureSynthese } from "./nomenclature/sodobat";
 import { partageRouting, quoteParts, structureRouting } from "./nomenclature/validate";
-import { entiteConfig } from "./nomenclature/entites";
+import { comptesPrevision, debutExercice, entiteConfig, natureCentreEntite } from "./nomenclature/entites";
 import { OBJECTIFS, statutObjectif, type ObjectifStatut } from "./objectifs";
 
 export { TOTAL_COLUMN, CHANTIER_CODES, FX_CODES, SYNTHESE_CODES };
@@ -81,16 +81,21 @@ export async function getEntityByCode(code: string): Promise<Entity | null> {
 
 /**
  * Chantier ou structure, pour chaque centre de l'entité : la surcharge manuelle
- * (centres.kind) l'emporte sur la déduction faite à partir du code.
+ * (centres.kind) l'emporte sur la règle propre à l'entité (natureCentreEntite),
+ * qui l'emporte sur la déduction faite à partir du code (classifyCentre).
  * Un centre absent du référentiel est classé par son code.
  */
 export const loadCentreKinds = cache(async function loadCentreKinds(
   entityId: number
 ): Promise<(centreCode: string) => CentreKind> {
-  const rows = await db
-    .select({ code: tables.centres.code, kind: tables.centres.kind, aliasOf: tables.centres.aliasOf })
-    .from(tables.centres)
-    .where(eq(tables.centres.entityId, entityId));
+  const [rows, [entite]] = await Promise.all([
+    db
+      .select({ code: tables.centres.code, kind: tables.centres.kind, aliasOf: tables.centres.aliasOf })
+      .from(tables.centres)
+      .where(eq(tables.centres.entityId, entityId)),
+    db.select({ code: tables.entities.code }).from(tables.entities).where(eq(tables.entities.id, entityId)),
+  ]);
+  const entityCode = entite?.code ?? "";
   const overrides = new Map<string, CentreKind>();
   const alias = new Map<string, string>();
   for (const r of rows) {
@@ -100,7 +105,7 @@ export const loadCentreKinds = cache(async function loadCentreKinds(
   // Un centre fantôme suit la classification du centre qu'il remplace.
   return (centreCode: string) => {
     const code = alias.get(centreCode) ?? centreCode;
-    return overrides.get(code) ?? classifyCentre(code);
+    return overrides.get(code) ?? natureCentreEntite(entityCode, code) ?? classifyCentre(code);
   };
 });
 
@@ -256,6 +261,8 @@ export type SyntheseSection = {
 
 export type SyntheseData = {
   fiscalYearStart: number;
+  /** mois d'ouverture de l'exercice (1 à 12), pour libeller l'exercice */
+  debutExercice: number;
   months: string[]; // les 12 mois de l'exercice
   monthsWithData: string[];
   period: string; // dernier mois importé
@@ -387,9 +394,11 @@ export type DotationsLissees = {
 
 const dotationsLissees = cache(async function dotationsLissees(
   entityId: number,
-  fiscalYearStart: number
+  fiscalYearStart: number,
+  /** mois d'ouverture de l'exercice de l'entité */
+  debut: number
 ): Promise<DotationsLissees> {
-  const months = fiscalMonths(fiscalYearStart);
+  const months = fiscalMonths(fiscalYearStart, debut);
   const comptabilisee: Record<string, number> = {};
   const couverts = new Set<string>();
   const dotationsDe = async (importId: number) => {
@@ -397,7 +406,7 @@ const dotationsLissees = cache(async function dotationsLissees(
     const seen = new Set<string>();
     for (const l of await generalLinesOf(importId)) {
       seen.add(l.month);
-      if (l.account !== COMPTE_DOTATIONS) continue;
+      if (!COMPTES_DOTATIONS.has(l.account)) continue;
       byMonth[l.month] = round2((byMonth[l.month] ?? 0) + num(l.amount));
     }
     return { byMonth, seen };
@@ -420,7 +429,7 @@ const dotationsLissees = cache(async function dotationsLissees(
     couverts.add(month);
     let v = 0;
     for (const l of await analyticLinesOf(importId))
-      if (l.account === COMPTE_DOTATIONS) v += num(l.solde);
+      if (COMPTES_DOTATIONS.has(l.account)) v += num(l.solde);
     if (v) comptabilisee[month] = round2(v);
   }
 
@@ -497,7 +506,8 @@ const syntheseMemo = cache(async function syntheseMemo(
     lines = lines.filter((l) => l.month <= opts.period!);
   }
 
-  const months = fiscalMonths(imp.fiscalYearStart);
+  const debut = debutExercice(entity.code);
+  const months = fiscalMonths(imp.fiscalYearStart, debut);
   const monthsWithData = [...new Set(lines.map((l) => l.month))].sort();
   const columns = [...months, TOTAL_COLUMN];
 
@@ -554,7 +564,7 @@ const syntheseMemo = cache(async function syntheseMemo(
     // Lecture par chantier du compte de prévision (voir provisionsLues), tous
     // centres confondus : la somme des deux lignes reste le net de la ventilée.
     const upTo = opts.period && opts.period < imp.period ? opts.period : undefined;
-    const lues = await provisionsLues(entity.id, imp.fiscalYearStart, provisions.compte);
+    const lues = await provisionsLues(entity.id, imp.fiscalYearStart, entity.code);
     for (const [month, parCentre] of lues) {
       if (!months.includes(month) || (upTo && month > upTo)) continue;
       let prevision = 0;
@@ -644,7 +654,7 @@ const syntheseMemo = cache(async function syntheseMemo(
   const prevFull = new Map<string, number>();
   if (prevImp) {
     const prevLines = await generalLinesOf(prevImp.id);
-    const prevMonths = fiscalMonths(prevImp.fiscalYearStart);
+    const prevMonths = fiscalMonths(prevImp.fiscalYearStart, debut);
     // Même nombre de mois écoulés que sur l'exercice en cours.
     const rank = monthsWithData.length;
     const ytdCutoff = prevMonths[Math.min(rank, prevMonths.length) - 1];
@@ -694,12 +704,12 @@ const syntheseMemo = cache(async function syntheseMemo(
   }
 
   // Dotations lissées : N sur les mois affichés, N-1 au même rang de mois.
-  const dotations = await dotationsLissees(entity.id, imp.fiscalYearStart);
+  const dotations = await dotationsLissees(entity.id, imp.fiscalYearStart, debut);
   const dotationsVec = vecteurDotations(dotations.lissee, months, monthsWithData);
   const dotationsPrev = prevImp
-    ? (await dotationsLissees(entity.id, prevImp.fiscalYearStart)).lissee
+    ? (await dotationsLissees(entity.id, prevImp.fiscalYearStart, debut)).lissee
     : {};
-  const dotationsPrevMois = prevImp ? fiscalMonths(prevImp.fiscalYearStart) : [];
+  const dotationsPrevMois = prevImp ? fiscalMonths(prevImp.fiscalYearStart, debut) : [];
   const dotationsPrevSur = (n: number) =>
     round2(dotationsPrevMois.slice(0, n).reduce((t, m) => t + (dotationsPrev[m] ?? 0), 0));
 
@@ -722,7 +732,7 @@ const syntheseMemo = cache(async function syntheseMemo(
   const previsionsSaisies =
     provisions.mode === "saisie"
       ? (Object.fromEntries([...months, TOTAL_COLUMN].map((m) => [m, 0])) as Vector)
-      : await previsionsSaisiesParMois(entity.id, months, provisions.compte);
+      : await previsionsSaisiesParMois(entity.id, months, entity.code);
   provided.set(SYNTHESE_CODES.previsionsSaisies, previsionsSaisies);
   provided.set(SYNTHESE_CODES.annulation, annulationVec);
   provided.set(SYNTHESE_CODES.fxDotations, dotationsVec);
@@ -805,6 +815,7 @@ const syntheseMemo = cache(async function syntheseMemo(
 
   return {
     fiscalYearStart: imp.fiscalYearStart,
+    debutExercice: debut,
     months,
     monthsWithData,
     period: monthsWithData[monthsWithData.length - 1] ?? imp.period,
@@ -934,8 +945,12 @@ type ProvisionLue = { label: string; prevision: number; annulation: number };
 const provisionsLues = cache(async function provisionsLues(
   entityId: number,
   fiscalYearStart: number,
-  compte: string
+  entityCode: string
 ): Promise<Map<string, Map<string, ProvisionLue>>> {
+  // Le compte de prévision de l'entité, et ceux qui l'ont porté avant lui dans
+  // l'exercice (Easy Mat : 71340000 jusqu'en février 2026, puis 71331000) : la
+  // provision d'un chantier se suit d'un compte à l'autre.
+  const comptes = new Set(comptesPrevision(entityCode));
   const annual = await annualImportIds(entityId);
   const mensuels = [...(await analytiqueImportsOfYear(entityId, fiscalYearStart))]
     .filter(([, id]) => !annual.has(id))
@@ -948,7 +963,7 @@ const provisionsLues = cache(async function provisionsLues(
   for (const [month, importId] of mensuels) {
     const mouvements = new Map<string, { debit: number; credit: number }>();
     for (const l of await analyticLinesOf(importId)) {
-      if (l.account !== compte) continue;
+      if (!comptes.has(l.account)) continue;
       const m = mouvements.get(l.centreCode) ?? { debit: 0, credit: 0 };
       m.debit += num(l.debit);
       m.credit += num(l.credit);
@@ -973,9 +988,9 @@ const provisionsLues = cache(async function provisionsLues(
 async function previsionsComptabilisees(
   imp: { entityId: number; fiscalYearStart: number; period: string },
   kindOf: (code: string) => CentreKind,
-  compte: string
+  entityCode: string
 ): Promise<Map<string, ProvisionLue>> {
-  const lu = (await provisionsLues(imp.entityId, imp.fiscalYearStart, compte)).get(imp.period);
+  const lu = (await provisionsLues(imp.entityId, imp.fiscalYearStart, entityCode)).get(imp.period);
   const out = new Map<string, ProvisionLue>();
   for (const [centre, p] of lu ?? []) if (kindOf(centre) === "chantier") out.set(centre, p);
   return out;
@@ -985,7 +1000,7 @@ async function previsionsComptabilisees(
 const previsionsSaisiesParMois = cache(async function previsionsSaisiesParMois(
   entityId: number,
   months: string[],
-  compte: string
+  entityCode: string
 ): Promise<Vector> {
   const vec: Vector = Object.fromEntries(months.map((m) => [m, 0]));
   const saisies = await db
@@ -1003,7 +1018,7 @@ const previsionsSaisiesParMois = cache(async function previsionsSaisiesParMois(
   for (const month of new Set(saisies.map((s) => s.period))) {
     const imp = await latestValidatedImport(entityId, "analytique", { atPeriod: month });
     const compta = imp
-      ? await previsionsComptabilisees(imp, kindOf, compte)
+      ? await previsionsComptabilisees(imp, kindOf, entityCode)
       : new Map<string, ProvisionLue>();
     let ecart = 0;
     for (const s of saisies) {
@@ -1085,7 +1100,7 @@ export async function getPrevisionControl(entity: Entity, period: string): Promi
   // il n'y a rien à lui comparer, la saisie est la référence.
   const compta =
     imp && provisions.mode === "compte"
-      ? await previsionsComptabilisees(imp, kindOf, provisions.compte)
+      ? await previsionsComptabilisees(imp, kindOf, entity.code)
       : new Map<string, ProvisionLue>();
   const referentiel = await db
     .select({ code: tables.centres.code, name: tables.centres.name })
@@ -1360,7 +1375,7 @@ export async function getChantiers(
   // (voir provisionsLues) : elles remplacent le crédit et le débit bruts du mois.
   const lecture = entiteConfig(entity.code).provisions;
   if (lecture.mode === "compte") {
-    for (const [centre, p] of await previsionsComptabilisees(imp, kindOf, lecture.compte)) {
+    for (const [centre, p] of await previsionsComptabilisees(imp, kindOf, entity.code)) {
       const byCat = currentMonth.get(centre) ?? new Map<string, number>();
       byCat.set(CHANTIER_CODES.provision, p.prevision);
       byCat.set(CHANTIER_CODES.annulation, p.annulation);
@@ -1975,11 +1990,12 @@ export async function getFx(
 
   // Dotations de l'exercice en cours : lissées, comme dans la Synthèse. N-1 et
   // N-2 portent la dotation de l'exercice entier, que le lissage ne change pas.
-  const dotations = await dotationsLissees(entity.id, imp.fiscalYearStart);
+  const debut = debutExercice(entity.code);
+  const dotations = await dotationsLissees(entity.id, imp.fiscalYearStart, debut);
   const dotationsVec = leaves.get(FX_CODES.dotations);
   if (dotationsVec) {
     dotationsVec.n = round2(
-      fiscalMonths(imp.fiscalYearStart)
+      fiscalMonths(imp.fiscalYearStart, debut)
         .filter((m) => m <= imp.period)
         .reduce((t, m) => t + (dotations.lissee[m] ?? 0), 0)
     );
@@ -2042,7 +2058,7 @@ export async function getFx(
     else sections.push({ name: line.section, rows: [rows] });
   }
 
-  const fiscalMonthsOfYear = fiscalMonths(imp.fiscalYearStart);
+  const fiscalMonthsOfYear = fiscalMonths(imp.fiscalYearStart, debut);
   const nbMois = fiscalMonthsOfYear.filter((m) => m <= imp.period).length;
 
   return {
@@ -2101,7 +2117,8 @@ export async function getFxMensuel(
   });
   if (!last) return null;
 
-  const months = fiscalMonths(last.fiscalYearStart).filter((m) => m <= last.period);
+  const debut = debutExercice(entity.code);
+  const months = fiscalMonths(last.fiscalYearStart, debut).filter((m) => m <= last.period);
   const imports = await db
     .select()
     .from(tables.imports)
@@ -2153,7 +2170,7 @@ export async function getFxMensuel(
   }
 
   // Dotations lissées, mois par mois, comme dans la Synthèse.
-  const dotations = await dotationsLissees(entity.id, last.fiscalYearStart);
+  const dotations = await dotationsLissees(entity.id, last.fiscalYearStart, debut);
   const dotationsVec = leaves.get(FX_CODES.dotations);
   if (dotationsVec) {
     let cumul = 0;
@@ -2261,7 +2278,7 @@ export async function getObjectifs(
 
   // Les objectifs sont annuels : ils sont rangés sur le premier mois de
   // l'exercice, ce qui les rend indépendants du mois consulté.
-  const saisiePeriod = fiscalMonths(synthese.fiscalYearStart)[0];
+  const saisiePeriod = fiscalMonths(synthese.fiscalYearStart, debutExercice(entity.code))[0];
   const saisies = await db
     .select()
     .from(tables.manualEntries)
@@ -2394,7 +2411,7 @@ export async function getAccountDetail(
 
   const lines = (await generalLinesOf(imp.id)).filter((l) => l.account === account);
 
-  const months = fiscalMonths(imp.fiscalYearStart);
+  const months = fiscalMonths(imp.fiscalYearStart, debutExercice(entity.code));
   const monthly: Record<string, number> = Object.fromEntries(months.map((m) => [m, 0]));
   let total = 0;
   let label = "";

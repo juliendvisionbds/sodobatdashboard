@@ -87,6 +87,10 @@ export function fmtPct(n: number | null, decimals = 1): string {
   );
 }
 
-export function fiscalYearLabel(start: number): string {
-  return `${start} / ${start + 1}`;
+/**
+ * « 2025 / 2026 » pour un exercice ouvert en cours d'année, « 2026 » pour un
+ * exercice qui suit l'année civile (`debut` = mois d'ouverture, 1 à 12).
+ */
+export function fiscalYearLabel(start: number, debut = 11): string {
+  return debut === 1 ? `${start}` : `${start} / ${start + 1}`;
 }

@@ -13,7 +13,8 @@ import { db, tables } from "@/db";
 import * as finance from "./finance";
 import type { Entity } from "./finance";
 import { currentFiscalCutoff, splitAlerts } from "./alerts";
-import { monthLabelLong } from "./format";
+import { fiscalYearLabel, monthLabelLong } from "./format";
+import { debutExercice } from "./nomenclature/entites";
 import { CHANTIER_CODES } from "./nomenclature/codes";
 
 /** Fonctions de calcul utilisées par les outils : directes ou mises en cache. */
@@ -98,6 +99,7 @@ function resolveMois(
 }
 
 export function buildAssistantTools(entity: Entity, src: AssistantDataSource = DIRECT) {
+  const exerciceLabel = (start: number) => fiscalYearLabel(start, debutExercice(entity.code));
   return {
     synthese: tool({
       description:
@@ -144,7 +146,7 @@ export function buildAssistantTools(entity: Entity, src: AssistantDataSource = D
         });
 
         const base = {
-          exercice: `${data.fiscalYearStart}/${data.fiscalYearStart + 1}`,
+          exercice: exerciceLabel(data.fiscalYearStart),
           periode: data.period,
           dernierMoisImporte: monthLabelLong(data.period),
           moisAvecDonnees: months.map(monthLabelLong),
@@ -441,7 +443,7 @@ export function buildAssistantTools(entity: Entity, src: AssistantDataSource = D
         const data = await src.getObjectifs(entity, { period: r.period });
         if (!data) return { erreur: "Aucune balance ventilée validée. Objectifs indisponibles." };
         return {
-          exercice: `${data.fiscalYearStart}/${data.fiscalYearStart + 1}`,
+          exercice: exerciceLabel(data.fiscalYearStart),
           mois: monthLabelLong(data.period),
           periode: data.period,
           caCumul: eur(data.caTotal),
@@ -502,7 +504,7 @@ export function buildAssistantTools(entity: Entity, src: AssistantDataSource = D
         return {
           compte: d.account,
           libelle: d.label,
-          exercice: `${d.fiscalYearStart}/${d.fiscalYearStart + 1}`,
+          exercice: exerciceLabel(d.fiscalYearStart),
           rattachement: d.postes.map((p) => ({
             vue: p.view,
             poste: p.label ?? "non rattaché",
@@ -582,7 +584,7 @@ export function buildAssistantTools(entity: Entity, src: AssistantDataSource = D
         "mois sans données, écarts de contrôle. Montants en euros.",
       inputSchema: z.object({}),
       execute: async () => {
-        const cutoff = await currentFiscalCutoff(entity.id);
+        const cutoff = await currentFiscalCutoff(entity);
         const rows = splitAlerts(
           await db
             .select()
@@ -635,7 +637,7 @@ export function buildAssistantTools(entity: Entity, src: AssistantDataSource = D
           imports: rows.map((r) => ({
             type: r.type === "ventilee" ? "balance ventilée (synthèse)" : "balance analytique (chantiers + FX)",
             periode: monthLabelLong(r.period),
-            exercice: `${r.fiscalYearStart}/${r.fiscalYearStart + 1}`,
+            exercice: exerciceLabel(r.fiscalYearStart),
             importeLe: r.createdAt.toLocaleDateString("fr-FR"),
           })),
         };

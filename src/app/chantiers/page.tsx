@@ -4,7 +4,6 @@ import { getChantiers, listAnalytiquePeriods } from "@/lib/views";
 import { getMonthValidation, getPrevisionControl } from "@/lib/finance";
 import MonthValidation from "./MonthValidation";
 import { getSession, canFiger, canSaisir } from "@/lib/auth";
-import { fiscalYearOf } from "@/lib/parsers";
 import { fmtEurAuto, monthLabelLong } from "@/lib/format";
 import MonthSelect from "@/components/MonthSelect";
 import ChantiersTable from "./ChantiersTable";
@@ -70,7 +69,7 @@ export default async function ChantiersPage({
 
   return (
     <>
-      <AppHeader active="chantiers" fiscalYearStart={fiscalYearOf(data.period)} />
+      <AppHeader active="chantiers" fiscalYearStart={data.fiscalYearStart} />
       <div className="page">
         <div className="page-header">
           <div className="page-header-row">

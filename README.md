@@ -1,6 +1,6 @@
 # Dashboard financier — Groupe SDG
 
-Tableaux de gestion intelligents alimentés par les exports comptables (balance ventilée + balance analytique), Cegid ou Pennylane. Entités ouvertes : Sodobat, CovarBat.
+Tableaux de gestion intelligents alimentés par les exports comptables (balance ventilée + balance analytique), Cegid ou Pennylane. Entités ouvertes : Sodobat, CovarBat, VBTP, Easy Mat.
 
 ## Fonctionnement
 
@@ -53,13 +53,26 @@ Ce qu'une entité a en propre est déclaré dans `src/lib/nomenclature/entites.t
   (y compris celles créées depuis l'écran Mapping), qui l'emporte sur la règle
   commune : « c'est le code de Sodobat qui prévaut » ;
 - **libellés** qui diffèrent ;
-- **prévisions de travaux** : `compte` (Sodobat, la balance analytique porte la
-  prévision par chantier sur le 71331000 : la prévision du mois est la provision
-  en cours à la fin du mois, l'annulation celle du mois précédent de signe
-  opposé, convention de la DAF) ou `saisie` (CovarBat, le cabinet ne
-  la ventile pas : la prévision saisie dans l'application fait foi, l'annulation
-  d'un mois est la prévision du mois précédent, et le reste du compte 70400000
-  est du chiffre d'affaires).
+- **prévisions de travaux** : `compte` (Sodobat sur le 71331000, VBTP sur le
+  71345000, Easy Mat sur le 71331000 après le 71340000 (`autresComptes`) : la
+  balance analytique porte la prévision par chantier, la prévision du mois est
+  la provision en cours à la fin du mois, l'annulation celle du mois précédent
+  de signe opposé, convention de la DAF) ou `saisie`
+  (CovarBat, le cabinet ne la ventile pas : la prévision saisie dans
+  l'application fait foi, l'annulation d'un mois est la prévision du mois
+  précédent, et le reste du compte 70400000 est du chiffre d'affaires) ;
+- **exercice** : mois d'ouverture (`exercice.debut`). Novembre chez Sodobat,
+  CovarBat et Easy Mat (exercice 2025 = novembre 2025 → octobre 2026), janvier
+  chez VBTP (année civile). Un exercice est repéré par l'année de son ouverture ;
+- **centres** dont la nature ne se lit pas dans le code, et centres lus comme
+  un autre (`aliasOf`) : un chantier que Pennylane exporte sans code est
+  rattaché au numéro que lui donne le tableau de gestion (VBTP), ses écritures
+  suivent ce numéro dans les vues ;
+- **centres de structure** (`centresStructure`) : par défaut un code qui
+  commence par un chiffre est un chantier, le reste de la structure. Easy Mat
+  numérote ses affaires par des lettres (MFR191, AO250428…) : sa structure est
+  énumérée (FX, QUADRA, dépôts, SDG, DIVERS, véhicules, centres sans code), tout
+  autre centre est une affaire.
 
 Une ligne de la maquette qui ne concerne que certaines entités porte leur code
 dans `entityScope`.
@@ -71,6 +84,15 @@ npm run import:file -- "<balance>" --entite covarbat
 npm run init:provisions -- "<tableau de gestion.xlsx>" --entite covarbat [--apply]
 npm run rapprochement:synthese -- "<tableau de gestion.xlsx>" --entite covarbat
 npm run init:reports -- "<tableau de gestion.xlsx>" --entite covarbat [--apply]
+npm run entite:installer -- vbtp --apply
+npm run import:file -- "<balance Pennylane>" --entite vbtp
+npm run import:file -- "<VBTP_2025 BALANCE ANALYTIQUE.xlsx>" --entite vbtp --annuel --period 2025-12
+npm run rapprochement:synthese -- "<2026 06_TG VBTP.xlsx>" --entite vbtp
+npm run init:reports -- "<2026 06_TG VBTP.xlsx>" --entite vbtp [--apply]
+npm run entite:installer -- easymat --apply
+npm run import:file -- "<balance Pennylane>" --entite easymat
+npm run import:file -- "<2024 2025_BALANCE ANALYTIQUE EASYMAT.xlsx>" --entite easymat --annuel --period 2025-10
+npm run rapprochement:synthese -- "<2026 06_TG EASYMAT.XLSX>" --entite easymat
 ```
 
 `entite:installer` remplace `db:nomenclature` sur une base en service : il ne
@@ -169,7 +191,7 @@ pour ne pas effacer les règles créées depuis l'écran Mapping.
 
 Exports Pennylane : la balance ventilée a un mois par colonne, écrit en toutes
 lettres, et pas de ligne de total (le contrôle porte sur la colonne Solde). Les
-comptes sont sur 11 chiffres, ramenés à 8. La balance analytique est répétée par
+comptes sont sur 11 ou 12 chiffres selon le dossier, ramenés à 8. La balance analytique est répétée par
 famille d'axes (« Centre », « Nature ») : seule celle des chantiers est lue. Elle
 est cumulée sur la période exportée, lue dans le nom du fichier : il faut un
 export par mois (du 1er au dernier jour). Un export qui part de l'ouverture de

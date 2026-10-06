@@ -97,7 +97,9 @@ function parseMonthHeader(v: unknown): string | null {
  */
 export function normalizeAccount(raw: unknown): string {
   const a = String(raw ?? "").trim();
-  return /^\d{11}$/.test(a) && a.endsWith("000") ? a.slice(0, 8) : a;
+  // 11 chiffres (CovarBat) ou 12 (VBTP) : la longueur dépend du paramétrage du
+  // dossier Pennylane, les chiffres au-delà du huitième sont toujours à zéro.
+  return /^\d{9,12}$/.test(a) && /^0+$/.test(a.slice(8)) ? a.slice(0, 8) : a;
 }
 
 /**
@@ -115,17 +117,24 @@ export function periodFromFileName(
   return { start: `${m[1]}-${m[2]}-01`, end: `${m[4]}-${m[5]}-01`, months };
 }
 
-// Exercice comptable nov → oct : nov 2025 appartient à l'exercice 2025.
-export function fiscalYearOf(month: string): number {
+// Exercice comptable : repéré par l'année de son ouverture. Il s'ouvre en
+// novembre chez Sodobat et CovarBat (nov 2025 → oct 2026 = exercice 2025), en
+// janvier chez VBTP (année civile, exercice 2026 = 2026). Le mois d'ouverture
+// est celui de l'entité (src/lib/nomenclature/entites.ts, `debutExercice`).
+
+/** Mois d'ouverture par défaut : novembre, celui de Sodobat. */
+export const DEBUT_EXERCICE_DEFAUT = 11;
+
+export function fiscalYearOf(month: string, debut = DEBUT_EXERCICE_DEFAUT): number {
   const [y, m] = month.split("-").map(Number);
-  return m >= 11 ? y : y - 1;
+  return m >= debut ? y : y - 1;
 }
 
-export function fiscalMonths(fiscalYearStart: number): string[] {
+export function fiscalMonths(fiscalYearStart: number, debut = DEBUT_EXERCICE_DEFAUT): string[] {
   const out: string[] = [];
   for (let i = 0; i < 12; i++) {
-    const m = ((10 + i) % 12) + 1; // 11, 12, 1..10
-    const y = m >= 11 ? fiscalYearStart : fiscalYearStart + 1;
+    const m = ((debut - 1 + i) % 12) + 1;
+    const y = m >= debut ? fiscalYearStart : fiscalYearStart + 1;
     out.push(`${y}-${String(m).padStart(2, "0")}-01`);
   }
   return out;
@@ -165,7 +174,7 @@ function sheetToGrid(ws: XLSX.WorkSheet): Grid {
 const EN_TETE_COMPTE = ["Numéro", "N° de compte"];
 const EN_TETE_LIBELLE = ["Intitulé", "Libellé de compte"];
 
-function tryParseVentilee(grid: Grid): ParsedVentilee | null {
+function tryParseVentilee(grid: Grid, debutExercice: number): ParsedVentilee | null {
   // trouver la ligne d'en-tête
   let headerRow = -1;
   for (let i = 0; i < Math.min(grid.length, 20); i++) {
@@ -270,7 +279,7 @@ function tryParseVentilee(grid: Grid): ParsedVentilee | null {
     lines,
     months,
     period,
-    fiscalYearStart: fiscalYearOf(months[0]),
+    fiscalYearStart: fiscalYearOf(months[0], debutExercice),
     classTotals,
     fileGrandTotal: fileGrandTotal != null ? round2(fileGrandTotal) : null,
     accounts: [...accountTotals.entries()].map(([account, v]) => ({
@@ -402,7 +411,15 @@ function tryParseAnalytique(grid: Grid): ParsedAnalytique | null {
 
 // ── Détection automatique du type ────────────────────────────────────────────
 
-export function parseBalanceFile(buffer: Buffer | ArrayBuffer): ParsedFile {
+/**
+ * @param opts.debutExercice mois d'ouverture de l'exercice de l'entité (1 à 12),
+ *        qui situe les mois d'une balance ventilée dans leur exercice
+ */
+export function parseBalanceFile(
+  buffer: Buffer | ArrayBuffer,
+  opts?: { debutExercice?: number }
+): ParsedFile {
+  const debutExercice = opts?.debutExercice ?? DEBUT_EXERCICE_DEFAUT;
   const wb = XLSX.read(buffer, { type: buffer instanceof Buffer ? "buffer" : "array" });
 
   // La ventilée se détecte par ses colonnes MM/YYYY, l'analytique par Centre/Compte.
@@ -421,7 +438,7 @@ export function parseBalanceFile(buffer: Buffer | ArrayBuffer): ParsedFile {
 
   for (const name of wb.SheetNames) {
     const grid = sheetToGrid(wb.Sheets[name]);
-    const v = tryParseVentilee(grid);
+    const v = tryParseVentilee(grid, debutExercice);
     if (v && (!bestVentilee || ventileeScore(v) > ventileeScore(bestVentilee))) {
       bestVentilee = v;
     }

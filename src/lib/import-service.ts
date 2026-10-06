@@ -14,6 +14,8 @@ import {
 import { loadMapper } from "./mapping";
 import { detectAsciiCentres } from "./centres-ascii";
 import { COMPTES_TOUJOURS_FX } from "./nomenclature/codes";
+import { debutExercice } from "./nomenclature/entites";
+import { fiscalYearLabel } from "./format";
 import { Entity, loadCentreKinds } from "./finance";
 
 const round2 = (n: number) => Math.round(n * 100) / 100;
@@ -64,7 +66,10 @@ export async function createImportPreview(opts: {
   allowOlder?: boolean;
 }): Promise<{ importId: number; summary: ImportSummary }> {
   const { entity, buffer, fileName, createdBy } = opts;
-  const parsed = parseBalanceFile(buffer);
+  // L'exercice de l'entité situe chaque mois : ouvert en novembre chez Sodobat
+  // et CovarBat, en janvier chez VBTP.
+  const debut = debutExercice(entity.code);
+  const parsed = parseBalanceFile(buffer, { debutExercice: debut });
   const fileHash = createHash("sha256").update(buffer).digest("hex");
 
   // Un export de chiffre d'affaires par chantier a les mêmes colonnes qu'une
@@ -94,13 +99,13 @@ export async function createImportPreview(opts: {
     // cumul des frais généraux mais pas le détail d'un mois.
     const lu = parsed.famille ? periodFromFileName(fileName) : null;
     if (lu && lu.months > 1) {
-      const exercice = fiscalMonths(fiscalYearOf(lu.start));
+      const exercice = fiscalMonths(fiscalYearOf(lu.start, debut), debut);
       if (lu.start !== exercice[0] || !exercice.includes(lu.end))
         throw new Error(
           `Cet export couvre ${lu.months} mois (de ${lu.start.slice(0, 7)} à ${lu.end.slice(0, 7)}) ` +
             "sans partir de l'ouverture de l'exercice : ses montants cumulés ne correspondent ni à " +
             "un mois ni à un exercice. Exportez la balance analytique du mois seul (du 1er au " +
-            "dernier jour), ou depuis le 1er novembre."
+            "dernier jour), ou depuis l'ouverture de l'exercice."
         );
       annual = true;
       if (lu.months < 12) cumulMois = lu.months;
@@ -117,7 +122,7 @@ export async function createImportPreview(opts: {
       );
     }
     period = choisi;
-    fiscalYearStart = fiscalYearOf(period);
+    fiscalYearStart = fiscalYearOf(period, debut);
   }
 
   // Une balance cumulée et des balances mensuelles ne se mélangent pas : là où
@@ -138,7 +143,7 @@ export async function createImportPreview(opts: {
     if (mensuelles.some((i) => !(i.summary as ImportSummary | null)?.annual))
       throw new Error(
         `Des balances analytiques mensuelles sont déjà validées pour l'exercice ` +
-          `${fiscalYearStart}/${fiscalYearStart + 1} : une balance cumulée n'apporterait rien et ` +
+          `${fiscalYearLabel(fiscalYearStart, debut)} : une balance cumulée n'apporterait rien et ` +
           `remplacerait le mois de ${period.slice(0, 7)}. Importez plutôt la balance du mois seul.`
       );
   }
@@ -467,13 +472,13 @@ async function generateAlerts(importId: number) {
     // 3) mois sans données dans l'exercice écoulé
     const monthsWithData = new Set(lines.map((l) => l.month));
     for (const m of summary.months ?? []) monthsWithData.add(m);
-    const expected: string[] = [];
-    for (let d = new Date(`${imp.fiscalYearStart}-11-01`); ; ) {
-      const iso = d.toISOString().slice(0, 8) + "01";
-      if (iso > imp.period) break;
-      expected.push(iso);
-      d.setMonth(d.getMonth() + 1);
-    }
+    const [entite] = await db
+      .select({ code: tables.entities.code })
+      .from(tables.entities)
+      .where(eq(tables.entities.id, imp.entityId));
+    const expected = fiscalMonths(imp.fiscalYearStart, debutExercice(entite?.code ?? "")).filter(
+      (m) => m <= imp.period
+    );
     for (const m of expected) {
       if (!monthsWithData.has(m)) {
         alerts.push({
@@ -548,17 +553,27 @@ async function generateAlerts(importId: number) {
     }
     for (const [code, e] of sansCode) {
       if (!round2(e.produits) && !round2(e.charges)) continue;
+      // Rattaché par l'application (centres.alias_of) au numéro de chantier que
+      // lui donne le tableau de gestion : les écrans sont justes, le code reste
+      // à poser dans Pennylane.
+      const rattache = aliasOf.get(code);
       alerts.push({
         entityId: imp.entityId,
         importId,
         type: "centre_import_ascii",
-        severity: "warn",
-        title: `Centre sans code analytique : « ${e.label} »`,
+        severity: rattache ? "info" : "warn",
+        title: rattache
+          ? `Centre sans code analytique : « ${e.label} », lu comme ${rattache} par l'application`
+          : `Centre sans code analytique : « ${e.label} »`,
         description:
           `${fmt(e.produits)} € de produits et ${fmt(e.charges)} € de charges (${e.lignes} ligne${e.lignes > 1 ? "s" : ""}) ` +
-          `sont exportés par Pennylane sans code analytique : écritures non affectées, ou chantiers ` +
-          `confondus sous un même libellé. L'application ne peut pas les répartir : affecter ces ` +
-          `écritures, ou donner à chaque chantier un code et un libellé qui lui sont propres dans Pennylane.`,
+          `sont exportés par Pennylane sans code analytique` +
+          (rattache
+            ? `. L'application les rattache au chantier ${rattache} : les écrans sont justes. ` +
+              `Donner ce code au chantier dans Pennylane pour que la comptabilité le porte elle-même.`
+            : ` : écritures non affectées, ou chantiers confondus sous un même libellé. ` +
+              `L'application ne peut pas les répartir : affecter ces écritures, ou donner à chaque ` +
+              `chantier un code et un libellé qui lui sont propres dans Pennylane.`),
         account: code,
         amount: String(round2(Math.abs(e.produits) + Math.abs(e.charges))),
         period: imp.period,

@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import type { SyntheseData, SyntheseRow } from "@/lib/finance";
 import { TOTAL_COLUMN } from "@/lib/nomenclature/columns";
-import { fmtEur, fmtPct, monthLabel } from "@/lib/format";
+import { fiscalYearLabel, fmtEur, fmtPct, monthLabel } from "@/lib/format";
 
 // Structure de référence : Intitulé · les 12 mois de l'exercice · Total exercice ·
 // % / CA · N-1 Total · % N-1 · Écart N–N-1, soit 18 colonnes. Les mois sans données
@@ -85,7 +85,7 @@ export default function SyntheseTable({ data }: { data: SyntheseData }) {
   return (
     <div style={{ marginTop: 32 }}>
       <div className="card-label" style={{ border: "none", padding: 0, marginBottom: 12 }}>
-        Tableau de synthèse · exercice {data.fiscalYearStart}/{data.fiscalYearStart + 1}
+        Tableau de synthèse · exercice {fiscalYearLabel(data.fiscalYearStart, data.debutExercice)}
       </div>
       <div className="table-controls">
         <div className="view-switch" role="group" aria-label="Lecture des colonnes de mois">

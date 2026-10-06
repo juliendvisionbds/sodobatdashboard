@@ -26,6 +26,7 @@ import {
   type SyntheseData,
 } from "./finance";
 import { fiscalMonths } from "./parsers";
+import { debutExercice } from "./nomenclature/entites";
 import { fmtEurAuto, monthLabelLong } from "./format";
 import { OBJECTIFS, statutObjectif, type ObjectifStatut } from "./objectifs";
 
@@ -322,7 +323,7 @@ export async function computeAnalyse(entity: Entity, period: string) {
   if (!synthese || !synthese.monthsWithData.includes(period))
     throw new Error("La balance ventilée ne couvre pas ce mois.");
 
-  const months = fiscalMonths(synthese.fiscalYearStart);
+  const months = fiscalMonths(synthese.fiscalYearStart, debutExercice(entity.code));
   const idx = months.indexOf(period);
   const moisPrecedent = idx > 0 ? months[idx - 1] : null;
 

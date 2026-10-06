@@ -124,7 +124,7 @@ export type PlanEntite = {
   retirees: { ruleId: number; account: string; code: string }[];
   /** comptes qu'un utilisateur a déjà affectés autrement dans la même vue : sa règle est gardée */
   conflits: { account: string; code: string; existing: string; by: string | null }[];
-  centres: { code: string; name: string; kind: "chantier" | "structure" }[];
+  centres: { code: string; name: string; kind: "chantier" | "structure"; aliasOf?: string }[];
   activer: boolean;
 };
 
@@ -194,13 +194,16 @@ export async function planEntite(entityCode: string): Promise<PlanEntite> {
       plan.retirees.push({ ruleId: r.id, account: r.pattern, code: cat.code });
   }
 
+  // Un centre déclaré est à poser s'il manque, ou si sa nature ou son
+  // rattachement à un autre centre diffèrent de ce que porte la base.
   const centres = await db
-    .select({ code: tables.centres.code, kind: tables.centres.kind })
+    .select({ code: tables.centres.code, kind: tables.centres.kind, aliasOf: tables.centres.aliasOf })
     .from(tables.centres)
     .where(eq(tables.centres.entityId, entity.id));
-  plan.centres = config.centres.filter(
-    (c) => centres.find((x) => x.code === c.code)?.kind !== c.kind
-  );
+  plan.centres = config.centres.filter((c) => {
+    const x = centres.find((x) => x.code === c.code);
+    return !x || x.kind !== c.kind || (x.aliasOf ?? null) !== (c.aliasOf ?? null);
+  });
   return plan;
 }
 
@@ -226,13 +229,21 @@ export async function appliquerEntite(plan: PlanEntite, entityCode: string) {
       await tx
         .delete(tables.accountRules)
         .where(inArray(tables.accountRules.id, plan.retirees.map((r) => r.ruleId)));
+    // Le nom d'un centre déjà connu reste celui de la dernière balance importée ;
+    // seuls sa nature et son rattachement viennent du code.
     for (const c of plan.centres)
       await tx
         .insert(tables.centres)
-        .values({ entityId: plan.entity.id, code: c.code, name: c.name, kind: c.kind })
+        .values({
+          entityId: plan.entity.id,
+          code: c.code,
+          name: c.name,
+          kind: c.kind,
+          aliasOf: c.aliasOf ?? null,
+        })
         .onConflictDoUpdate({
           target: [tables.centres.entityId, tables.centres.code],
-          set: { kind: c.kind },
+          set: { kind: c.kind, aliasOf: c.aliasOf ?? null },
         });
     if (plan.activer)
       await tx.update(tables.entities).set({ active: true }).where(eq(tables.entities.id, plan.entity.id));

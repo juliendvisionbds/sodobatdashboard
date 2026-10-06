@@ -154,6 +154,18 @@ export const synthese: NomenclatureLine[] = [
     notes: "Code K — détail agrégé dans « CA Facturation mois »",
   },
   {
+    code: "syn_ca_location",
+    view: "synthese",
+    section: SYN.produits,
+    label: "CA Location (matériel, modules)",
+    kind: "poste",
+    sign: -1,
+    entityScope: "easymat,easyhome",
+    notes:
+      "Code L — locations de matériel et de modules facturées (70610000, 70612000 chez Easy Mat). " +
+      "Le code n'existe pas chez Sodobat : les comptes viennent des règles de l'entité.",
+  },
+  {
     code: "syn_ca_marchandises",
     view: "synthese",
     section: SYN.produits,
@@ -184,11 +196,12 @@ export const synthese: NomenclatureLine[] = [
       op: "sum",
       operands: [
         { code: "syn_ca_travaux", sign: 1 },
+        { code: "syn_ca_location", sign: 1 },
         { code: "syn_ca_marchandises", sign: 1 },
         { code: "syn_ca_refacturation", sign: 1 },
       ],
     },
-    notes: "Codes K + M + N. Le code L (CA Location) n'existe pas chez Sodobat.",
+    notes: "Codes K + L + M + N. Le code L (CA Location) n'existe que chez Easy Mat et Easy Home.",
   },
   {
     code: "syn_annulation_m1",
@@ -248,6 +261,18 @@ export const synthese: NomenclatureLine[] = [
     notes: "Code A",
   },
   {
+    code: "syn_achats_marchandises",
+    structureTo: "syn_fx_achats_structure",
+    view: "synthese",
+    section: SYN.exploitation,
+    label: "Achats de marchandises (revente)",
+    kind: "poste",
+    entityScope: "easymat,easyhome",
+    notes:
+      "Code R — marchandises revendues en l'état (607), suivies à part des matières premières " +
+      "(maquette du groupe : « je séparerais le 607 ») ; comptes déclarés par l'entité",
+  },
+  {
     code: "syn_variation_stock",
     structureTo: "syn_fx_achats_structure",
     view: "synthese",
@@ -267,6 +292,7 @@ export const synthese: NomenclatureLine[] = [
       op: "sum",
       operands: [
         { code: "syn_achats_mp", sign: 1 },
+        { code: "syn_achats_marchandises", sign: 1 },
         { code: "syn_variation_stock", sign: 1 },
       ],
     },
@@ -287,7 +313,8 @@ export const synthese: NomenclatureLine[] = [
     label: "Sous-traitance paiement direct",
     kind: "poste",
     accounts: SOUS_TRAITANCE_PAIEMENT_DIRECT,
-    entityScope: "sodobat",
+    // VBTP suit aussi le paiement direct, sur son compte 60411009 (code D).
+    entityScope: "sodobat,vbtp",
     notes: "Code D — compte 60412100, objectif « Sous-traitants 1 »",
   },
   {
@@ -956,6 +983,16 @@ export const chantier: NomenclatureLine[] = [
     notes: "Code K",
   },
   {
+    code: "cha_produits_location",
+    view: "chantier",
+    section: CHA.produits,
+    label: "Produits Location (matériel, modules)",
+    kind: "poste",
+    sign: -1,
+    entityScope: "easymat,easyhome",
+    notes: "Code L — comptes déclarés par l'entité",
+  },
+  {
     code: "cha_produits_marchandises",
     view: "chantier",
     section: CHA.produits,
@@ -1007,6 +1044,7 @@ export const chantier: NomenclatureLine[] = [
       op: "sum",
       operands: [
         { code: "cha_produits_travaux", sign: 1 },
+        { code: "cha_produits_location", sign: 1 },
         { code: "cha_produits_marchandises", sign: 1 },
         { code: "cha_refacturations", sign: 1 },
         { code: "cha_provision", sign: 1 },
@@ -1035,6 +1073,15 @@ export const chantier: NomenclatureLine[] = [
     kind: "poste",
     accounts: ["60100000", "60100001", "60100920"],
     notes: "Code A",
+  },
+  {
+    code: "cha_achats_marchandises",
+    view: "chantier",
+    section: CHA.exploitation,
+    label: "Achats de marchandises (revente)",
+    kind: "poste",
+    entityScope: "easymat,easyhome",
+    notes: "Code R — comptes déclarés par l'entité",
   },
   {
     code: "cha_rep",
@@ -1088,6 +1135,7 @@ export const chantier: NomenclatureLine[] = [
       op: "sum",
       operands: [
         { code: "cha_achats_mp", sign: 1 },
+        { code: "cha_achats_marchandises", sign: 1 },
         { code: "cha_rep", sign: 1 },
         { code: "cha_emballages", sign: 1 },
         { code: "cha_petit_materiel", sign: 1 },
@@ -1129,7 +1177,7 @@ export const chantier: NomenclatureLine[] = [
     label: "Sous-traitance paiement direct",
     kind: "poste",
     accounts: SOUS_TRAITANCE_PAIEMENT_DIRECT,
-    entityScope: "sodobat",
+    entityScope: "sodobat,vbtp",
     notes: "Code D — compte 60412100, colonne « Sous traitance PD » du tableau de gestion",
   },
   {
@@ -1601,6 +1649,15 @@ export const fx: NomenclatureLine[] = [
       "Code A — la maquette ne cite que les fournitures ; les achats du dépôt (601, 6026, REP) sont rattachés ici",
   },
   {
+    code: "fx_achats_marchandises",
+    view: "fx",
+    section: FX.generaux,
+    label: "Achats de marchandises (revente)",
+    kind: "poste",
+    entityScope: "easymat,easyhome",
+    notes: "Code R — marchandises imputées à la structure ; comptes déclarés par l'entité",
+  },
+  {
     code: "fx_variation_stock",
     view: "fx",
     section: FX.generaux,
@@ -1808,6 +1865,7 @@ export const fx: NomenclatureLine[] = [
         { code: "fx_carburant", sign: 1 },
         { code: "fx_edf_eau", sign: 1 },
         { code: "fx_achats_fournitures", sign: 1 },
+        { code: "fx_achats_marchandises", sign: 1 },
         { code: "fx_variation_stock", sign: 1 },
         { code: "fx_location_immo", sign: 1 },
         { code: "fx_location_vehicules", sign: 1 },

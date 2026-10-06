@@ -192,8 +192,17 @@ export function validateEntite(
   }
   for (const code of Object.keys(config.libelles))
     if (!byCode.has(code)) err(`${entityCode} : libellé déclaré sur un code inconnu (${code})`);
-  if (!lines.some((l) => l.kind === "poste" && accountsOfLine(l, config).includes(config.provisions.compte)))
-    err(`${entityCode} : le compte de prévision ${config.provisions.compte} n'est rattaché à aucun poste`);
+  for (const compte of [config.provisions.compte, ...(config.provisions.autresComptes ?? [])])
+    if (!lines.some((l) => l.kind === "poste" && accountsOfLine(l, config).includes(compte)))
+      err(`${entityCode} : le compte de prévision ${compte} n'est rattaché à aucun poste`);
+  if (!Number.isInteger(config.exercice.debut) || config.exercice.debut < 1 || config.exercice.debut > 12)
+    err(`${entityCode} : mois d'ouverture de l'exercice invalide (${config.exercice.debut})`);
+  // Un centre rattaché à un autre pointe vers un centre déclaré ici, ou vers un
+  // numéro de chantier que le code classe de lui-même.
+  const declares = new Set(config.centres.map((c) => c.code));
+  for (const c of config.centres)
+    if (c.aliasOf && !declares.has(c.aliasOf) && !/^\d/.test(c.aliasOf))
+      err(`${entityCode} : le centre ${c.code} est rattaché à ${c.aliasOf}, qui n'est ni déclaré ni un chantier`);
   return issues;
 }
 

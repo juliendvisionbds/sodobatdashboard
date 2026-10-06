@@ -60,7 +60,7 @@ export default async function AlertesPage() {
   // Les alertes des exercices clos (balances annuelles N-1 / N-2) se lisent à
   // part : elles disent ce qui reste hors des colonnes N-1 et N-2 des frais
   // généraux, sans appeler d'action ce mois-ci.
-  const { current: open, closedYears } = splitAlerts(allOpen, await currentFiscalCutoff(entity.id));
+  const { current: open, closedYears } = splitAlerts(allOpen, await currentFiscalCutoff(entity));
 
   const resolved = await db
     .select()

@@ -2,7 +2,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import AppHeader from "@/components/AppHeader";
 import { getAccountDetail } from "@/lib/views";
-import { fmtEur, monthLabel, monthLabelLong } from "@/lib/format";
+import { fiscalYearLabel, fmtEur, monthLabel, monthLabelLong } from "@/lib/format";
+import { debutExercice } from "@/lib/nomenclature/entites";
 import { getCurrentEntity } from "@/lib/entity";
 
 export const dynamic = "force-dynamic";
@@ -41,7 +42,7 @@ export default async function ComptePage({
             </Link>
           </div>
           <p>
-            Exercice {data.fiscalYearStart}/{data.fiscalYearStart + 1} · cumul{" "}
+            Exercice {fiscalYearLabel(data.fiscalYearStart, debutExercice(entity.code))} · cumul{" "}
             {fmtEur(data.total)}
           </p>
         </div>
