@@ -215,6 +215,11 @@ function tryParseVentilee(grid: Grid): ParsedVentilee | null {
 
     const account = normalizeAccount(rawAccount);
     if (!/^\d{3,}$/.test(account)) continue;
+    // Seules les classes 6 et 7 font le résultat. Cegid n'exporte qu'elles
+    // (« Balance d'Exploitation ») ; un export Pennylane peut porter toute la
+    // balance, bilan compris : ces comptes n'ont pas de ligne dans la maquette
+    // et n'ont rien à y faire.
+    if (!/^[67]/.test(account)) continue;
     if (soldeCol >= 0)
       soldeParClasse.set(account[0], (soldeParClasse.get(account[0]) ?? 0) + toNumber(row[soldeCol]));
 

@@ -866,6 +866,26 @@ function moisPrecedent(month: string): string {
   return m === 1 ? `${y - 1}-12-01` : `${y}-${String(m - 1).padStart(2, "0")}-01`;
 }
 
+/** Prévisions saisies dans la vue Chantiers pour un mois, par chantier. */
+const previsionsSaisiesParCentre = cache(async function previsionsSaisiesParCentre(
+  entityId: number,
+  month: string
+): Promise<Map<string, number>> {
+  const saisies = await db
+    .select({ centreCode: tables.manualEntries.centreCode, valueNum: tables.manualEntries.valueNum })
+    .from(tables.manualEntries)
+    .where(
+      and(
+        eq(tables.manualEntries.entityId, entityId),
+        eq(tables.manualEntries.field, "tec_provision"),
+        eq(tables.manualEntries.period, month)
+      )
+    );
+  const out = new Map<string, number>();
+  for (const s of saisies) if (s.centreCode && s.valueNum != null) out.set(s.centreCode, num(s.valueNum));
+  return out;
+});
+
 /** Prévisions saisies dans la vue Chantiers, tous chantiers confondus, par mois. */
 const previsionsSaisiesTotales = cache(async function previsionsSaisiesTotales(
   entityId: number,
@@ -1462,16 +1482,43 @@ export async function getChantiers(
 
   // Annulation M-1 : reprise de la provision de M-1, passée au débit du compte de
   // travaux en cours dans le mois. La saisie de la DAF prime (mécanisme
-  // brouillon → figé de la maquette).
+  // brouillon → figé de la maquette). En mode « saisie », la comptabilité ne
+  // porte pas la reprise par chantier : l'annulation est la prévision saisie le
+  // mois précédent, de signe opposé, comme dans la Synthèse.
+  const saisiesPrecedentes =
+    lecture.mode === "saisie" ? await previsionsSaisiesParCentre(entity.id, moisPrecedent(imp.period)) : null;
   const annulationVec: Vector = {};
   let annulationTotal = 0;
   for (const centre of centres) {
-    const repriseM1 = round2(currentMonth.get(centre)?.get(CHANTIER_CODES.annulation) ?? 0);
+    const repriseM1 = saisiesPrecedentes
+      ? round2(-(saisiesPrecedentes.get(centre) ?? 0))
+      : round2(currentMonth.get(centre)?.get(CHANTIER_CODES.annulation) ?? 0);
     const v = annulations.has(centre) ? annulations.get(centre)! : repriseM1;
     annulationVec[centre] = v;
     annulationTotal += v;
   }
   annulationVec[TOTAL] = round2(annulationTotal);
+
+  // En mode « saisie », le compte de travaux porte, chantier par chantier, la
+  // prévision du mois et la reprise de celle du mois précédent mêlées aux
+  // ventes (CovarBat : 70400000, puis 71335000). Comme dans la Synthèse, ce
+  // qui reste du compte une fois la prévision et l'annulation retirées est de
+  // la vente : le transfert est additif, le CA du chantier est celui de la
+  // comptabilité et le total rejoint la Synthèse.
+  if (lecture.mode === "saisie") {
+    const poste = mapper.resolve(lecture.compte);
+    const ventes = poste ? monthlyLeaves.get(poste.code) : undefined;
+    const prev = monthlyLeaves.get(CHANTIER_CODES.provision);
+    if (ventes && prev) {
+      let total = 0;
+      for (const centre of centres) {
+        const v = round2(((ventes[centre] as number) ?? 0) - ((prev[centre] as number) ?? 0) - ((annulationVec[centre] as number) ?? 0));
+        ventes[centre] = v;
+        total += v;
+      }
+      ventes[TOTAL] = round2(total);
+    }
+  }
 
   // ── Cumuls sur la durée de vie du chantier ─────────────────────────────────
   const evalCumul = (snapshot: Map<string, Map<string, number>>) => {
@@ -1541,13 +1588,16 @@ export async function getChantiers(
     ],
     // Prévision encore ouverte à la fin du mois : ce qui reste des prévisions
     // posées après leurs reprises, mois passés compris, saisie du mois incluse.
+    // En mode « saisie », c'est la prévision saisie du mois, à elle seule.
     [
       CHANTIER_CODES.cumulDontPrevisions,
-      sumVectors(columns, [
-        cumulBefore.get(CHANTIER_CODES.provision),
-        monthlyLeaves.get(CHANTIER_CODES.provision),
-        annulationVec,
-      ]),
+      lecture.mode === "saisie"
+        ? sumVectors(columns, [monthlyLeaves.get(CHANTIER_CODES.provision)])
+        : sumVectors(columns, [
+            cumulBefore.get(CHANTIER_CODES.provision),
+            monthlyLeaves.get(CHANTIER_CODES.provision),
+            annulationVec,
+          ]),
     ],
   ]);
 

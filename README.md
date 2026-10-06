@@ -70,6 +70,7 @@ npm run entite:installer -- covarbat --apply    # aligne la maquette, installe l
 npm run import:file -- "<balance>" --entite covarbat
 npm run init:provisions -- "<tableau de gestion.xlsx>" --entite covarbat [--apply]
 npm run rapprochement:synthese -- "<tableau de gestion.xlsx>" --entite covarbat
+npm run init:reports -- "<tableau de gestion.xlsx>" --entite covarbat [--apply]
 ```
 
 `entite:installer` remplace `db:nomenclature` sur une base en service : il ne

@@ -43,7 +43,10 @@ const SODOBAT: EntiteConfig = {
 
 // ── CovarBat ─────────────────────────────────────────────────────────────────
 // Sources : balances Pennylane 2023/24 à 2025/26, « Tableau gestion CVB
-// 2025-2026 » de la DAF et maquette structurelle du groupe (colonne Entités).
+// 2025-2026 » de la DAF, maquette structurelle du groupe (colonne Entités),
+// plan comptable CovarBat 2026 (colonne Code) et réponses de la DAF du
+// 6 octobre 2026. Quand le plan et une réponse explicite divergent, la réponse
+// l'emporte (LLD en crédit-bail, 62870000 en cotisations).
 // Les comptes sont écrits sur 8 chiffres, comme l'import les normalise.
 
 const COVARBAT_VENTES_TRAVAUX = [
@@ -54,15 +57,23 @@ const COVARBAT_VENTES_TRAVAUX = [
   // « Travaux » : ventes en autoliquidation (ligne « TRAVAUX LQ » du TG) et
   // écritures de prévision, que la saisie isole (cf. provisions ci-dessous).
   "70400000",
+  // « Travaux en cours » : depuis juillet 2026, le cabinet passe la prévision
+  // sur ce compte, comme Sodobat, et non plus dans le 70400000. Les deux
+  // comptes forment un même bloc que la saisie décompose : leur somme est
+  // inchangée, la Synthèse ne bouge pas.
+  "71335000",
 ];
 const COVARBAT_SOUS_TRAITANCE = [
   "60410000", // sous-traitants 0 % (auto-entrepreneurs)
   "60413000", // sous-traitants EXO liquidation
 ];
+// Locations longue durée en crédit-bail : réponse de la DAF du 6 octobre 2026
+// (le plan comptable les code B « Location », la réponse l'emporte).
 const COVARBAT_CREDIT_BAIL = [
   "61227000", // Renault Master bennes
   "61228000", // Renault Master
   "61350001", // leasing copieur
+  "61354000", // LLD Clio (bennes et déchets chez Sodobat)
   "61354001", // LLD Audi Q3
   "61354002", // LLD Ford
   "61354003", // LLD Audi Q3
@@ -70,9 +81,15 @@ const COVARBAT_CREDIT_BAIL = [
 const COVARBAT_ASSURANCES = ["61600000", "61601000", "61602000", "61680000"];
 const COVARBAT_ENTRETIEN = ["61551000", "61553000"];
 const COVARBAT_SPONSORING = ["62300000", "62331000", "62341000"];
-const COVARBAT_TELECOM = ["62610000", "62620000", "62630000"];
+const COVARBAT_TELECOM = ["62610000", "62620000"];
+/** Géolocalisation des véhicules : code I du plan comptable, avec les déplacements. */
+const COVARBAT_DEPLACEMENTS = ["62630000"];
 const COVARBAT_COTISATIONS = ["62811111", "62870000"];
-const COVARBAT_IMPOTS = ["63512100", "63781000", "63782000"];
+const COVARBAT_IMPOTS = ["63512100"];
+/** CSG déductible et non déductible : en masse salariale (réponse du 6 octobre), pas en impôts. */
+const COVARBAT_CSG = ["63781000", "63782000"];
+/** EDF et eau du siège : code H du plan comptable, et non charges locatives. */
+const COVARBAT_EDF_EAU = ["60611100", "60612000"];
 const COVARBAT_INTERETS = ["66116000", "66150000"];
 /** Rémunération du gérant : 50 % production, 50 % frais généraux. */
 const COVARBAT_REMUNERATION_GERANT = ["64111000"];
@@ -95,15 +112,19 @@ const COVARBAT: EntiteConfig = {
     // Exception : bennes et déchets chez CovarBat (code E de la maquette),
     // location de matériel de transport chez Sodobat (code B).
     syn_dechets: ["61351000"],
+    syn_edf_eau_chantier: COVARBAT_EDF_EAU,
     syn_entretien: COVARBAT_ENTRETIEN,
+    syn_deplacements: COVARBAT_DEPLACEMENTS,
     syn_interims: ["62100000"],
     syn_honoraires_chantier: ["62261100"],
+    // Prime, SAF/BTP et loi Madelin du gérant restent entièrement en frais
+    // généraux (réponse du 6 octobre) : seul le 64111000 est partagé.
     syn_masse_salariale: [
       "63120000", "63335000", "63335100", "64110001", "64111200", "64115000",
-      "64119000", "64119100", "64700000",
+      "64119000", "64119100", "64700000", ...COVARBAT_CSG,
     ],
     syn_ms_gerant_fx: COVARBAT_REMUNERATION_GERANT,
-    syn_fx_location_immo: ["60611100", "61322000"], // EDF, loyer SCI Mathille
+    syn_fx_location_immo: ["61322000"], // loyer SCI Mathille
     syn_fx_credit_bail: COVARBAT_CREDIT_BAIL,
     syn_fx_assurances: COVARBAT_ASSURANCES,
     // Exception : honoraires divers chez CovarBat, honoraires chantiers chez Sodobat.
@@ -121,11 +142,12 @@ const COVARBAT: EntiteConfig = {
     cha_sous_traitance: COVARBAT_SOUS_TRAITANCE,
     cha_autres_achats: ["60310000", "60631000"],
     cha_dechets: ["61351000"],
-    cha_edf_eau: ["60612000"],
+    cha_edf_eau: COVARBAT_EDF_EAU,
     cha_entretien: COVARBAT_ENTRETIEN,
     cha_autres_charges: ["61680000", "68174000"],
     cha_autres_personnel: ["63120000", "63335000", "64115000"],
     cha_interim: ["62100000"],
+    cha_deplacements: COVARBAT_DEPLACEMENTS,
     // « Honoraires chantier / Cadeaux » du TG CovarBat
     cha_honoraires: ["62220000", "62261100", "62340000"],
 
@@ -134,11 +156,12 @@ const COVARBAT: EntiteConfig = {
     fx_honoraires_divers: ["62261000"],
     fx_ms_structure: [
       "62100000", "63120000", "63335000", "63335100", "64110001", "64111200",
-      "64115000", "64700000",
+      "64115000", "64700000", ...COVARBAT_CSG,
     ],
     fx_cotisations_exploitant: ["64119000", "64119100"], // SAF/BTP, loi Madelin
     fx_remuneration_gerant: COVARBAT_REMUNERATION_GERANT,
-    fx_edf_eau: ["60611100"],
+    fx_edf_eau: COVARBAT_EDF_EAU,
+    fx_carburant: COVARBAT_DEPLACEMENTS,
     fx_achats_fournitures: ["60631000"],
     fx_location_immo: ["61322000"],
     fx_dechets: ["61351000"],
@@ -155,13 +178,17 @@ const COVARBAT: EntiteConfig = {
     fx_produits_structure: [...COVARBAT_VENTES_TRAVAUX, "76300000"],
   },
   centres: [
-    // Chantiers que Pennylane exporte sans code (785 et 788 du TG en 2025/26) :
-    // ce sont des chantiers, pas de la structure.
+    // Chantiers que Pennylane exporte sans code : ce sont des chantiers, pas de
+    // la structure. Encore présents dans les exports du 6 octobre 2026 :
+    // décembre et juillet (« Créé par Import ASCII »), novembre (« LAURENT SA 750 »).
     {
       code: "#CRÉÉ PAR IMPORT ASCII",
       name: "Chantiers sans code dans Pennylane (libellé « Créé par Import ASCII »)",
       kind: "chantier",
     },
+    { code: "#LAURENT SA 750", name: "750 · LAURENT SA (sans code dans Pennylane)", kind: "chantier" },
+    // Code et libellé inversés dans Pennylane : code « DURANT », libellé « 788 ».
+    { code: "DURANT", name: "788 · DURANT", kind: "chantier" },
   ],
 };
 
