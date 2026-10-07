@@ -17,6 +17,7 @@ export const SYNTHESE_CODES = {
   previsionsSaisies: "syn_previsions_saisies",
   resultatGestion: "syn_resultat_gestion",
   ctrl: "syn_ctrl",
+  notes: "syn_notes",
 } as const;
 
 export const CHANTIER_CODES = {
@@ -68,3 +69,58 @@ export const FX_CODES = {
   totalGeneraux: "fx_total_generaux",
   totalGeneral: "fx_total_general",
 } as const;
+
+// ── Lecture des signes ───────────────────────────────────────────────────────
+// Les tableaux colorent ce qui va mal, pas ce qui est négatif : une charge qui
+// baisse est une bonne nouvelle. Ces fonctions donnent le sens d'une ligne et
+// le seuil d'alerte d'un ratio ; elles sont partagées par les trois vues.
+
+/**
+ * Ratios dont une valeur négative est le mauvais signe : un résultat ou une
+ * marge rapportés au CA. Tous les autres rapportent des charges au CA et
+ * passent en alerte au-dessus de 100 %, quand les charges dépassent le CA.
+ */
+export const RATIOS_DE_RESULTAT = new Set(["syn_ratio_resultat_net", "cha_marge"]);
+
+export function ratioEnAlerte(code: string, value: number | null): boolean {
+  if (value == null) return false;
+  return RATIOS_DE_RESULTAT.has(code) ? value < 0 : value > 100;
+}
+
+/** Résultats : une hausse est une bonne nouvelle, comme pour un produit. */
+const LIGNES_DE_RESULTAT = new Set([
+  "syn_resultat_exploitation",
+  "syn_resultat_net",
+  "syn_resultat_gestion",
+  "cha_resultat",
+]);
+
+type LigneLue = { code: string; section: string; kind: string };
+
+/**
+ * Sens d'une ligne : un produit ou un résultat qui monte est bon, une charge
+ * qui monte est mauvaise. Les lignes de contrôle, de cumul et de saisie n'ont
+ * pas de sens et ne se colorent pas.
+ */
+export function sensLigne(line: LigneLue): "produit" | "charge" | "neutre" {
+  if (line.kind === "ratio") return RATIOS_DE_RESULTAT.has(line.code) ? "produit" : "charge";
+  if (line.kind === "manual" || line.kind === "separator") return "neutre";
+  if (LIGNES_DE_RESULTAT.has(line.code)) return "produit";
+  if (/^(PRODUITS|AUTRES PRODUITS|RÉFÉRENCE)/.test(line.section)) return "produit";
+  if (/^(RÉSULTAT|CUMULS|GESTION)/.test(line.section)) return "neutre";
+  return "charge";
+}
+
+/** Classe CSS d'un écart N–N-1 : vert quand il va dans le bon sens, rouge sinon. */
+export function classeEcart(line: LigneLue, ecart: number | null): "pos" | "neg" | "muted" | "" {
+  // Moins de 50 centimes s'affiche « 0 € » : ce n'est pas un écart.
+  if (ecart == null || Math.abs(ecart) < 0.5) return "muted";
+  const sens = sensLigne(line);
+  if (sens === "neutre") return "";
+  return (sens === "produit" ? ecart > 0 : ecart < 0) ? "pos" : "neg";
+}
+
+/** Un « % / CA » au-dessus de 100 % sur une ligne de charge : les charges dépassent le CA. */
+export function pourcentageEnAlerte(line: LigneLue, pct: number | null): boolean {
+  return pct != null && pct > 100 && sensLigne(line) === "charge";
+}

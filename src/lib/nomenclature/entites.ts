@@ -132,6 +132,9 @@ const COVARBAT: EntiteConfig = {
     syn_sous_traitance_sodobat: "Sous-traitance (TVA 20 % / 0 % / EXO LQ)",
     cha_sous_traitance: "Sous-traitance (TVA 20 % / 0 % / EXO LQ)",
     fx_honoraires_management: "Honoraires de management",
+    // Le 62340000 (cadeaux clients) est rattaché aux honoraires chantier, comme
+    // la ligne « Honoraires Chantier / Cadeaux » de leur tableau de gestion.
+    cha_honoraires: "Honoraires chantier / Cadeaux clients",
   },
   regles: {
     // ▸ Synthèse

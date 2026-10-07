@@ -1,27 +1,37 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import type { SyntheseData, SyntheseRow } from "@/lib/finance";
+import { useMemo, useState, useTransition } from "react";
+import type { NoteMensuelle, SyntheseData, SyntheseRow } from "@/lib/finance";
 import { TOTAL_COLUMN } from "@/lib/nomenclature/columns";
+import {
+  SYNTHESE_CODES,
+  classeEcart,
+  pourcentageEnAlerte,
+  ratioEnAlerte,
+} from "@/lib/nomenclature/codes";
 import { fiscalYearLabel, fmtEur, fmtPct, monthLabel } from "@/lib/format";
+import { saveManualEntryAction } from "@/app/actions";
 
 // Structure de référence : Intitulé · les 12 mois de l'exercice · Total exercice ·
 // % / CA · N-1 Total · % N-1 · Écart N–N-1, soit 18 colonnes. Les mois sans données
-// sont masqués par défaut (« Masquer les colonnes vides ») ; décocher l'option
-// restitue les 12 mois pour retrouver la structure complète de la maquette.
+// et les postes sans montant sont masqués par défaut (« Masquer les colonnes
+// vides », « Masquer les lignes vides ») ; décocher les options restitue les
+// 12 mois et toutes les lignes pour retrouver la structure complète de la maquette.
 
-function pctBadge(pct: number | null) {
+function pctBadge(pct: number | null, alerte = false) {
   return pct == null ? (
     <span className="muted">-</span>
   ) : (
-    <span className="pct-badge">{fmtPct(pct)}</span>
+    <span className={`pct-badge${alerte ? " neg" : ""}`}>{fmtPct(pct)}</span>
   );
 }
 
+/** Moins de 50 centimes s'affiche « 0 € » : autant le lire comme un vide, jamais « -0 € ». */
+const vide = (v: number | null | undefined) => v == null || Math.abs(v) < 0.5;
+
 function money(v: number | null) {
-  if (v == null) return <span className="muted">-</span>;
-  if (v === 0) return <span className="muted">-</span>;
-  return fmtEur(v);
+  if (vide(v)) return <span className="muted">-</span>;
+  return fmtEur(v as number);
 }
 
 const negClass = (v: number | null) => (v != null && v < 0 ? "neg" : "");
@@ -33,11 +43,36 @@ const rowClass = (kind: string) => {
   return "";
 };
 
-export default function SyntheseTable({ data }: { data: SyntheseData }) {
+/**
+ * Lignes toujours affichées, même sans montant : la prévision et son annulation
+ * sont le mécanisme de lecture du CA de la maquette, on doit voir qu'elles sont
+ * à zéro.
+ */
+const LIGNES_TOUJOURS_VISIBLES = new Set<string>([
+  SYNTHESE_CODES.tecProvision,
+  SYNTHESE_CODES.annulation,
+]);
+
+export default function SyntheseTable({
+  data,
+  notes,
+  canEdit,
+  lockedMonths,
+}: {
+  data: SyntheseData;
+  /** note mensuelle de l'entité, par mois */
+  notes: Record<string, NoteMensuelle>;
+  /** peut saisir la note (entité, DAF, admin) */
+  canEdit: boolean;
+  /** mois validés par la DAF : la note y est figée */
+  lockedMonths: string[];
+}) {
   const { moisSansAnalytique } = data;
   const [section, setSection] = useState("");
   const [search, setSearch] = useState("");
-  const [hideEmpty, setHideEmpty] = useState(false);
+  // La maquette est commune au groupe : chaque entité y a des postes qu'elle
+  // n'utilise pas. Ils sont masqués par défaut, jamais supprimés.
+  const [hideEmpty, setHideEmpty] = useState(true);
   // Masquer les mois vides est l'affichage par défaut : en cours d'exercice, la
   // moitié des colonnes est encore à zéro.
   const [hideEmptyCols, setHideEmptyCols] = useState(true);
@@ -71,8 +106,9 @@ export default function SyntheseTable({ data }: { data: SyntheseData }) {
         ...s,
         rows: s.rows.filter((r) => {
           // Les lignes calculées structurent le tableau : jamais masquées.
-          const isStructural = r.category.kind !== "poste";
-          if (hideEmpty && !isStructural && !r.total && !r.prevTotal) return false;
+          const isStructural =
+            r.category.kind !== "poste" || LIGNES_TOUJOURS_VISIBLES.has(r.category.code);
+          if (hideEmpty && !isStructural && vide(r.total) && vide(r.prevTotal)) return false;
           if (!q) return true;
           return `${r.category.label} ${r.category.section}`.toLowerCase().includes(q);
         }),
@@ -161,7 +197,17 @@ export default function SyntheseTable({ data }: { data: SyntheseData }) {
               </tr>
             )}
             {visibleSections.map((s) => (
-              <SectionRows key={s.name} name={s.name} rows={s.rows} months={monthsShown} colCount={colCount} cumul={cumul} />
+              <SectionRows
+                key={s.name}
+                name={s.name}
+                rows={s.rows}
+                months={monthsShown}
+                colCount={colCount}
+                cumul={cumul}
+                notes={notes}
+                canEdit={canEdit}
+                lockedMonths={lockedMonths}
+              />
             ))}
           </tbody>
         </table>
@@ -189,12 +235,18 @@ function SectionRows({
   months,
   colCount,
   cumul,
+  notes,
+  canEdit,
+  lockedMonths,
 }: {
   name: string;
   rows: SyntheseRow[];
   months: string[];
   colCount: number;
   cumul: boolean;
+  notes: Record<string, NoteMensuelle>;
+  canEdit: boolean;
+  lockedMonths: string[];
 }) {
   return (
     <>
@@ -202,8 +254,19 @@ function SectionRows({
         <td colSpan={colCount}>{name}</td>
       </tr>
       {rows.map((r) => {
+        if (r.category.code === SYNTHESE_CODES.notes)
+          return (
+            <NotesTr
+              key={r.category.code}
+              label={r.category.label}
+              months={months}
+              notes={notes}
+              canEdit={canEdit}
+              lockedMonths={lockedMonths}
+            />
+          );
         const isRatio = r.category.kind === "ratio";
-        const cell = (v: number | null) => (isRatio ? pctBadge(v) : money(v));
+        const ecartClass = classeEcart(r.category, r.ecart);
         return (
           <tr key={r.category.code} className={rowClass(r.category.kind)}>
             <td className="label-cell" title={r.category.notes ?? undefined}>
@@ -211,26 +274,121 @@ function SectionRows({
             </td>
             {months.map((m) => {
               const v = (cumul ? r.cumulCells : r.cells)[m] ?? null;
+              if (isRatio)
+                return (
+                  <td key={m} className={v == null ? "muted" : ""}>
+                    {pctBadge(v, ratioEnAlerte(r.category.code, v))}
+                  </td>
+                );
               return (
                 <td key={m} className={v ? negClass(v) : "muted"}>
-                  {cell(v)}
+                  {money(v)}
                 </td>
               );
             })}
-            <td className={negClass(r.total)} style={{ fontWeight: 500 }}>
-              {cell(r.cells[TOTAL_COLUMN] ?? r.total)}
-            </td>
-            <td className="pct-col">{pctBadge(r.pctCa)}</td>
-            <td className={r.prevTotal != null ? negClass(r.prevTotal) : "muted"}>
-              {cell(r.prevTotal)}
-            </td>
-            <td className="pct-col">{pctBadge(r.pctPrev)}</td>
-            <td className={r.ecart != null ? "" : "muted"}>
-              {cell(r.ecart)}
-            </td>
+            {isRatio ? (
+              // Le ratio de l'exercice figure déjà dans la colonne % / CA de la
+              // ligne de total juste au-dessus, pour N comme pour N-1 : la ligne
+              // ratio ne le répète pas. Elle garde le mois par mois et l'écart,
+              // en points.
+              <>
+                <td />
+                <td className="pct-col" />
+                <td />
+                <td className="pct-col" />
+                <td className={ecartClass === "muted" ? "muted" : ""}>
+                  {pctBadge(r.ecart, ecartClass === "neg")}
+                </td>
+              </>
+            ) : (
+              <>
+                <td className={negClass(r.total)} style={{ fontWeight: 500 }}>
+                  {money(r.cells[TOTAL_COLUMN] ?? r.total)}
+                </td>
+                <td className="pct-col">
+                  {pctBadge(r.pctCa, pourcentageEnAlerte(r.category, r.pctCa))}
+                </td>
+                <td className={r.prevTotal != null ? negClass(r.prevTotal) : "muted"}>
+                  {money(r.prevTotal)}
+                </td>
+                <td className="pct-col">
+                  {pctBadge(r.pctPrev, pourcentageEnAlerte(r.category, r.pctPrev))}
+                </td>
+                <td className={ecartClass}>{money(r.ecart)}</td>
+              </>
+            )}
           </tr>
         );
       })}
     </>
+  );
+}
+
+/**
+ * Note mensuelle de l'entité : une saisie par colonne de mois, au niveau de
+ * l'entité (sans centre). Elle suit le verrou de la validation : un mois validé
+ * par la DAF se lit, ne se modifie plus. Les colonnes de totaux restent vides,
+ * une note ne se cumule pas.
+ */
+function NotesTr({
+  label,
+  months,
+  notes,
+  canEdit,
+  lockedMonths,
+}: {
+  label: string;
+  months: string[];
+  notes: Record<string, NoteMensuelle>;
+  canEdit: boolean;
+  lockedMonths: string[];
+}) {
+  const [isPending, startTransition] = useTransition();
+  const save = (month: string, text: string) => {
+    const fd = new FormData();
+    fd.set("period", month);
+    fd.set("field", "note");
+    fd.set("valueText", text);
+    fd.set("status", "draft");
+    startTransition(() => {
+      void saveManualEntryAction(fd);
+    });
+  };
+  return (
+    <tr style={isPending ? { opacity: 0.5 } : undefined}>
+      <td className="label-cell">
+        {label}
+        {canEdit && " 🟡"}
+      </td>
+      {months.map((m) => {
+        const note = notes[m];
+        const locked = lockedMonths.includes(m);
+        const trace = note?.by ? `${note.by}${note.at ? ` · ${note.at}` : ""}` : null;
+        if (!canEdit || locked)
+          return (
+            <td
+              key={m}
+              className="left"
+              title={[locked ? "Mois validé" : null, trace].filter(Boolean).join(" · ") || undefined}
+            >
+              <span className="cell-note">{note?.text ?? ""}</span>
+            </td>
+          );
+        return (
+          <td key={m} className="left">
+            <input
+              className="inline-num cell-note-input"
+              defaultValue={note?.text ?? ""}
+              placeholder="note…"
+              title={trace ?? "Note du mois, visible de tous"}
+              onBlur={(e) => {
+                if (e.target.value !== (note?.text ?? "")) save(m, e.target.value);
+              }}
+            />
+          </td>
+        );
+      })}
+      <td colSpan={5} />
+    </tr>
   );
 }

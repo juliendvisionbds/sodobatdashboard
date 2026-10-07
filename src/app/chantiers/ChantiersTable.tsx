@@ -3,7 +3,7 @@
 import { Fragment, useMemo, useState, useTransition } from "react";
 import type { Category } from "@/lib/mapping";
 import type { ChantierRow, ChantiersData } from "@/lib/finance";
-import { CHANTIER_CODES } from "@/lib/nomenclature/codes";
+import { CHANTIER_CODES, ratioEnAlerte } from "@/lib/nomenclature/codes";
 import { fmtEur, fmtPct } from "@/lib/format";
 import { saveManualEntryAction } from "@/app/actions";
 
@@ -29,7 +29,8 @@ const isDiv = (line: Category) =>
 const isProduit = (line: Category) => line.section.startsWith("PRODUITS");
 
 function cellClass(line: Category, v: number | null) {
-  if (isRatio(line) || isDiv(line)) return v == null ? "muted" : "";
+  if (isRatio(line)) return v == null ? "muted" : ratioEnAlerte(line.code, v) ? "neg" : "";
+  if (isDiv(line)) return v == null ? "muted" : "";
   return amountClass(v, isProduit(line));
 }
 
@@ -71,6 +72,9 @@ export default function ChantiersTable({
   const [pole, setPole] = useState("");
   const [search, setSearch] = useState("");
   const [hideInactive, setHideInactive] = useState(true);
+  // La maquette est commune au groupe : chaque entité y a des postes qu'elle
+  // n'utilise pas. Sans montant ce mois-ci, ils sont masqués, jamais supprimés.
+  const [hideEmptyLines, setHideEmptyLines] = useState(true);
 
   const filtered = useMemo(
     () =>
@@ -100,16 +104,31 @@ export default function ChantiersTable({
   }, [filtered]);
   const columns = useMemo(() => byPole.flatMap(([, list]) => list), [byPole]);
 
+  // Postes sans aucun montant ce mois-ci, sur l'ensemble des chantiers et au
+  // total, filtres compris : le tableau ne bouge pas quand on filtre un pôle.
+  // La prévision est une zone de saisie et reste visible ; les totaux, ratios,
+  // cumuls, note et statut structurent le tableau et ne sont jamais masqués.
+  const emptyLines = useMemo(() => {
+    const out = new Set<string>();
+    for (const l of lines) {
+      if (l.kind !== "poste" || l.code === CHANTIER_CODES.provision) continue;
+      if (totals[l.code] || rows.some((r) => r.values[l.code])) continue;
+      out.add(l.code);
+    }
+    return out;
+  }, [lines, rows, totals]);
+
   // Lignes groupées par section de la maquette, dans l'ordre.
   const sections = useMemo(() => {
     const out: { name: string; lines: Category[] }[] = [];
     for (const l of lines) {
+      if (hideEmptyLines && emptyLines.has(l.code)) continue;
       const last = out[out.length - 1];
       if (last && last.name === l.section) last.lines.push(l);
       else out.push({ name: l.section, lines: [l] });
     }
     return out;
-  }, [lines]);
+  }, [lines, hideEmptyLines, emptyLines]);
 
   // Intitulé + chantiers + total
   const colCount = columns.length + 2;
@@ -139,6 +158,14 @@ export default function ChantiersTable({
             onChange={(e) => setHideInactive(e.target.checked)}
           />
           Masquer les chantiers sans activité
+        </label>
+        <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12 }}>
+          <input
+            type="checkbox"
+            checked={hideEmptyLines}
+            onChange={(e) => setHideEmptyLines(e.target.checked)}
+          />
+          Masquer les lignes vides
         </label>
         <span className="tctl-stats">
           {filtered.length} chantier{filtered.length > 1 ? "s" : ""} affiché
@@ -209,6 +236,9 @@ export default function ChantiersTable({
         durée de vie du chantier. La colonne Total porte sur tous les chantiers du mois, filtres
         compris. Les centres de structure (FX) sont exclus : voir Frais généraux.
         {hidden > 0 && ` ${hidden} chantier(s) sans activité masqué(s) — les données sont conservées.`}
+        {hideEmptyLines &&
+          emptyLines.size > 0 &&
+          ` ${emptyLines.size} ligne(s) de la maquette sans montant ce mois-ci masquée(s) : elles reviennent dès qu'une écriture les concerne.`}
       </p>
     </div>
   );

@@ -111,6 +111,13 @@ PGLITE_DIR=/tmp/clone npx drizzle-kit push --force
 PGLITE_DIR=/tmp/clone npm run clone:local -- ../backups/sodobat-AAAA-MM-JJ-….json
 ```
 
+Pour voir ce clone dans l'application à côté du serveur de développement, le
+placer dans `.data/clone` (ignoré par git), compiler avec
+`DATABASE_URL= PGLITE_DIR=.data/clone npm run build`, puis lancer la
+configuration d'aperçu `dashboard-clone` (`.claude/launch.json`), qui sert la
+version compilée sur le port 3100 contre ce clone. La sauvegarde ne contient pas
+les comptes utilisateurs : en créer un avec `DATABASE_URL= PGLITE_DIR=.data/clone npm run db:user -- …`.
+
 ### Recette
 
 ```bash

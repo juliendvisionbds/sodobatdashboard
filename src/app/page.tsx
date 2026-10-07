@@ -3,6 +3,8 @@ import { and, desc, eq } from "drizzle-orm";
 import { db, tables } from "@/db";
 import AppHeader from "@/components/AppHeader";
 import { getSynthese, listVentileePeriods } from "@/lib/views";
+import { getNotesEntite, listValidatedMonths } from "@/lib/finance";
+import { canSaisir, getSession, ownsEntity } from "@/lib/auth";
 import { fmtEurAuto, fmtPct, monthLabel, monthLabelLong, splitAutoEur } from "@/lib/format";
 import MonthSelect from "@/components/MonthSelect";
 import { currentFiscalCutoff, splitAlerts } from "@/lib/alerts";
@@ -55,6 +57,15 @@ export default async function SynthesePage({
       </>
     );
   }
+
+  // La note mensuelle et le verrou des mois validés changent à chaque saisie :
+  // lus en direct, hors du cache des vues.
+  const [session, notes, validatedMonths] = await Promise.all([
+    getSession(),
+    getNotesEntite(entity.id, data.months),
+    listValidatedMonths(entity.id),
+  ]);
+  const canEditNotes = !!session && canSaisir(session) && ownsEntity(session, entity.id);
 
   const shown = data.monthsWithData;
   const nbMois = shown.length;
@@ -303,7 +314,12 @@ export default async function SynthesePage({
           </div>
         </div>
 
-        <SyntheseTable data={data} />
+        <SyntheseTable
+          data={data}
+          notes={notes}
+          canEdit={canEditNotes}
+          lockedMonths={validatedMonths}
+        />
       </div>
     </>
   );

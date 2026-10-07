@@ -1155,6 +1155,49 @@ export type MonthValidation = {
   staleReason: string | null;
 };
 
+/** Mois validés par la DAF : leurs saisies sont figées d'un bloc, note comprise. */
+export async function listValidatedMonths(entityId: number): Promise<string[]> {
+  const rows = await db
+    .select({ period: tables.monthValidations.period })
+    .from(tables.monthValidations)
+    .where(eq(tables.monthValidations.entityId, entityId));
+  return rows.map((r) => r.period).sort();
+}
+
+export type NoteMensuelle = { text: string; by: string | null; at: string | null };
+
+/**
+ * Note de la Synthèse, par mois : saisie au niveau de l'entité, sans centre
+ * (manual_entries.centre_code nul), à la différence de la note d'un chantier.
+ */
+export async function getNotesEntite(
+  entityId: number,
+  months: string[]
+): Promise<Record<string, NoteMensuelle>> {
+  if (months.length === 0) return {};
+  const rows = await db
+    .select()
+    .from(tables.manualEntries)
+    .where(
+      and(
+        eq(tables.manualEntries.entityId, entityId),
+        eq(tables.manualEntries.field, "note"),
+        isNull(tables.manualEntries.centreCode),
+        inArray(tables.manualEntries.period, months)
+      )
+    );
+  const out: Record<string, NoteMensuelle> = {};
+  for (const r of rows) {
+    if (!r.valueText) continue;
+    out[r.period] = {
+      text: r.valueText,
+      by: r.updatedBy,
+      at: r.updatedAt ? new Date(r.updatedAt).toLocaleDateString("fr-FR") : null,
+    };
+  }
+  return out;
+}
+
 export async function getMonthValidation(
   entity: Entity,
   control: PrevisionControl

@@ -24,6 +24,20 @@
       ],
       "port": 3100,
       "autoPort": true
+    },
+    {
+      "name": "dashboard-clone",
+      "runtimeExecutable": "env",
+      "runtimeArgs": [
+        "DATABASE_URL=",
+        "PGLITE_DIR=.data/clone",
+        "npx",
+        "next",
+        "start",
+        "-p",
+        "3100"
+      ],
+      "port": 3100
     }
   ]
 }

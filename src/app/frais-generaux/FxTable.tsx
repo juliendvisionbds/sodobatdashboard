@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import type { FxData, FxRow } from "@/lib/finance";
+import { classeEcart, pourcentageEnAlerte } from "@/lib/nomenclature/codes";
 import { fmtEur, fmtPct } from "@/lib/format";
 
 // Colonnes imposées par la maquette, dans cet ordre exact :
@@ -11,11 +12,11 @@ import { fmtEur, fmtPct } from "@/lib/format";
 
 const COL_COUNT = 10;
 
-function pctBadge(pct: number | null) {
+function pctBadge(pct: number | null, alerte = false) {
   return pct == null ? (
     <span className="muted">-</span>
   ) : (
-    <span className="pct-badge">{fmtPct(pct)}</span>
+    <span className={`pct-badge${alerte ? " neg" : ""}`}>{fmtPct(pct)}</span>
   );
 }
 
@@ -35,17 +36,21 @@ const rowClass = (kind: string) => {
 export default function FxTable({ data }: { data: FxData }) {
   const [search, setSearch] = useState("");
 
+  // Les lignes ratio de la maquette répètent le % / CA de la ligne de total
+  // qu'elles suivent : dans cette lecture par exercice, la colonne suffit. La
+  // vue Mensuel les garde, elles y donnent le mois par mois.
   const visibleSections = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return data.sections;
     return data.sections
       .map((s) => ({
         ...s,
-        rows: s.rows.filter((r) =>
-          `${r.category.label} ${r.accounts.map((a) => a.account).join(" ")}`
+        rows: s.rows.filter((r) => {
+          if (r.category.kind === "ratio") return false;
+          if (!q) return true;
+          return `${r.category.label} ${r.accounts.map((a) => a.account).join(" ")}`
             .toLowerCase()
-            .includes(q)
-        ),
+            .includes(q);
+        }),
       }))
       .filter((s) => s.rows.length > 0);
   }, [data.sections, search]);
@@ -100,7 +105,9 @@ export default function FxTable({ data }: { data: FxData }) {
         </table>
       </div>
       <p style={{ marginTop: 10, fontSize: 11, color: "var(--gray3)" }}>
-        Chaque « % / CA » est calculé contre le CA total de son propre exercice.
+        Chaque « % / CA » est calculé contre le CA total de son propre exercice ; le
+        ratio d&apos;une section se lit sur sa ligne de total, la vue Mensuel le donne
+        mois par mois. Un écart est vert quand la charge baisse, rouge quand elle monte.
         {notes.length > 0 && ` ${notes.join(" · ")}.`}
       </p>
     </div>
@@ -114,9 +121,10 @@ function Section({ name, rows, nbMois }: { name: string; rows: FxRow[]; nbMois: 
         <td colSpan={COL_COUNT}>{name}</td>
       </tr>
       {rows.map((r) => {
-        const isRatio = r.category.kind === "ratio";
-        const cell = (v: number | null) => (isRatio ? pctBadge(v) : money(v));
         const accountList = r.accounts.map((a) => a.account);
+        const ecartClass = classeEcart(r.category, r.ecart);
+        const pct = (col: "n2" | "n1" | "n") =>
+          pctBadge(r.pct[col], pourcentageEnAlerte(r.category, r.pct[col]));
         return (
           <tr key={r.category.code} className={rowClass(r.category.kind)}>
             <td
@@ -129,17 +137,17 @@ function Section({ name, rows, nbMois }: { name: string; rows: FxRow[]; nbMois: 
             >
               {r.category.label}
             </td>
-            <td className={negClass(r.cells.n2)}>{cell(r.cells.n2)}</td>
-            <td className="pct-col">{pctBadge(r.pct.n2)}</td>
-            <td className={negClass(r.cells.n1)}>{cell(r.cells.n1)}</td>
-            <td className="pct-col">{pctBadge(r.pct.n1)}</td>
+            <td className={negClass(r.cells.n2)}>{money(r.cells.n2)}</td>
+            <td className="pct-col">{pct("n2")}</td>
+            <td className={negClass(r.cells.n1)}>{money(r.cells.n1)}</td>
+            <td className="pct-col">{pct("n1")}</td>
             <td className={negClass(r.cells.n)} style={{ fontWeight: 500 }}>
-              {cell(r.cells.n)}
+              {money(r.cells.n)}
             </td>
-            <td className="pct-col">{pctBadge(r.pct.n)}</td>
+            <td className="pct-col">{pct("n")}</td>
             <td className="muted">{nbMois}</td>
-            <td>{money(r.ecart)}</td>
-            <td className="pct-col">{pctBadge(r.ecartPct)}</td>
+            <td className={ecartClass}>{money(r.ecart)}</td>
+            <td className="pct-col">{pctBadge(r.ecartPct, ecartClass === "neg")}</td>
           </tr>
         );
       })}

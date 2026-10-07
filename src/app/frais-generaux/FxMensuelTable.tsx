@@ -3,17 +3,18 @@
 import { useMemo, useState } from "react";
 import type { FxMensuelData, FxMensuelRow } from "@/lib/finance";
 import { TOTAL_COLUMN } from "@/lib/nomenclature/columns";
+import { pourcentageEnAlerte, ratioEnAlerte } from "@/lib/nomenclature/codes";
 import { fmtEur, fmtPct, monthLabel } from "@/lib/format";
 
 // Vue mensuelle des frais généraux : Intitulé · un mois par colonne · Cumul ·
 // % / CA du cumul. Les ratios se recalculent dans chaque colonne contre le CA du
 // même mois, et dans le cumul contre le CA cumulé — un ratio ne se somme pas.
 
-function pctBadge(pct: number | null) {
+function pctBadge(pct: number | null, alerte = false) {
   return pct == null ? (
     <span className="muted">-</span>
   ) : (
-    <span className="pct-badge">{fmtPct(pct)}</span>
+    <span className={`pct-badge${alerte ? " neg" : ""}`}>{fmtPct(pct)}</span>
   );
 }
 
@@ -117,7 +118,6 @@ function Section({
       </tr>
       {rows.map((r) => {
         const isRatio = r.category.kind === "ratio";
-        const cell = (v: number | null) => (isRatio ? pctBadge(v) : money(v));
         const cumul = r.cells[TOTAL_COLUMN] ?? null;
         return (
           <tr key={r.category.code} className={rowClass(r.category.kind)}>
@@ -133,16 +133,30 @@ function Section({
             </td>
             {months.map((m) => {
               const v = r.cells[m] ?? null;
+              if (isRatio)
+                return (
+                  <td key={m} className={v == null ? "muted" : ""}>
+                    {pctBadge(v, ratioEnAlerte(r.category.code, v))}
+                  </td>
+                );
               return (
                 <td key={m} className={negClass(v)}>
-                  {cell(v)}
+                  {money(v)}
                 </td>
               );
             })}
-            <td className={`total-col ${negClass(cumul)}`} style={{ fontWeight: 500 }}>
-              {cell(cumul)}
+            {isRatio ? (
+              // Le ratio du cumul figure déjà dans la colonne % / CA de la ligne
+              // de total juste au-dessus : la ligne ratio ne le répète pas.
+              <td className="total-col" />
+            ) : (
+              <td className={`total-col ${negClass(cumul)}`} style={{ fontWeight: 500 }}>
+                {money(cumul)}
+              </td>
+            )}
+            <td className="pct-col">
+              {pctBadge(r.pctCumul, pourcentageEnAlerte(r.category, r.pctCumul))}
             </td>
-            <td className="pct-col">{pctBadge(r.pctCumul)}</td>
           </tr>
         );
       })}
