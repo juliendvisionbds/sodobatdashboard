@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getSession, canWrite } from "@/lib/auth";
+import { getSession, canWrite, ownsEntity } from "@/lib/auth";
 import { fiscalYearLabel } from "@/lib/format";
 import { debutExercice } from "@/lib/nomenclature/entites";
 import UserMenu from "@/components/UserMenu";
@@ -31,11 +31,15 @@ export default async function AppHeader({
     listEntities(),
     allowedEntities(session),
   ]);
-  const choices = entities.map((e) => ({
-    code: e.code,
-    name: e.name,
-    available: allowed.some((a) => a.id === e.id),
-  }));
+  // Un compte rattaché à une entité ne voit qu'elle dans le menu ; les comptes
+  // de la holding voient tout le groupe, les entités fermées en « Coming soon ».
+  const choices = entities
+    .filter((e) => !session || ownsEntity(session, e.id))
+    .map((e) => ({
+      code: e.code,
+      name: e.name,
+      available: allowed.some((a) => a.id === e.id),
+    }));
 
   return (
     <header className="header">

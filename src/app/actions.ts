@@ -29,21 +29,23 @@ async function requireWriter() {
 
 // ── Entité affichée ──────────────────────────────────────────────────────────
 
+async function setEntityCookie(code: string) {
+  const jar = await cookies();
+  jar.set(ENTITY_COOKIE, code, {
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    maxAge: 365 * 24 * 3600,
+    path: "/",
+  });
+}
+
 /** Change l'entité affichée. Le cookie n'est posé que pour une entité ouverte à ce compte. */
 export async function switchEntityAction(formData: FormData) {
   const session = await getSession();
   if (!session) redirect("/login");
   const code = String(formData.get("entity") ?? "");
   const allowed = await allowedEntities(session);
-  if (allowed.some((e) => e.code === code)) {
-    const jar = await cookies();
-    jar.set(ENTITY_COOKIE, code, {
-      sameSite: "lax",
-      secure: process.env.NODE_ENV === "production",
-      maxAge: 365 * 24 * 3600,
-      path: "/",
-    });
-  }
+  if (allowed.some((e) => e.code === code)) await setEntityCookie(code);
   // Le mois ou le chantier consulté n'existe pas forcément dans l'autre entité.
   redirect("/");
 }
@@ -58,6 +60,13 @@ export async function loginAction(
   const password = String(formData.get("password") ?? "");
   const session = await login(email, password);
   if (!session) return { error: "Identifiants incorrects." };
+  // Un compte rattaché à une entité ne passe jamais par le menu : sans ce
+  // cookie, l'écran d'attente afficherait le nom d'une autre entité (Sodobat
+  // par défaut, ou celle laissée par le compte précédent) à chaque chargement.
+  if (session.entityId != null) {
+    const [own] = await allowedEntities(session);
+    if (own) await setEntityCookie(own.code);
+  }
   redirect(String(formData.get("next") || "/"));
 }
 
