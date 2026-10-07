@@ -313,8 +313,8 @@ export const synthese: NomenclatureLine[] = [
     label: "Sous-traitance paiement direct",
     kind: "poste",
     accounts: SOUS_TRAITANCE_PAIEMENT_DIRECT,
-    // VBTP suit aussi le paiement direct, sur son compte 60411009 (code D).
-    entityScope: "sodobat,vbtp",
+    // VBTP (60411009) et Easy Home (60412000) suivent aussi le paiement direct (code D).
+    entityScope: "sodobat,vbtp,easyhome",
     notes: "Code D — compte 60412100, objectif « Sous-traitants 1 »",
   },
   {
@@ -1177,7 +1177,7 @@ export const chantier: NomenclatureLine[] = [
     label: "Sous-traitance paiement direct",
     kind: "poste",
     accounts: SOUS_TRAITANCE_PAIEMENT_DIRECT,
-    entityScope: "sodobat,vbtp",
+    entityScope: "sodobat,vbtp,easyhome",
     notes: "Code D — compte 60412100, colonne « Sous traitance PD » du tableau de gestion",
   },
   {

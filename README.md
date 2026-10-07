@@ -1,6 +1,6 @@
 # Dashboard financier — Groupe SDG
 
-Tableaux de gestion intelligents alimentés par les exports comptables (balance ventilée + balance analytique), Cegid ou Pennylane. Entités ouvertes : Sodobat, CovarBat, VBTP, Easy Mat.
+Tableaux de gestion intelligents alimentés par les exports comptables (balance ventilée + balance analytique), Cegid ou Pennylane. Entités ouvertes : Sodobat, CovarBat, VBTP, Easy Mat, Easy Home.
 
 ## Fonctionnement
 
@@ -54,7 +54,8 @@ Ce qu'une entité a en propre est déclaré dans `src/lib/nomenclature/entites.t
   commune : « c'est le code de Sodobat qui prévaut » ;
 - **libellés** qui diffèrent ;
 - **prévisions de travaux** : `compte` (Sodobat sur le 71331000, VBTP sur le
-  71345000, Easy Mat sur le 71331000 après le 71340000 (`autresComptes`) : la
+  71345000, Easy Mat sur le 71331000 après le 71340000 (`autresComptes`),
+  Easy Home sur le 71350000 : la
   balance analytique porte la prévision par chantier, la prévision du mois est
   la provision en cours à la fin du mois, l'annulation celle du mois précédent
   de signe opposé, convention de la DAF) ou `saisie`
@@ -62,7 +63,7 @@ Ce qu'une entité a en propre est déclaré dans `src/lib/nomenclature/entites.t
   l'application fait foi, l'annulation d'un mois est la prévision du mois
   précédent, et le reste du compte 70400000 est du chiffre d'affaires) ;
 - **exercice** : mois d'ouverture (`exercice.debut`). Novembre chez Sodobat,
-  CovarBat et Easy Mat (exercice 2025 = novembre 2025 → octobre 2026), janvier
+  CovarBat, Easy Mat et Easy Home (exercice 2025 = novembre 2025 → octobre 2026), janvier
   chez VBTP (année civile). Un exercice est repéré par l'année de son ouverture ;
 - **centres** dont la nature ne se lit pas dans le code, et centres lus comme
   un autre (`aliasOf`) : un chantier que Pennylane exporte sans code est
@@ -70,9 +71,9 @@ Ce qu'une entité a en propre est déclaré dans `src/lib/nomenclature/entites.t
   suivent ce numéro dans les vues ;
 - **centres de structure** (`centresStructure`) : par défaut un code qui
   commence par un chiffre est un chantier, le reste de la structure. Easy Mat
-  numérote ses affaires par des lettres (MFR191, AO250428…) : sa structure est
-  énumérée (FX, QUADRA, dépôts, SDG, DIVERS, véhicules, centres sans code), tout
-  autre centre est une affaire.
+  et Easy Home numérotent leurs affaires par des lettres (MFR191, AO250428,
+  PR364, STRA125…) : leur structure est énumérée (FX, QUADRA, dépôts, SDG,
+  DIVERS, véhicules, centres sans code), tout autre centre est une affaire.
 
 Une ligne de la maquette qui ne concerne que certaines entités porte leur code
 dans `entityScope`.
@@ -93,6 +94,10 @@ npm run entite:installer -- easymat --apply
 npm run import:file -- "<balance Pennylane>" --entite easymat
 npm run import:file -- "<2024 2025_BALANCE ANALYTIQUE EASYMAT.xlsx>" --entite easymat --annuel --period 2025-10
 npm run rapprochement:synthese -- "<2026 06_TG EASYMAT.XLSX>" --entite easymat
+npm run entite:installer -- easyhome --apply
+npm run import:file -- "<balance Pennylane>" --entite easyhome
+npm run import:file -- "<2024 2025_BALANCE ARCHIVE EASYHOME.xlsx>" --entite easyhome --annuel --period 2025-10
+npm run rapprochement:synthese -- "<2026 06_TG EASYHOME.xlsx>" --entite easyhome
 ```
 
 `entite:installer` remplace `db:nomenclature` sur une base en service : il ne

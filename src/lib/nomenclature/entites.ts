@@ -775,11 +775,250 @@ const EASYMAT: EntiteConfig = {
   centres: [],
 };
 
+// ── Easy Home ────────────────────────────────────────────────────────────────
+// Sources : plan comptable Easy Home 2026 (colonnes Onglet / Libellé / Code =
+// lettre de la maquette), balances analytiques Pennylane 2025/26 (mensuelles,
+// novembre → juin), balances analytiques Quadra des exercices 2022/23 à 2024/25
+// (« BALANCE ARCHIVE »), maquette structurelle du groupe, tableau de gestion
+// « 2026 06_TG EASYHOME » (onglet « EH 2026 ») et classeur « 2026_EASYHOME FX »
+// de la DAF, lus comme référence de forme : la comptabilité fait foi. Exercice
+// novembre → octobre, comptes Pennylane sur 12 chiffres ramenés à 8.
+//
+// Même métier qu'Easy Mat (aménagement, location de modules, revente de
+// marchandises), mêmes lignes propres : « CA Location » (code L) et « Achats de
+// marchandises » (code R). Règle de la DAF appliquée quand les deux plans se
+// contredisent : un compte déjà affecté chez Easy Mat garde son code —
+// 70612000 « modules en location » reste en location (le plan Easy Home le
+// code K), 70410000 « assurance / location » reste en travaux (plan L),
+// 62310000 « annonces » reste en sponsoring (plan V). À compte égal et de même
+// nature, le code de Sodobat prévaut : 62800000 « frais divers » reste en
+// cotisations (plan AC), ligne « 628 Cotisations, dons salariés » du tableau
+// de gestion. Le 60412000 « sous-traitant PD » est du paiement direct (code D),
+// comme son libellé et le plan le disent : la ligne est ouverte à Easy Home.
+
+/** Code K — prestations d'aménagement, prestations administratives, assurance refacturée. */
+const EASYHOME_CA_TRAVAUX = ["70410000", "70611000", "70611010", "70680000", "70681000"];
+/** Code L — locations diverses, modules en location, location Jaguar (2022). */
+const EASYHOME_CA_LOCATION = ["70610000", "70610999", "70612000"];
+/** Code M — bungalows et marchandises ; le 70701900 est commun au groupe. */
+const EASYHOME_CA_MARCHANDISES = ["70720000", "70792000"];
+/** Code O — « Travaux en cours » : le compte de prévision d'Easy Home. */
+const EASYHOME_PROVISION = "71350000";
+/** Code A — matières UE, fournitures magasin et UE, petite fourniture, remises. */
+const EASYHOME_ACHATS = ["60100900", "60224000", "60224900", "60630900", "60900900"];
+/** Code R */
+const EASYHOME_MARCHANDISES = ["60700900", "60710000"];
+/** Code Z — variation de stock de marchandises ; le 60310000 est commun au groupe. */
+const EASYHOME_VARIATION_STOCK = ["60370000"];
+/** Code C — sous-traitance non assujettie, LQ, TVA 0 ; 60400000 est commun au groupe. */
+const EASYHOME_SOUS_TRAITANCE = ["60410000", "60412001", "60430000"];
+/** Code D — sous-traitant en paiement direct (155 k€ sur trois exercices). */
+const EASYHOME_SOUS_TRAITANCE_DIRECT = ["60412000"];
+/** Code E — location de bennes et déchets (location de transport chez Sodobat). */
+const EASYHOME_DECHETS = ["61351000"];
+/** Code B — location de matériel (le cœur du métier). */
+const EASYHOME_LOCATION_MATERIEL = ["61351100"];
+/** Code B — locations longue durée de véhicules (Volkswagen, Toyota), location de véhicule, location UE. */
+const EASYHOME_LOCATION_VEHICULES = ["61325000", "61325100", "61325200", "61326000", "61350700", "61350900"];
+/** Code H — eau et EDF de chantier. */
+const EASYHOME_EDF_EAU_CHANTIER = ["60610010", "60610100"];
+/** Code P — eau du siège (eau de chantier chez Sodobat), lue comme l'EDF du siège. */
+const EASYHOME_EAU_SIEGE = ["60610000"];
+/** Code I */
+const EASYHOME_CARBURANT = ["60614111", "60614222"];
+const EASYHOME_DEPLACEMENTS = ["62510009"];
+/** Code S */
+const EASYHOME_ENTRETIEN = ["61550009", "61550099"];
+/** Code Q — leasings de modules (comptes des balances Quadra) et pont roulant CIC. */
+const EASYHOME_CREDIT_BAIL = ["61210001", "61210002", "61210003", "61210004", "61325300"];
+/** Code P — SDG, SCI Easy Invest ; 61323000 et 61400000 sont communs au groupe. */
+const EASYHOME_LOCATION_IMMO = ["61322000", "61324000"];
+/** Code T */
+const EASYHOME_ASSURANCES = ["61600000", "61611000", "61640000", "61650000", "61680000", "61682000"];
+/** Code U */
+const EASYHOME_HONORAIRES_MANAGEMENT = ["62262000"];
+/** Code V — honoraire informatique (chantier chez Sodobat), commissions, intermédiaires. */
+const EASYHOME_HONORAIRES_DIVERS = ["62220000", "62222222", "62261000"];
+/** Code W — publicité, annonces, catalogues (2023), sponsoring. */
+const EASYHOME_SPONSORING = ["62300000", "62310000", "62310007", "62360000", "62380000"];
+/** Code AA */
+const EASYHOME_TELECOM = ["62610000"];
+/** Code X (frais bancaires) */
+const EASYHOME_BANCAIRES = ["62780020", "66150000"];
+/** Code X (impôts) — crédit d'impôt. */
+const EASYHOME_IMPOTS = ["69900000"];
+/** Code F — masse salariale propre à Easy Home, par nature pour la vue Chantiers. */
+const EASYHOME_MS_TAXE_APPRENTISSAGE = ["63120000"];
+const EASYHOME_MS_SALAIRES = ["64115000", "64120000"];
+const EASYHOME_MS_PRIMES = ["64142000"];
+const EASYHOME_MS_PREVOYANCE = ["64520000", "64531000", "64532000"];
+const EASYHOME_MS_AUTRES = ["63581000", "64121000", "64580000", "64712000", "64820000", "64910000", "69100000"];
+const EASYHOME_MASSE_SALARIALE = [
+  ...EASYHOME_MS_TAXE_APPRENTISSAGE, ...EASYHOME_MS_SALAIRES, ...EASYHOME_MS_PRIMES,
+  ...EASYHOME_MS_PREVOYANCE, ...EASYHOME_MS_AUTRES,
+];
+/** Code G — intérim imputé à la structure : en masse salariale sédentaire. */
+const EASYHOME_INTERIM = ["62110000"];
+/** Code BB */
+const EASYHOME_IRR = ["65410000"];
+/** Code AD — valeur comptable des immobilisations cédées (compte de l'exercice 2022/23). */
+const EASYHOME_VNC = ["65820000"];
+/** Code AC (produits) — profits sur exercices antérieurs. */
+const EASYHOME_PRODUITS_GESTION = ["77200000"];
+/** Code ZX — produits de cession ; le 75700000 est commun au groupe. */
+const EASYHOME_CESSION_IMMO = ["75820000", "75821000"];
+/** Code ZW — subvention formation, revenus des prêts, intérêts des comptes à terme. */
+const EASYHOME_PRODUITS_FINANCIERS = ["74020000", "76260000", "76300000"];
+/** Code ZY — amortissement des incorporels, lissé avec les corporels. */
+const EASYHOME_DOTATIONS = ["68111000"];
+/** Charges de structure imputées à une affaire : gardées sur l'affaire en « autres charges ». */
+const EASYHOME_CHA_AUTRES_CHARGES = [
+  ...EASYHOME_IMPOTS, ...EASYHOME_TELECOM, ...EASYHOME_BANCAIRES, "62780000", "66110000", "66160100",
+  ...EASYHOME_LOCATION_IMMO, ...EASYHOME_EAU_SIEGE, "61323000", "61400000", "60612000",
+  ...EASYHOME_CREDIT_BAIL, "61200000",
+  ...EASYHOME_ASSURANCES, "61610000", "61620000", "61630000", "61681000",
+  ...EASYHOME_SPONSORING, "61850000", "62340000",
+  "62800000", ...EASYHOME_IRR, "65800000", ...EASYHOME_VNC,
+];
+/** Produits hors CA imputés à une affaire : cessions, subventions, intérêts, produits divers. */
+const EASYHOME_CHA_PRODUITS_DIVERS = [
+  ...EASYHOME_PRODUITS_GESTION, "75700000", ...EASYHOME_CESSION_IMMO, ...EASYHOME_PRODUITS_FINANCIERS,
+];
+
+/**
+ * Centres de structure d'Easy Home. Comme chez Easy Mat, les affaires portent
+ * des codes lettrés (PR364, STRA125, AI115, MSR115…) : la structure est
+ * énumérée, tout autre centre est une affaire. Structure : FX, QUADRA
+ * (crédits-baux, dotations, VNC), les dépôts (DEPOT, DEPOT NEW), le centre
+ * « 601 » (achats de matières non affectés), DIVERS (frais de déplacement,
+ * honoraires, taxe sur les véhicules dans les exercices Quadra), SDG, BUREAU,
+ * STOCKAGE, EASYHOME, les véhicules suivis comme des centres (615…, GB067JC),
+ * le centre « (Aucun) » des écritures Quadra sans code et les écritures que
+ * Pennylane exporte sans code (« Non catégorisé » : tout le chiffre d'affaires
+ * et toute la paie en 2025/26). EXT (ventes et locations hors affaire) et DIV
+ * (clients divers) sont lus comme des affaires. Lecture à confirmer avec la DAF.
+ */
+const EASYHOME_STRUCTURE = [
+  /^FX$/, /^QUADRA$/, /^DEPOT\b/, /^601$/, /^DIVERS$/, /^SDG$/, /^BUREAU$/, /^STOCKAGE$/,
+  /^EASYHOME$/, /^615[ A-Z]/, /^GB067JC$/, /^\(AUCUN\)$/i, /^#/,
+];
+
+const EASYHOME: EntiteConfig = {
+  exercice: { debut: 11 },
+  // Réponse de la DAF du 6 octobre 2026 : prévision sur le 71331 « en une seule
+  // écriture ». Le compte est en fait le 71350000, et les balances analytiques
+  // Pennylane la portent affaire par affaire (CAV107, AB100, PR363, AI115,
+  // PR364, PR368, PR361…), reprise le mois suivant ; en décembre et janvier
+  // 2025/26 elle est passée sur le centre FX. Lue dans le compte, comme chez
+  // Sodobat : la Synthèse retrouve les lignes « Travaux en cours mois » et
+  // « Reprise travaux en cours » du tableau de gestion.
+  provisions: { compte: EASYHOME_PROVISION, mode: "compte" },
+  centresStructure: EASYHOME_STRUCTURE,
+  libelles: {
+    syn_sous_traitance_sodobat: "Sous-traitance (TVA 20 % / 0 % / EXO LQ)",
+    cha_sous_traitance: "Sous-traitance (TVA 20 % / 0 % / EXO LQ)",
+    fx_honoraires_management: "Honoraires de management (SDG)",
+    fx_location_vehicules: "Location de matériel et de véhicules",
+    syn_fx_achats_structure: "Achats et marchandises imputés à la structure (FX, dépôts)",
+  },
+  regles: {
+    // ▸ Synthèse
+    syn_ca_travaux: EASYHOME_CA_TRAVAUX,
+    syn_ca_location: EASYHOME_CA_LOCATION,
+    syn_ca_marchandises: EASYHOME_CA_MARCHANDISES,
+    syn_tec_provision: [EASYHOME_PROVISION],
+    syn_achats_mp: EASYHOME_ACHATS,
+    syn_achats_marchandises: EASYHOME_MARCHANDISES,
+    syn_variation_stock: EASYHOME_VARIATION_STOCK,
+    syn_sous_traitance_sodobat: EASYHOME_SOUS_TRAITANCE,
+    syn_sous_traitance_direct: EASYHOME_SOUS_TRAITANCE_DIRECT,
+    syn_location_materiel_externe: EASYHOME_LOCATION_MATERIEL,
+    syn_location_autres: EASYHOME_LOCATION_VEHICULES,
+    syn_dechets: EASYHOME_DECHETS,
+    syn_entretien: EASYHOME_ENTRETIEN,
+    syn_edf_eau_chantier: EASYHOME_EDF_EAU_CHANTIER,
+    syn_carburant: EASYHOME_CARBURANT,
+    syn_deplacements: EASYHOME_DEPLACEMENTS,
+    syn_masse_salariale: EASYHOME_MASSE_SALARIALE,
+    syn_cession_immo: EASYHOME_CESSION_IMMO,
+    syn_produits_financiers: EASYHOME_PRODUITS_FINANCIERS,
+    syn_produits_gestion: EASYHOME_PRODUITS_GESTION,
+    syn_fx_location_immo: [...EASYHOME_LOCATION_IMMO, ...EASYHOME_EAU_SIEGE],
+    syn_fx_credit_bail: EASYHOME_CREDIT_BAIL,
+    syn_fx_assurances: EASYHOME_ASSURANCES,
+    syn_fx_honoraires: EASYHOME_HONORAIRES_DIVERS,
+    syn_fx_sponsoring: EASYHOME_SPONSORING,
+    syn_fx_telecom: EASYHOME_TELECOM,
+    syn_fx_bancaires: EASYHOME_BANCAIRES,
+    syn_fx_irr: EASYHOME_IRR,
+    syn_impots_taxes: EASYHOME_IMPOTS,
+    syn_dap_comptabilisee: EASYHOME_DOTATIONS,
+    syn_retraitement_vnc: EASYHOME_VNC,
+
+    // ▸ Activité chantier
+    cha_produits_travaux: EASYHOME_CA_TRAVAUX,
+    cha_produits_location: EASYHOME_CA_LOCATION,
+    cha_produits_marchandises: EASYHOME_CA_MARCHANDISES,
+    cha_provision: [EASYHOME_PROVISION],
+    cha_produits_divers: EASYHOME_CHA_PRODUITS_DIVERS,
+    cha_achats_mp: ["60100900", "60224000", "60224900"],
+    cha_achats_marchandises: EASYHOME_MARCHANDISES,
+    cha_petit_materiel: ["60630900"],
+    cha_autres_achats: ["60900900"],
+    cha_locations: [...EASYHOME_LOCATION_MATERIEL, ...EASYHOME_LOCATION_VEHICULES],
+    cha_dechets: EASYHOME_DECHETS,
+    cha_sous_traitance: EASYHOME_SOUS_TRAITANCE,
+    cha_sous_traitance_direct: EASYHOME_SOUS_TRAITANCE_DIRECT,
+    cha_edf_eau: EASYHOME_EDF_EAU_CHANTIER,
+    cha_carburant: EASYHOME_CARBURANT,
+    cha_deplacements: EASYHOME_DEPLACEMENTS,
+    cha_entretien: EASYHOME_ENTRETIEN,
+    cha_autres_charges: EASYHOME_CHA_AUTRES_CHARGES,
+    cha_taxe_apprentissage: EASYHOME_MS_TAXE_APPRENTISSAGE,
+    cha_salaires: EASYHOME_MS_SALAIRES,
+    cha_primes: EASYHOME_MS_PRIMES,
+    cha_probtp: EASYHOME_MS_PREVOYANCE,
+    cha_autres_personnel: EASYHOME_MS_AUTRES,
+    cha_honoraires: EASYHOME_HONORAIRES_DIVERS,
+
+    // ▸ Frais généraux
+    fx_honoraires_management: EASYHOME_HONORAIRES_MANAGEMENT,
+    fx_honoraires_divers: EASYHOME_HONORAIRES_DIVERS,
+    fx_ms_structure: [...EASYHOME_MASSE_SALARIALE, ...EASYHOME_INTERIM],
+    fx_carburant: [...EASYHOME_CARBURANT, ...EASYHOME_DEPLACEMENTS],
+    fx_edf_eau: [...EASYHOME_EDF_EAU_CHANTIER, ...EASYHOME_EAU_SIEGE],
+    fx_achats_fournitures: EASYHOME_ACHATS,
+    fx_achats_marchandises: EASYHOME_MARCHANDISES,
+    fx_variation_stock: EASYHOME_VARIATION_STOCK,
+    fx_location_immo: EASYHOME_LOCATION_IMMO,
+    fx_location_vehicules: [...EASYHOME_LOCATION_MATERIEL, ...EASYHOME_LOCATION_VEHICULES],
+    fx_dechets: EASYHOME_DECHETS,
+    fx_entretien: EASYHOME_ENTRETIEN,
+    fx_credit_bail: EASYHOME_CREDIT_BAIL,
+    fx_assurances: EASYHOME_ASSURANCES,
+    fx_sponsoring: EASYHOME_SPONSORING,
+    fx_telecom: EASYHOME_TELECOM,
+    fx_bancaires: EASYHOME_BANCAIRES,
+    fx_impots: EASYHOME_IMPOTS,
+    fx_irr: EASYHOME_IRR,
+    fx_dotations: EASYHOME_DOTATIONS,
+    fx_vnc: EASYHOME_VNC,
+    // Sous-traitance imputée à un centre de structure : hors maquette FX, gardée en autres charges.
+    fx_autres: [...EASYHOME_SOUS_TRAITANCE, ...EASYHOME_SOUS_TRAITANCE_DIRECT, "60400000"],
+    fx_produits_structure: [
+      ...EASYHOME_CA_TRAVAUX, ...EASYHOME_CA_LOCATION, ...EASYHOME_CA_MARCHANDISES, EASYHOME_PROVISION,
+      ...EASYHOME_PRODUITS_GESTION, ...EASYHOME_CESSION_IMMO, ...EASYHOME_PRODUITS_FINANCIERS,
+    ],
+  },
+  centres: [],
+};
+
 const ENTITES: Record<string, EntiteConfig> = {
   sodobat: SODOBAT,
   covarbat: COVARBAT,
   vbtp: VBTP,
   easymat: EASYMAT,
+  easyhome: EASYHOME,
 };
 
 /**

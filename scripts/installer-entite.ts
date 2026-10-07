@@ -4,6 +4,7 @@
 //   npm run entite:installer -- covarbat --apply     → écrit en base
 //   npm run entite:installer -- vbtp --apply
 //   npm run entite:installer -- easymat --apply
+//   npm run entite:installer -- easyhome --apply
 //
 // Préfixer par DOTENV_CONFIG_PATH=.env.local pour viser la production.
 //
