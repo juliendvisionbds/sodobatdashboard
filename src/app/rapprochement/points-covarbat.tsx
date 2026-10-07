@@ -3,21 +3,22 @@ import { N, type Contenu } from "./points";
 // ── CovarBat ─────────────────────────────────────────────────────────────────
 // L'échange du début octobre 2026 (courriel « Covarbat dans l'application – ce
 // dont j'ai besoin de ta part »), les réponses de la DAF du 6 octobre, reçues
-// par courriel et citées telles quelles, et ce que l'application en a fait le
-// jour même. Clés c31 à c38.
+// par courriel et citées telles quelles, ce que l'application en a fait le
+// jour même, et les fichiers reçus le 7 octobre. Clés c31 à c38.
 
 export const COVARBAT: Contenu = {
   fiscalYearStart: 2025,
-  dateConstats: "6 octobre 2026",
+  dateConstats: "7 octobre 2026",
   sourceReponses: "courriel du 6 octobre 2026",
   intro: (
     <>
       Ce document est le vôtre. Il reprend l&apos;échange sur Covarbat du début octobre et vos
       réponses du 6 octobre, telles que vous les avez écrites, avec ce que l&apos;application en
-      a fait le jour même : vos neuf balances mensuelles sont en place, la vue Chantiers et le
-      détail mois par mois des frais généraux aussi. L&apos;état de chaque mois (partie A) est lu
-      en base à chaque affichage ; trois points restent ouverts (partie B), avec une zone de
-      réponse sous chacun ; la suite du calendrier est en partie C.
+      a fait le jour même, puis vos envois du 7 octobre : vos neuf balances mensuelles sont en
+      place, les centres sont codés, la balance 2024/2025 donne le N-1 de la Synthèse, la vue
+      Chantiers et le détail mois par mois des frais généraux sont en ligne. L&apos;état de
+      chaque mois (partie A) est lu en base à chaque affichage ; deux points restent ouverts
+      (partie B), avec une zone de réponse sous chacun ; la suite du calendrier est en partie C.
     </>
   ),
   noteMois: (
@@ -36,7 +37,8 @@ export const COVARBAT: Contenu = {
     <>
       La Synthèse est identique à votre onglet Synthese sur le chiffre d&apos;affaires total,
       sauf janvier, qui diffère de <N>4 596 €</N> d&apos;écritures passées en comptabilité après
-      votre tableau ; le résultat est celui de la balance.
+      votre tableau ; le résultat est celui de la balance. La colonne N-1 vient de votre balance
+      ventilée 2024/2025, reçue le 7 octobre.
     </>,
     <>
       La vue Chantiers retrouve chaque mois le chiffre d&apos;affaires de la Synthèse ; aucun
@@ -74,38 +76,29 @@ export const COVARBAT: Contenu = {
       key: "c32",
       n: 2,
       title: "Les centres sans code dans Pennylane",
-      tone: "stop",
-      stake: "trois centres à coder, novembre, décembre et juillet à renvoyer",
+      tone: "ok",
+      stake: "réglé le 7 octobre 2026",
       reponseCourriel:
         "J'ai repris l'ensemble des analytiques sur l'exercice en cours. J'ai nommé les doublons avec le nominal + code chantier pour ne pas se tromper. J'ai mis à jour les « créé par Import ASCII ». Dis-moi si tu en as encore.",
       suite: (
         <>
           <p>
             Les doublons sont réglés : 755 et 777 Bertoli, 779 et 781 Pavio, 723 Château Roubine,
-            688 SCI Samat, 756 Sodobat, 659 et 682 Vazzoli portent chacun leur code. Il en reste
-            trois sans code, et un inversé :
+            688 SCI Samat, 756 Sodobat, 659 et 682 Vazzoli portent chacun leur code. Vos exports
+            corrigés du 7 octobre ont remplacé ceux de novembre, décembre et juillet : « LAURENT
+            SA 750 » est devenu le chantier 750, le centre sans code de décembre était le dépôt
+            (DEP, en frais généraux), celui de juillet le chantier 785 Baudry avec ses 31 899 € de
+            ventes, et 788 Durant a retrouvé son code. Plus aucun centre n&apos;est sans code.
           </p>
-          <div className="doc-tbl-wrap">
-            <table className="doc-tbl">
-              <tbody>
-                <tr><th>Dans l&apos;export</th><th>Mois</th><th>Montants</th><th>Dans l&apos;application</th></tr>
-                <tr><td>« LAURENT SA 750 », sans code</td><td>novembre</td><td>2 297 € de ventes, 1 529 € de résultat</td><td>lu comme chantier, sans numéro</td></tr>
-                <tr><td>« Créé par Import ASCII », sans code</td><td>décembre</td><td>2 544 € de salaires et charges</td><td>lu comme chantier, sans numéro</td></tr>
-                <tr><td>« Créé par Import ASCII », sans code</td><td>juillet</td><td>31 899 € de ventes, 180 € d&apos;entretien</td><td>lu comme chantier, sans numéro</td></tr>
-                <tr><td>code « DURANT », libellé « 788 »</td><td>juillet</td><td>847 € de salaires et charges</td><td>lu comme le chantier 788</td></tr>
-              </tbody>
-            </table>
-          </div>
         </>
       ),
-      ask: "Pouvez-vous donner leur code à ces trois centres dans Pennylane, remettre « 788 » en code et « DURANT » en libellé, puis renvoyer les exports de novembre, décembre et juillet ? Ils remplaceront ceux du même mois.",
     },
     {
       key: "c33",
       n: 3,
       title: "Le compte 70400000 et le passage au 713",
       tone: "warn",
-      stake: "juillet à renvoyer ventilé par chantier, puis le 713 chaque mois",
+      stake: "la balance analytique de juillet, après ventilation, reste à recevoir",
       reponseCourriel:
         "Effectivement. Tu as raison. Il me semble plus cohérent d'enregistrer l'écriture en 713 comme Sodobat. Quant à l'analytique, je te le ventile sur le dernier mois pour que l'annulation soit correctement ventilée.",
       suite: (
@@ -118,14 +111,25 @@ export const COVARBAT: Contenu = {
             d&apos;affaires du chantier est celui de la comptabilité.
           </p>
           <p>
-            En juillet, la prévision de <N>46 091 €</N> est passée sur le 71335000, mais sur le
-            centre « Non catégorisé », sans chantier. L&apos;application lit les deux comptes
-            comme un seul bloc : rien ne bouge. Tant que le 713 n&apos;est pas ventilé, la
-            prévision par chantier reste celle de votre tableau, saisie dans la vue Chantiers.
+            Le grand livre analytique de juillet reçu le 7 octobre montre votre ventilation : les
+            PCA du 30 juin repris chantier par chantier sur le 704, reportés sur le 713 chantier
+            par chantier, et la FAE de 432 au crédit du 713. C&apos;est bien la lecture de
+            Sodobat. Mais un grand livre n&apos;est pas une balance : l&apos;application
+            n&apos;en lit pas le format, et la balance analytique de juillet en base, exportée
+            avant cette ventilation, porte encore le 713 sur « Non catégorisé ». Les deux comptes
+            y sont lus comme un seul bloc, rien ne bouge, et la prévision par chantier reste
+            celle de votre tableau.
+          </p>
+          <p>
+            Pour cet exercice, l&apos;application garde donc votre tableau comme référence des
+            prévisions par chantier, sur le 704 avant juillet comme sur le 713 après : ses
+            chiffres sont justes dans les deux cas. La lecture directe du 713, comme pour Sodobat,
+            prendra le relais au 1er novembre, avec l&apos;exercice 2026/27, sans mois de
+            transition.
           </p>
         </>
       ),
-      ask: "Quand le 713 de juillet est ventilé chantier par chantier, renvoyez l'export de juillet. À partir d'août, passez la prévision directement par chantier sur le 713, comme pour Sodobat : l'application basculera alors sur la même lecture.",
+      ask: "Pouvez-vous exporter la balance analytique de juillet, le même export que les autres mois, maintenant que le 713 y est ventilé ? Et d'août à octobre, continuez de passer la prévision chantier par chantier sur le 713, avec le montant par chantier reporté dans la vue Chantiers.",
     },
     {
       key: "c34",
@@ -180,16 +184,17 @@ export const COVARBAT: Contenu = {
       n: 7,
       title: "La balance ventilée 2024/2025 et les objectifs des dirigeants",
       tone: "warn",
-      stake: "la comparaison N-1 de la Synthèse et l'onglet Objectifs attendent",
-      sansReponse: "Pas encore de réponse.",
+      stake: "le N-1 est en place, l'onglet Objectifs attend",
+      sansReponse: "La balance 2024/2025 est arrivée le 7 octobre, sans mot sur les objectifs.",
       suite: (
         <p>
-          La Synthèse affiche « historique N-1 non importé » : il lui faut la balance ventilée
-          2024/2025, mois par mois, telle que Pennylane la sort pour 2025/2026. L&apos;onglet
-          Objectifs de Covarbat est vide.
+          Votre balance ventilée 2024/2025 est importée : la Synthèse compare désormais chaque
+          ligne à l&apos;exercice précédent, <N>1 102 743 €</N> de chiffre d&apos;affaires à fin
+          juillet 2025 contre 1 257 129 € cette année. L&apos;onglet Objectifs de Covarbat reste
+          vide.
         </p>
       ),
-      ask: "Pouvez-vous exporter la balance ventilée 2024/2025 depuis Pennylane et la déposer dans Imports ? Et si les dirigeants ont des objectifs annuels pour Covarbat, les indiquer ici.",
+      ask: "Si les dirigeants ont des objectifs annuels pour Covarbat, indiquez-les ici, ou dites-moi qu'il n'y en a pas.",
     },
     {
       key: "c38",
@@ -232,19 +237,19 @@ export const COVARBAT: Contenu = {
     "Le circuit mensuel, sans autre échange que vos dépôts : l'application signale d'elle-même ce qui manque, dans la partie A et dans les alertes.",
   suite: [
     {
-      titre: "Novembre, décembre et juillet",
+      titre: "Juillet",
       texte:
-        "Une fois les centres codés et le 713 de juillet ventilé, les trois exports renvoyés remplacent ceux du même mois depuis l'écran Imports. Les mois concernés repassent à valider.",
+        "La balance analytique de juillet, exportée après la ventilation du 713, remplace celle en base depuis l'écran Imports ; le mois repasse à valider.",
     },
     {
-      titre: "Août, puis chaque mois",
+      titre: "Août, septembre, octobre",
       texte:
-        "La balance analytique du mois seul et la balance ventilée depuis novembre, déposées depuis Imports ; la prévision passée chantier par chantier sur le 713 ; la validation du mois dans la vue Chantiers.",
+        "La balance analytique du mois seul et la balance ventilée depuis novembre, déposées depuis Imports ; la prévision passée chantier par chantier sur le 713 et reportée dans la vue Chantiers ; la validation du mois.",
     },
     {
-      titre: "L'exercice précédent et les objectifs",
+      titre: "Novembre, exercice 2026/27",
       texte:
-        "La balance ventilée 2024/2025 pour la comparaison N-1 de la Synthèse, et les objectifs annuels des dirigeants pour l'onglet Objectifs, quand ils existent.",
+        "L'application lit la prévision directement sur le 713, chantier par chantier, comme pour Sodobat. Les objectifs 2026/27 des dirigeants sont à renseigner à ce moment-là.",
     },
   ],
 };
