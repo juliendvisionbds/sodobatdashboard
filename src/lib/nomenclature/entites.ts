@@ -289,6 +289,8 @@ const VBTP_INTERIM = ["62100000"];
 const VBTP_HONORAIRES_MANAGEMENT = ["62260000"];
 /** Code V — honoraires comptables, divers, frais d'actes, intermédiaires. */
 const VBTP_HONORAIRES_DIVERS = ["62261000", "62268000", "62270000", "62280000"];
+/** Sur un chantier, honoraires divers et frais d'actes sont la ligne « HONORAIRES AVOCATS » du TG. */
+const VBTP_HONORAIRES_AVOCATS = ["62268000", "62270000"];
 /** Code J */
 const VBTP_HONORAIRES_CHANTIER = ["62261100"];
 /** Code W */
@@ -410,15 +412,16 @@ const VBTP: EntiteConfig = {
     cha_sous_traitance: VBTP_SOUS_TRAITANCE,
     cha_sous_traitance_direct: VBTP_SOUS_TRAITANCE_DIRECT,
     cha_edf_eau: VBTP_EDF_EAU,
-    // Franchises de sinistre, pénalités et impôts imputés à un chantier (lignes
-    // « FRANCHISE SINISTRE 61681000/658 » du TG), et les charges que les
+    // Pénalités et impôts imputés à un chantier, et les charges que les
     // balances des exercices clos imputent ponctuellement à un chantier :
     // variation de stock, assurance décennale, créances irrécouvrables et leur
     // dépréciation (ligne « PROV CLT Douteux » du TG).
     cha_autres_charges: [
-      ...VBTP_IMPOTS, "61681000", "65800000", "65820000", "67120000", "67180000", "77180000",
+      ...VBTP_IMPOTS, "65820000", "67120000", "67180000", "77180000",
       "60310000", "61620000", "65400000", "65420000", "68174000",
     ],
+    // Ligne « FRANCHISE SINISTRE 61681000/658 » du TG, propre à VBTP.
+    cha_franchise_sinistre: ["61681000", "65800000"],
     cha_formation_continue: ["63330000", "63330100"],
     cha_taxe_apprentissage: ["63350000"],
     cha_salaires: ["64100000", "64110000", "64120000"],
@@ -429,11 +432,15 @@ const VBTP: EntiteConfig = {
     cha_probtp: ["64540000"],
     cha_autres_personnel: [
       "64170000", "64580000", "64700000", "64701000", "64712000", "64750000",
-      "64810000", "64900000", "69100000", "69101000", "79100000", "79101000",
+      "64810000", "69100000", "69101000", "79101000",
     ],
+    // Ligne « INDEMNITES SUR CHARGES DE PERSONNEL 64900000 » du TG, propre à VBTP.
+    cha_indemnites_personnel: ["64900000"],
     cha_interim: VBTP_INTERIM,
-    // « HONORAIRES CHANTIER » et « HONORAIRES AVOCATS 6227/62268000 » du TG.
-    cha_honoraires: [...VBTP_HONORAIRES_MANAGEMENT, ...VBTP_HONORAIRES_DIVERS, ...VBTP_HONORAIRES_CHANTIER],
+    // « HONORAIRES CHANTIER » du TG ; les honoraires divers et frais d'actes vont
+    // sur la ligne « HONORAIRES AVOCATS 6227/62268000/7910 », avec les transferts de charges.
+    cha_honoraires: [...VBTP_HONORAIRES_MANAGEMENT, "62261000", "62280000", ...VBTP_HONORAIRES_CHANTIER],
+    cha_honoraires_avocats: [...VBTP_HONORAIRES_AVOCATS, "79100000"],
 
     // ▸ Frais généraux
     fx_honoraires_management: VBTP_HONORAIRES_MANAGEMENT,
@@ -508,15 +515,23 @@ const VBTP: EntiteConfig = {
 // 62261000 « honoraires divers » un honoraire de structure (code V), 62262000
 // « prestations management » l'honoraire SDG (code U).
 
-/** Code K — prestations d'aménagement, travaux (comptes historiques), assurance refacturée. */
-const EASYMAT_CA_TRAVAUX = [
+// Les produits suivent les lignes du tableau de gestion d'Easy Mat : Locations,
+// Presta aménagement, Modules en loc, Ventes M/ses, Assurances. Les comptes de
+// travaux et de prestations du plan (7040…, 7060…) n'ont jamais bougé dans les
+// balances importées ; ils restent rattachés aux prestations.
+/** Code K — prestations d'aménagement et d'agencement, travaux (comptes historiques du plan). */
+const EASYMAT_CA_PRESTATIONS = [
   "70400001", "70400002", "70400003", "70400005", "70400051", "70400052",
-  "70400053", "70400054", "70400055", "70400500", "70401900", "70410000",
-  "70410005", "70455000", "70482000", "70492000", "70600000", "70601900",
-  "70602100", "70611000", "70611005", "70611007",
+  "70400053", "70400054", "70400055", "70400500", "70401900", "70455000",
+  "70482000", "70492000", "70600000", "70601900", "70602100", "70611000",
+  "70611005", "70611007",
 ];
-/** Code L — locations de matériel et de modules, en France et à l'étranger. */
-const EASYMAT_CA_LOCATION = ["70610000", "70610005", "70612000", "70612005"];
+/** Code K — assurance refacturée au client. */
+const EASYMAT_CA_ASSURANCES = ["70410000", "70410005"];
+/** Code L — locations de matériel et locations diverses, en France et à l'étranger. */
+const EASYMAT_CA_LOCATION = ["70610000", "70610005"];
+/** Code L — modules en location, en France et à l'étranger. */
+const EASYMAT_CA_MODULES = ["70612000", "70612005"];
 /** Code M — ventes de marchandises et de modules ; le 70701900 est commun au groupe. */
 const EASYMAT_CA_MARCHANDISES = ["70700000", "70700500", "70703000", "70711000", "70782000"];
 /** Code N — assurance / location refacturée (exercice 2021) ; le 70880000 est commun au groupe. */
@@ -681,8 +696,10 @@ const EASYMAT: EntiteConfig = {
   },
   regles: {
     // ▸ Synthèse
-    syn_ca_travaux: EASYMAT_CA_TRAVAUX,
     syn_ca_location: EASYMAT_CA_LOCATION,
+    syn_ca_prestations: EASYMAT_CA_PRESTATIONS,
+    syn_ca_modules: EASYMAT_CA_MODULES,
+    syn_ca_assurances: EASYMAT_CA_ASSURANCES,
     syn_ca_marchandises: EASYMAT_CA_MARCHANDISES,
     syn_ca_refacturation: EASYMAT_CA_REFACTURATION,
     syn_tec_provision: [EASYMAT_PROVISION_ANCIEN],
@@ -713,8 +730,10 @@ const EASYMAT: EntiteConfig = {
     syn_retraitement_vnc: EASYMAT_VNC,
 
     // ▸ Activité chantier
-    cha_produits_travaux: EASYMAT_CA_TRAVAUX,
     cha_produits_location: EASYMAT_CA_LOCATION,
+    cha_produits_prestations: EASYMAT_CA_PRESTATIONS,
+    cha_produits_modules: EASYMAT_CA_MODULES,
+    cha_produits_assurances: EASYMAT_CA_ASSURANCES,
     cha_produits_marchandises: EASYMAT_CA_MARCHANDISES,
     cha_refacturations: EASYMAT_CA_REFACTURATION,
     cha_provision: [EASYMAT_PROVISION_ANCIEN],
@@ -768,7 +787,8 @@ const EASYMAT: EntiteConfig = {
       ...EASYMAT_SOUS_TRAITANCE, "60400000", "60412000", "61100000",
     ],
     fx_produits_structure: [
-      ...EASYMAT_CA_TRAVAUX, ...EASYMAT_CA_LOCATION, ...EASYMAT_CA_MARCHANDISES,
+      ...EASYMAT_CA_PRESTATIONS, ...EASYMAT_CA_ASSURANCES, ...EASYMAT_CA_LOCATION,
+      ...EASYMAT_CA_MODULES, ...EASYMAT_CA_MARCHANDISES,
       ...EASYMAT_CA_REFACTURATION, EASYMAT_PROVISION_ANCIEN, ...EASYMAT_PRODUITS_GESTION,
       ...EASYMAT_CESSION_IMMO, ...EASYMAT_PRODUITS_FINANCIERS,
     ],
@@ -799,10 +819,18 @@ const EASYMAT: EntiteConfig = {
 // de gestion. Le 60412000 « sous-traitant PD » est du paiement direct (code D),
 // comme son libellé et le plan le disent : la ligne est ouverte à Easy Home.
 
-/** Code K — prestations d'aménagement, prestations administratives, assurance refacturée. */
-const EASYHOME_CA_TRAVAUX = ["70410000", "70611000", "70611010", "70680000", "70681000"];
-/** Code L — locations diverses, modules en location, location Jaguar (2022). */
-const EASYHOME_CA_LOCATION = ["70610000", "70610999", "70612000"];
+// Les produits suivent les lignes du tableau de gestion d'Easy Home : Locations,
+// Presta aménagement, Modules en loc, Presta administratives, Ventes M/ses, Assurances.
+/** Code K — prestations d'aménagement et d'agencement. */
+const EASYHOME_CA_PRESTATIONS = ["70611000", "70611010"];
+/** Code K — prestations administratives, services au pourcentage. */
+const EASYHOME_CA_PRESTATIONS_ADMIN = ["70680000", "70681000"];
+/** Code K — assurance et location refacturées au client. */
+const EASYHOME_CA_ASSURANCES = ["70410000"];
+/** Code L — locations diverses, location Jaguar (2022). */
+const EASYHOME_CA_LOCATION = ["70610000", "70610999"];
+/** Code L — modules en location. */
+const EASYHOME_CA_MODULES = ["70612000"];
 /** Code M — bungalows et marchandises ; le 70701900 est commun au groupe. */
 const EASYHOME_CA_MARCHANDISES = ["70720000", "70792000"];
 /** Code O — « Travaux en cours » : le compte de prévision d'Easy Home. */
@@ -923,11 +951,16 @@ const EASYHOME: EntiteConfig = {
     fx_honoraires_management: "Honoraires de management (SDG)",
     fx_location_vehicules: "Location de matériel et de véhicules",
     syn_fx_achats_structure: "Achats et marchandises imputés à la structure (FX, dépôts)",
+    // Ligne « 612 CB Modules+Pont roulant » de leur tableau de gestion.
+    fx_credit_bail: "Crédit-bail / LLD — modules, pont roulant",
   },
   regles: {
     // ▸ Synthèse
-    syn_ca_travaux: EASYHOME_CA_TRAVAUX,
     syn_ca_location: EASYHOME_CA_LOCATION,
+    syn_ca_prestations: EASYHOME_CA_PRESTATIONS,
+    syn_ca_modules: EASYHOME_CA_MODULES,
+    syn_ca_prestations_admin: EASYHOME_CA_PRESTATIONS_ADMIN,
+    syn_ca_assurances: EASYHOME_CA_ASSURANCES,
     syn_ca_marchandises: EASYHOME_CA_MARCHANDISES,
     syn_tec_provision: [EASYHOME_PROVISION],
     syn_achats_mp: EASYHOME_ACHATS,
@@ -959,8 +992,11 @@ const EASYHOME: EntiteConfig = {
     syn_retraitement_vnc: EASYHOME_VNC,
 
     // ▸ Activité chantier
-    cha_produits_travaux: EASYHOME_CA_TRAVAUX,
     cha_produits_location: EASYHOME_CA_LOCATION,
+    cha_produits_prestations: EASYHOME_CA_PRESTATIONS,
+    cha_produits_modules: EASYHOME_CA_MODULES,
+    cha_produits_prestations_admin: EASYHOME_CA_PRESTATIONS_ADMIN,
+    cha_produits_assurances: EASYHOME_CA_ASSURANCES,
     cha_produits_marchandises: EASYHOME_CA_MARCHANDISES,
     cha_provision: [EASYHOME_PROVISION],
     cha_produits_divers: EASYHOME_CHA_PRODUITS_DIVERS,
@@ -1009,7 +1045,8 @@ const EASYHOME: EntiteConfig = {
     // Sous-traitance imputée à un centre de structure : hors maquette FX, gardée en autres charges.
     fx_autres: [...EASYHOME_SOUS_TRAITANCE, ...EASYHOME_SOUS_TRAITANCE_DIRECT, "60400000"],
     fx_produits_structure: [
-      ...EASYHOME_CA_TRAVAUX, ...EASYHOME_CA_LOCATION, ...EASYHOME_CA_MARCHANDISES, EASYHOME_PROVISION,
+      ...EASYHOME_CA_PRESTATIONS, ...EASYHOME_CA_PRESTATIONS_ADMIN, ...EASYHOME_CA_ASSURANCES,
+      ...EASYHOME_CA_LOCATION, ...EASYHOME_CA_MODULES, ...EASYHOME_CA_MARCHANDISES, EASYHOME_PROVISION,
       ...EASYHOME_PRODUITS_GESTION, ...EASYHOME_CESSION_IMMO, ...EASYHOME_PRODUITS_FINANCIERS,
     ],
   },

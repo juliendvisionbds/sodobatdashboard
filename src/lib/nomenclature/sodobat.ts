@@ -139,6 +139,14 @@ const EDF_EAU_CHANTIER = [
 
 export const synthese: NomenclatureLine[] = [
   // ▸ PRODUITS / CA
+  //
+  // Le socle commun ne détaille pas la facturation : une ligne masquée par
+  // code et le sous-total « CA Facturation mois ». Easy Mat et Easy Home
+  // vendent autre chose que des travaux — locations, modules, prestations
+  // d'aménagement, assurances refacturées — et leur tableau de gestion lit ces
+  // lignes séparément : elles sont ouvertes à ces deux entités seulement, sous
+  // le même sous-total (retour de l'associé du 7 octobre 2026). Les comptes
+  // viennent des règles de chaque entité.
   {
     code: "syn_ca_travaux",
     view: "synthese",
@@ -147,23 +155,58 @@ export const synthese: NomenclatureLine[] = [
     kind: "poste",
     sign: -1,
     hidden: true,
+    entityScope: "sodobat,vbtp,covarbat",
     accounts: [
       "70400010", "70400020", "70400029", "70400200", "70400290", "70400300",
       "70880020",
     ],
-    notes: "Code K — détail agrégé dans « CA Facturation mois »",
+    notes:
+      "Code K — détail agrégé dans « CA Facturation mois ». Easy Mat et Easy Home détaillent " +
+      "leurs produits sur les lignes qui suivent (colonne Entités de la maquette).",
   },
   {
     code: "syn_ca_location",
     view: "synthese",
     section: SYN.produits,
-    label: "CA Location (matériel, modules)",
+    label: "Locations (matériel, divers)",
     kind: "poste",
     sign: -1,
     entityScope: "easymat,easyhome",
     notes:
-      "Code L — locations de matériel et de modules facturées (70610000, 70612000 chez Easy Mat). " +
+      "Code L — locations de matériel et locations diverses facturées (70610000). " +
       "Le code n'existe pas chez Sodobat : les comptes viennent des règles de l'entité.",
+  },
+  {
+    code: "syn_ca_prestations",
+    view: "synthese",
+    section: SYN.produits,
+    label: "Prestations d'aménagement",
+    kind: "poste",
+    sign: -1,
+    entityScope: "easymat,easyhome",
+    notes:
+      "Code K chez Easy Mat et Easy Home — prestations d'aménagement et d'agencement (70611000), " +
+      "ligne « Presta aménagement » de leur tableau de gestion.",
+  },
+  {
+    code: "syn_ca_modules",
+    view: "synthese",
+    section: SYN.produits,
+    label: "Modules en location",
+    kind: "poste",
+    sign: -1,
+    entityScope: "easymat,easyhome",
+    notes: "Code L — modules en location (70612000), ligne « Modules en loc » de leur tableau de gestion.",
+  },
+  {
+    code: "syn_ca_prestations_admin",
+    view: "synthese",
+    section: SYN.produits,
+    label: "Prestations administratives",
+    kind: "poste",
+    sign: -1,
+    entityScope: "easyhome",
+    notes: "Code K chez Easy Home — services au pourcentage (70680000, 70681000).",
   },
   {
     code: "syn_ca_marchandises",
@@ -174,6 +217,16 @@ export const synthese: NomenclatureLine[] = [
     sign: -1,
     accounts: ["70700200", "70701900"],
     notes: "Code M",
+  },
+  {
+    code: "syn_ca_assurances",
+    view: "synthese",
+    section: SYN.produits,
+    label: "Assurances refacturées",
+    kind: "poste",
+    sign: -1,
+    entityScope: "easymat,easyhome",
+    notes: "Code K chez Easy Mat et Easy Home — assurance et location refacturées au client (70410000).",
   },
   {
     code: "syn_ca_refacturation",
@@ -197,11 +250,17 @@ export const synthese: NomenclatureLine[] = [
       operands: [
         { code: "syn_ca_travaux", sign: 1 },
         { code: "syn_ca_location", sign: 1 },
+        { code: "syn_ca_prestations", sign: 1 },
+        { code: "syn_ca_modules", sign: 1 },
+        { code: "syn_ca_prestations_admin", sign: 1 },
         { code: "syn_ca_marchandises", sign: 1 },
+        { code: "syn_ca_assurances", sign: 1 },
         { code: "syn_ca_refacturation", sign: 1 },
       ],
     },
-    notes: "Codes K + L + M + N. Le code L (CA Location) n'existe que chez Easy Mat et Easy Home.",
+    notes:
+      "Codes K + L + M + N. Les lignes de détail propres à Easy Mat et Easy Home (locations, " +
+      "prestations, modules, assurances) s'y ajoutent ; absentes chez les autres, elles comptent zéro.",
   },
   {
     code: "syn_annulation_m1",
@@ -969,6 +1028,8 @@ export const synthese: NomenclatureLine[] = [
 
 export const chantier: NomenclatureLine[] = [
   // ▸ PRODUITS / CA
+  // Même couche de détail que la Synthèse pour Easy Mat et Easy Home : leurs
+  // produits se lisent sous les mêmes intitulés en haut et en bas.
   {
     code: "cha_produits_travaux",
     view: "chantier",
@@ -976,21 +1037,52 @@ export const chantier: NomenclatureLine[] = [
     label: "Produits Travaux",
     kind: "poste",
     sign: -1,
+    entityScope: "sodobat,vbtp,covarbat",
     accounts: [
       "70400010", "70400020", "70400029", "70400200", "70400290", "70400300",
       "70880020",
     ],
-    notes: "Code K",
+    notes: "Code K — Easy Mat et Easy Home détaillent leurs produits sur les lignes qui suivent",
   },
   {
     code: "cha_produits_location",
     view: "chantier",
     section: CHA.produits,
-    label: "Produits Location (matériel, modules)",
+    label: "Locations (matériel, divers)",
     kind: "poste",
     sign: -1,
     entityScope: "easymat,easyhome",
     notes: "Code L — comptes déclarés par l'entité",
+  },
+  {
+    code: "cha_produits_prestations",
+    view: "chantier",
+    section: CHA.produits,
+    label: "Prestations d'aménagement",
+    kind: "poste",
+    sign: -1,
+    entityScope: "easymat,easyhome",
+    notes: "Code K chez Easy Mat et Easy Home — comptes déclarés par l'entité",
+  },
+  {
+    code: "cha_produits_modules",
+    view: "chantier",
+    section: CHA.produits,
+    label: "Modules en location",
+    kind: "poste",
+    sign: -1,
+    entityScope: "easymat,easyhome",
+    notes: "Code L — comptes déclarés par l'entité",
+  },
+  {
+    code: "cha_produits_prestations_admin",
+    view: "chantier",
+    section: CHA.produits,
+    label: "Prestations administratives",
+    kind: "poste",
+    sign: -1,
+    entityScope: "easyhome",
+    notes: "Code K chez Easy Home — comptes déclarés par l'entité",
   },
   {
     code: "cha_produits_marchandises",
@@ -1001,6 +1093,16 @@ export const chantier: NomenclatureLine[] = [
     sign: -1,
     accounts: ["70700200", "70701900"],
     notes: "Code M",
+  },
+  {
+    code: "cha_produits_assurances",
+    view: "chantier",
+    section: CHA.produits,
+    label: "Assurances refacturées",
+    kind: "poste",
+    sign: -1,
+    entityScope: "easymat,easyhome",
+    notes: "Code K chez Easy Mat et Easy Home — comptes déclarés par l'entité",
   },
   {
     code: "cha_refacturations",
@@ -1045,7 +1147,11 @@ export const chantier: NomenclatureLine[] = [
       operands: [
         { code: "cha_produits_travaux", sign: 1 },
         { code: "cha_produits_location", sign: 1 },
+        { code: "cha_produits_prestations", sign: 1 },
+        { code: "cha_produits_modules", sign: 1 },
+        { code: "cha_produits_prestations_admin", sign: 1 },
         { code: "cha_produits_marchandises", sign: 1 },
+        { code: "cha_produits_assurances", sign: 1 },
         { code: "cha_refacturations", sign: 1 },
         { code: "cha_provision", sign: 1 },
         { code: "cha_annulation_m1", sign: 1 },
@@ -1336,6 +1442,18 @@ export const chantier: NomenclatureLine[] = [
     notes:
       "Code F — intéressement, IJ SS, intempéries, médecine du travail, formation, remboursements de charges, cotisations exploitant",
   },
+  // Trois lignes du tableau de gestion de VBTP, ouvertes à cette entité seule :
+  // ailleurs ces comptes restent fondus dans les lignes communes (retour de
+  // l'associé du 7 octobre 2026). Les comptes viennent des règles de VBTP.
+  {
+    code: "cha_indemnites_personnel",
+    view: "chantier",
+    section: CHA.personnel,
+    label: "Indemnités sur charges de personnel",
+    kind: "poste",
+    entityScope: "vbtp",
+    notes: "Code F — remboursements et indemnités sur charges de personnel (64900000), ligne du TG de VBTP",
+  },
   {
     code: "cha_interim",
     view: "chantier",
@@ -1357,6 +1475,28 @@ export const chantier: NomenclatureLine[] = [
     ],
     notes:
       "Code J — les honoraires divers (V) et de management (U) imputés à un chantier sont rattachés ici",
+  },
+  {
+    code: "cha_franchise_sinistre",
+    view: "chantier",
+    section: CHA.personnel,
+    label: "Franchise sinistre",
+    kind: "poste",
+    entityScope: "vbtp",
+    notes:
+      "Franchises d'assurance et charges diverses de gestion imputées à un chantier (61681000, 65800000) : " +
+      "ligne « FRANCHISE SINISTRE » du TG de VBTP, bloc « Intérims et autres charges »",
+  },
+  {
+    code: "cha_honoraires_avocats",
+    view: "chantier",
+    section: CHA.personnel,
+    label: "Honoraires avocats / contentieux",
+    kind: "poste",
+    entityScope: "vbtp",
+    notes:
+      "Honoraires divers, frais d'actes et de contentieux, transferts de charges imputés à un chantier " +
+      "(62268000, 62270000, 79100000) : ligne « HONORAIRES AVOCATS » du TG de VBTP",
   },
   {
     code: "cha_deplacements",
@@ -1386,8 +1526,11 @@ export const chantier: NomenclatureLine[] = [
         { code: "cha_pole_emploi", sign: 1 },
         { code: "cha_probtp", sign: 1 },
         { code: "cha_autres_personnel", sign: 1 },
+        { code: "cha_indemnites_personnel", sign: 1 },
         { code: "cha_interim", sign: 1 },
         { code: "cha_honoraires", sign: 1 },
+        { code: "cha_franchise_sinistre", sign: 1 },
+        { code: "cha_honoraires_avocats", sign: 1 },
         { code: "cha_deplacements", sign: 1 },
       ],
     },

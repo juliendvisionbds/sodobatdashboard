@@ -76,7 +76,20 @@ Ce qu'une entité a en propre est déclaré dans `src/lib/nomenclature/entites.t
   DIVERS, véhicules, centres sans code), tout autre centre est une affaire.
 
 Une ligne de la maquette qui ne concerne que certaines entités porte leur code
-dans `entityScope`.
+dans `entityScope`. La colonne « Entités concernées » de la maquette est
+indicative : une ligne reste ouverte à tout le groupe tant qu'une entité peut y
+passer des écritures, et les tableaux masquent d'eux-mêmes les lignes sans
+montant. Les périmètres restreints sont de deux natures :
+
+- des lignes **structurelles** (marchandises en revente, sous-traitance en
+  paiement direct, rémunération du gérant, résultat SEP) ;
+- une **couche de détail par entité**, sous les sous-totaux communs, reprise du
+  tableau de gestion de l'entité : produits d'Easy Mat et d'Easy Home dans la
+  Synthèse et les Chantiers (locations, prestations d'aménagement, modules en
+  location, prestations administratives, assurances refacturées, à la place de
+  la ligne commune « Produits travaux ») ; indemnités sur charges de personnel,
+  franchise sinistre et honoraires avocats dans les Chantiers de VBTP. Les
+  totaux ne changent pas, seul le détail s'ouvre.
 
 ```bash
 npm run entite:installer -- covarbat            # rapport seul
