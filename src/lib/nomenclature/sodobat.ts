@@ -27,6 +27,7 @@ const SYN = {
   produits: "PRODUITS / CA",
   exploitation: "CHARGES D'EXPLOITATION",
   personnel: "CHARGES DE PERSONNEL",
+  resultatExploitation: "RÉSULTAT D'EXPLOITATION",
   autresProduits: "AUTRES PRODUITS",
   fx: "FRAIS GÉNÉRAUX & AUTRES CHARGES",
   resultat: "RÉSULTAT FINAL & CONTRÔLES",
@@ -604,7 +605,7 @@ export const synthese: NomenclatureLine[] = [
   {
     code: "syn_resultat_exploitation",
     view: "synthese",
-    section: SYN.personnel,
+    section: SYN.resultatExploitation,
     label: "RÉSULTAT D'EXPLOITATION",
     kind: "computed",
     formula: {
@@ -615,6 +616,17 @@ export const synthese: NomenclatureLine[] = [
         { code: "syn_total_personnel", sign: -1 },
       ],
     },
+  },
+  {
+    code: "syn_ratio_resultat_exploitation",
+    view: "synthese",
+    section: SYN.resultatExploitation,
+    label: "Ratio Résultat d'exploitation / CA (%)",
+    kind: "ratio",
+    formula: { op: "ratio", num: "syn_resultat_exploitation", den: "syn_ca_total" },
+    notes:
+      "Ligne en pourcentage sous le résultat d'exploitation des tableaux de gestion de CovarBat ; " +
+      "le résultat d'exploitation a sa propre section depuis le 8 octobre 2026, pour se lire d'un coup d'œil",
   },
 
   // ▸ AUTRES PRODUITS

@@ -80,7 +80,11 @@ export const FX_CODES = {
  * marge rapportés au CA. Tous les autres rapportent des charges au CA et
  * passent en alerte au-dessus de 100 %, quand les charges dépassent le CA.
  */
-export const RATIOS_DE_RESULTAT = new Set(["syn_ratio_resultat_net", "cha_marge"]);
+export const RATIOS_DE_RESULTAT = new Set([
+  "syn_ratio_resultat_exploitation",
+  "syn_ratio_resultat_net",
+  "cha_marge",
+]);
 
 export function ratioEnAlerte(code: string, value: number | null): boolean {
   if (value == null) return false;
