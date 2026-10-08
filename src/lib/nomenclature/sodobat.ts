@@ -46,6 +46,7 @@ const FX = {
   reference: "RÉFÉRENCE",
   honoraires: "HONORAIRES",
   generaux: "FRAIS GÉNÉRAUX (hors MS et Crédit-bail)",
+  creditBail: "CRÉDIT-BAIL",
   totaux: "TOTAUX GÉNÉRAUX",
 } as const;
 
@@ -1955,12 +1956,13 @@ export const fx: NomenclatureLine[] = [
     section: FX.generaux,
     label: "Crédit-bail / LLD (ligne globale)",
     kind: "poste",
+    entityScope: "sodobat,vbtp,covarbat",
     accounts: [
       "61200000", "61210000", "61254290", "61258100", "61258200", "61258301",
       "61258400", "61284000",
       "61220000", "61258300",
     ],
-    notes: "Code Q",
+    notes: "Code Q — Easy Mat et Easy Home lisent leur crédit-bail dans un bloc à part, « Total 3 »",
   },
   {
     code: "fx_assurances",
@@ -2145,26 +2147,80 @@ export const fx: NomenclatureLine[] = [
     formula: { op: "ratio", num: "fx_total_generaux", den: "fx_ca_reference" },
   },
 
+  // ▸ CRÉDIT-BAIL — bloc à part chez Easy Mat et Easy Home, dont les contrats de
+  // location-financement (modules, matériel, véhicules) pèsent trop pour rester
+  // fondus dans les frais généraux : c'est le « Total 3 » de leur tableau de
+  // gestion, avec son ratio sur CA (décision du 8 octobre 2026). Les trois
+  // autres entités gardent la ligne globale dans le Total 2. Les comptes, un
+  // par contrat, viennent des règles de l'entité.
+  {
+    code: "fx_cb_vehicules",
+    view: "fx",
+    section: FX.creditBail,
+    label: "Crédit-bail véhicules",
+    kind: "poste",
+    entityScope: "easymat,easyhome",
+    notes: "Code Q — contrats sur des véhicules (utilitaires, voitures, camion)",
+  },
+  {
+    code: "fx_cb_materiel",
+    view: "fx",
+    section: FX.creditBail,
+    label: "Crédit-bail matériel, modules et équipements",
+    kind: "poste",
+    entityScope: "easymat,easyhome",
+    notes: "Code Q — modules et constructions modulaires, conteneurs, chariot, climatisations, barrières, coffrets",
+  },
+  {
+    code: "fx_total_credit_bail",
+    view: "fx",
+    section: FX.creditBail,
+    label: "TOTAL 3 — Crédit-bail",
+    kind: "total",
+    entityScope: "easymat,easyhome",
+    formula: {
+      op: "sum",
+      operands: [
+        { code: "fx_cb_vehicules", sign: 1 },
+        { code: "fx_cb_materiel", sign: 1 },
+      ],
+    },
+  },
+  {
+    code: "fx_ratio_credit_bail",
+    view: "fx",
+    section: FX.creditBail,
+    label: "Ratio Crédit-bail / CA (%)",
+    kind: "ratio",
+    entityScope: "easymat,easyhome",
+    formula: { op: "ratio", num: "fx_total_credit_bail", den: "fx_ca_reference" },
+  },
+
   // ▸ TOTAUX GÉNÉRAUX
   {
     code: "fx_total_general",
     view: "fx",
     section: FX.totaux,
-    label: "TOTAL 4 — MS + FX (Total 1 + Total 2)",
+    label: "TOTAL 3 — Honoraires + Frais généraux (Total 1 + Total 2)",
     kind: "total",
     formula: {
       op: "sum",
       operands: [
         { code: "fx_total_honoraires", sign: 1 },
         { code: "fx_total_generaux", sign: 1 },
+        // Zéro hors Easy Mat et Easy Home, où le libellé devient « TOTAL 4 ».
+        { code: "fx_total_credit_bail", sign: 1 },
       ],
     },
+    notes:
+      "Total de tout ce que porte la structure. Chez Easy Mat et Easy Home il s'appelle TOTAL 4 et " +
+      "ajoute le bloc crédit-bail (Total 3) ; ailleurs le crédit-bail est déjà dans le Total 2.",
   },
   {
     code: "fx_ratio_general",
     view: "fx",
     section: FX.totaux,
-    label: "Ratio (MS + FX) / CA (%)",
+    label: "Ratio total / CA (%)",
     kind: "ratio",
     formula: { op: "ratio", num: "fx_total_general", den: "fx_ca_reference" },
   },

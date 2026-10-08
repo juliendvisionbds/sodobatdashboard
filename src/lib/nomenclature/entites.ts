@@ -597,14 +597,32 @@ const EASYMAT_ENTRETIEN = [
   "61550007", "61550009", "61550200", "61550300", "61550400", "61551000", "61570000",
 ];
 /** Code Q — un compte par contrat de crédit-bail ou de leasing (modules, climatisations, véhicules, chariot). */
-const EASYMAT_CREDIT_BAIL = [
-  "61200025", "61200026", "61200027", "61200028", "61200029", "61200030",
-  "61200031", "61200032", "61200033", "61200034", "61200035", "61200036",
-  "61200037", "61210001", "61210002", "61210003", "61210004", "61210005",
-  "61210006", "61210012", "61210013", "61210015", "61210017", "61210018",
-  "61210019", "61210020", "61210021", "61210022", "61210023", "61222000",
-  "61222100", "61254271",
+// Un compte par contrat. Dans la vue Frais généraux, les contrats forment le
+// bloc « Total 3 — Crédit-bail » de leur tableau de gestion, véhicules d'un
+// côté, matériel, modules et équipements de l'autre. Le classement suit le
+// libellé du compte dans la balance ; cinq contrats au libellé muet (MSX2,
+// « achat groupe », Sogelease 1854 et 717, Mobika) sont rangés en matériel.
+const EASYMAT_CB_VEHICULES = [
+  "61200034", // Peugeot Partner
+  "61210002", // Nissan (2)
+  "61210003", // Nissan (3)
+  "61210004", // Hyundai (4)
+  "61210015", // Citroën C3
+  "61210021", // Audi Q3
+  "61210023", // Jumpy
 ];
+const EASYMAT_CB_MATERIEL = [
+  "61200025", "61200026", "61200027", "61200028", "61200029", "61200030",
+  "61200031", "61200032", "61200033", "61200035", "61200036", "61200037",
+  "61210001", "61210005", "61210006", "61210012", "61210013", "61210017",
+  "61210018", "61210019", "61210020", "61210022", "61222000", "61222100",
+  "61254271",
+  // Coffrets SACEM et Sogelease 2871 : comptes communs au groupe, présents dans
+  // les balances des exercices clos d'Easy Mat, à garder dans son bloc.
+  "61200000", "61220000",
+];
+/** Code Q — tous les contrats, pour la Synthèse où le crédit-bail reste une ligne. */
+const EASYMAT_CREDIT_BAIL = [...EASYMAT_CB_VEHICULES, ...EASYMAT_CB_MATERIEL];
 /** Code P — SCI Easy Invest, SCI Grégoriou, SCI Le Bouisset, SDG ; 61323000 et 61400000 sont communs. */
 const EASYMAT_LOCATION_IMMO = ["61324000", "61325000", "61326000", "61327000"];
 /** Code T */
@@ -667,7 +685,7 @@ const EASYMAT_CHA_AUTRES_CHARGES = [
   ...EASYMAT_TELECOM, "62600000",
   ...EASYMAT_BANCAIRES, "62780000", "66110000", "66160100",
   ...EASYMAT_LOCATION_IMMO, ...EASYMAT_EAU_SIEGE, "61323000", "61400000",
-  ...EASYMAT_CREDIT_BAIL, "61200000", "61220000",
+  ...EASYMAT_CREDIT_BAIL,
   ...EASYMAT_ASSURANCES, "61610000", "61612000", "61620000", "61630000", "61681000",
   ...EASYMAT_SPONSORING, "62340000", "62381000", "61850000",
   "62800000", "62810000",
@@ -713,6 +731,8 @@ const EASYMAT: EntiteConfig = {
     cha_sous_traitance: "Sous-traitance (TVA 20 % / 0 % / EXO LQ)",
     fx_honoraires_management: "Honoraires de management (SDG)",
     fx_location_vehicules: "Location de matériel et de véhicules",
+    // Le crédit-bail forme un « Total 3 » : le total général devient le quatrième.
+    fx_total_general: "TOTAL 4 — Honoraires + Frais généraux + Crédit-bail (Total 1 + Total 2 + Total 3)",
     // Easy Mat impute ses achats de stock et de marchandises aux centres FX et
     // dépôts : la part « structure » des achats dépasse le petit outillage.
     syn_fx_achats_structure: "Achats et marchandises imputés à la structure (FX, dépôts)",
@@ -795,7 +815,8 @@ const EASYMAT: EntiteConfig = {
     fx_location_vehicules: EASYMAT_LOCATIONS,
     fx_dechets: EASYMAT_DECHETS,
     fx_entretien: EASYMAT_ENTRETIEN,
-    fx_credit_bail: EASYMAT_CREDIT_BAIL,
+    fx_cb_vehicules: EASYMAT_CB_VEHICULES,
+    fx_cb_materiel: EASYMAT_CB_MATERIEL,
     fx_assurances: EASYMAT_ASSURANCES,
     fx_sponsoring: EASYMAT_SPONSORING,
     fx_telecom: EASYMAT_TELECOM,
@@ -884,7 +905,11 @@ const EASYHOME_DEPLACEMENTS = ["62510009"];
 /** Code S */
 const EASYHOME_ENTRETIEN = ["61550009", "61550099"];
 /** Code Q — leasings de modules (comptes des balances Quadra) et pont roulant CIC. */
-const EASYHOME_CREDIT_BAIL = ["61210001", "61210002", "61210003", "61210004", "61325300"];
+// Un compte par contrat ; dans la vue Frais généraux, bloc « Total 3 — Crédit-bail ».
+const EASYHOME_CB_VEHICULES = ["61210003"]; // reprise camion Nissan
+const EASYHOME_CB_MATERIEL = ["61210001", "61210002", "61210004", "61325300"]; // modules, ensemble modulaire, pont roulant
+/** Code Q — tous les contrats, pour la Synthèse où le crédit-bail reste une ligne. */
+const EASYHOME_CREDIT_BAIL = [...EASYHOME_CB_VEHICULES, ...EASYHOME_CB_MATERIEL];
 /** Code P — SDG, SCI Easy Invest ; 61323000 et 61400000 sont communs au groupe. */
 const EASYHOME_LOCATION_IMMO = ["61322000", "61324000"];
 /** Code T */
@@ -975,7 +1000,9 @@ const EASYHOME: EntiteConfig = {
     fx_location_vehicules: "Location de matériel et de véhicules",
     syn_fx_achats_structure: "Achats et marchandises imputés à la structure (FX, dépôts)",
     // Ligne « 612 CB Modules+Pont roulant » de leur tableau de gestion.
-    fx_credit_bail: "Crédit-bail / LLD — modules, pont roulant",
+    fx_cb_materiel: "Crédit-bail modules et pont roulant",
+    // Le crédit-bail forme un « Total 3 » : le total général devient le quatrième.
+    fx_total_general: "TOTAL 4 — Honoraires + Frais généraux + Crédit-bail (Total 1 + Total 2 + Total 3)",
   },
   regles: {
     // ▸ Synthèse
@@ -1056,7 +1083,8 @@ const EASYHOME: EntiteConfig = {
     fx_location_vehicules: [...EASYHOME_LOCATION_MATERIEL, ...EASYHOME_LOCATION_VEHICULES],
     fx_dechets: EASYHOME_DECHETS,
     fx_entretien: EASYHOME_ENTRETIEN,
-    fx_credit_bail: EASYHOME_CREDIT_BAIL,
+    fx_cb_vehicules: EASYHOME_CB_VEHICULES,
+    fx_cb_materiel: EASYHOME_CB_MATERIEL,
     fx_assurances: EASYHOME_ASSURANCES,
     fx_sponsoring: EASYHOME_SPONSORING,
     fx_telecom: EASYHOME_TELECOM,

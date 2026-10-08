@@ -91,7 +91,10 @@ montant. Les périmètres restreints sont de deux natures :
   travaux sur sinistres) et de CovarBat (travaux LQ, 10 %, 20 %, 5,5 %), la
   ligne commune « Produits travaux » ne restant qu'à Sodobat ; indemnités sur
   charges de personnel, franchise sinistre et honoraires avocats dans les
-  Chantiers de VBTP. Les totaux ne changent pas, seul le détail s'ouvre.
+  Chantiers de VBTP ; bloc « Total 3 — Crédit-bail » des frais généraux
+  d'Easy Mat et d'Easy Home, véhicules et matériel séparés, avec son ratio,
+  là où les autres entités gardent le crédit-bail dans le Total 2. Les totaux
+  ne changent pas, seul le détail s'ouvre.
 
 ```bash
 npm run entite:installer -- covarbat            # rapport seul
