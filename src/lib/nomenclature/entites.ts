@@ -92,6 +92,13 @@ const COVARBAT_VENTES_TRAVAUX = [
   // inchangée, la Synthèse ne bouge pas.
   "71335000",
 ];
+// Dans la vue Chantiers, les mêmes comptes se lisent par taux de TVA, comme
+// les lignes du tableau de gestion de CovarBat. Le 70400000 et le 71335000
+// restent ensemble : c'est le bloc que la saisie des prévisions décompose.
+const COVARBAT_TRAVAUX_LQ = ["70400000", "71335000"];
+const COVARBAT_TRAVAUX_10 = ["70401000"];
+const COVARBAT_TRAVAUX_20 = ["70402000", "70610000"];
+const COVARBAT_TRAVAUX_55 = ["70405000"];
 const COVARBAT_SOUS_TRAITANCE = [
   "60410000", // sous-traitants 0 % (auto-entrepreneurs)
   "60413000", // sous-traitants EXO liquidation
@@ -135,6 +142,8 @@ const COVARBAT: EntiteConfig = {
     // Le 62340000 (cadeaux clients) est rattaché aux honoraires chantier, comme
     // la ligne « Honoraires Chantier / Cadeaux » de leur tableau de gestion.
     cha_honoraires: "Honoraires chantier / Cadeaux clients",
+    // Ligne « Refac Feraille 70880000 » du TG.
+    cha_refacturations: "Refacturation Feraille",
   },
   regles: {
     // ▸ Synthèse
@@ -170,7 +179,10 @@ const COVARBAT: EntiteConfig = {
     syn_produits_financiers: ["76300000"],
 
     // ▸ Activité chantier
-    cha_produits_travaux: COVARBAT_VENTES_TRAVAUX,
+    cha_produits_travaux_lq: COVARBAT_TRAVAUX_LQ,
+    cha_produits_travaux_10: COVARBAT_TRAVAUX_10,
+    cha_produits_travaux_20: COVARBAT_TRAVAUX_20,
+    cha_produits_travaux_55: COVARBAT_TRAVAUX_55,
     cha_produits_marchandises: ["70700000"],
     cha_sous_traitance: COVARBAT_SOUS_TRAITANCE,
     cha_autres_achats: ["60310000", "60631000"],
@@ -245,6 +257,12 @@ const COVARBAT: EntiteConfig = {
 
 /** Code K — prestations 10 %, 0 % (autoliquidation), 20 %, sinistres exonérés, situations. */
 const VBTP_CA_TRAVAUX = ["70600010", "70603000", "70630000", "70640000", "70650000"];
+// Dans la vue Chantiers, les mêmes comptes se lisent par taux de TVA, comme
+// les lignes du tableau de gestion de VBTP.
+const VBTP_CA_PRESTATIONS_20 = ["70630000"];
+const VBTP_CA_PRESTATIONS_0 = ["70603000"];
+const VBTP_CA_PRESTATIONS_10 = ["70600010"];
+const VBTP_CA_TRAVAUX_SINISTRES = ["70640000", "70650000"];
 /** Code M */
 const VBTP_CA_MARCHANDISES = ["70720000"];
 /** Code N — refacturation de formation (exercice 2024) ; le 70880000 est commun au groupe. */
@@ -369,6 +387,8 @@ const VBTP: EntiteConfig = {
     syn_sous_traitance_direct: "Sous-traitance paiement direct (PD LQ)",
     cha_sous_traitance_direct: "Sous-traitance paiement direct (PD LQ)",
     fx_honoraires_management: "Honoraires de management (SDG)",
+    // Ligne « AUTRES CA / REFAC SOFOVAR 70880000 » du TG.
+    cha_refacturations: "Autres CA / Refacturation Sofovar",
   },
   regles: {
     // ▸ Synthèse
@@ -400,7 +420,10 @@ const VBTP: EntiteConfig = {
     syn_impots_taxes: VBTP_IMPOTS,
 
     // ▸ Activité chantier
-    cha_produits_travaux: VBTP_CA_TRAVAUX,
+    cha_produits_prestations_20: VBTP_CA_PRESTATIONS_20,
+    cha_produits_prestations_0: VBTP_CA_PRESTATIONS_0,
+    cha_produits_prestations_10: VBTP_CA_PRESTATIONS_10,
+    cha_produits_travaux_sinistres: VBTP_CA_TRAVAUX_SINISTRES,
     cha_produits_marchandises: VBTP_CA_MARCHANDISES,
     cha_refacturations: VBTP_CA_REFACTURATION,
     cha_provision: [VBTP_PROVISION],

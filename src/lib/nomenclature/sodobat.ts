@@ -1028,8 +1028,11 @@ export const synthese: NomenclatureLine[] = [
 
 export const chantier: NomenclatureLine[] = [
   // ▸ PRODUITS / CA
-  // Même couche de détail que la Synthèse pour Easy Mat et Easy Home : leurs
-  // produits se lisent sous les mêmes intitulés en haut et en bas.
+  // Les produits de chaque entité suivent son tableau de gestion : Sodobat garde
+  // la ligne commune « Produits Travaux » ; VBTP et CovarBat lisent leurs ventes
+  // par taux de TVA, comme la maquette les liste dans sa colonne Notes ; Easy
+  // Mat et Easy Home reprennent le détail de leur Synthèse. Tout se somme dans
+  // le même CA HT total, et les comptes viennent des règles de chaque entité.
   {
     code: "cha_produits_travaux",
     view: "chantier",
@@ -1037,12 +1040,92 @@ export const chantier: NomenclatureLine[] = [
     label: "Produits Travaux",
     kind: "poste",
     sign: -1,
-    entityScope: "sodobat,vbtp,covarbat",
+    entityScope: "sodobat",
     accounts: [
       "70400010", "70400020", "70400029", "70400200", "70400290", "70400300",
       "70880020",
     ],
-    notes: "Code K — Easy Mat et Easy Home détaillent leurs produits sur les lignes qui suivent",
+    notes: "Code K — les autres entités détaillent leurs produits sur les lignes qui suivent",
+  },
+  {
+    code: "cha_produits_prestations_20",
+    view: "chantier",
+    section: CHA.produits,
+    label: "Prestations de services 20 %",
+    kind: "poste",
+    sign: -1,
+    entityScope: "vbtp",
+    notes: "Code K chez VBTP — ventes de prestations au taux normal (70630000), ligne du TG de VBTP",
+  },
+  {
+    code: "cha_produits_prestations_0",
+    view: "chantier",
+    section: CHA.produits,
+    label: "Prestations de services 0 % (LQ)",
+    kind: "poste",
+    sign: -1,
+    entityScope: "vbtp",
+    notes: "Code K chez VBTP — ventes en autoliquidation (70603000), ligne du TG de VBTP",
+  },
+  {
+    code: "cha_produits_prestations_10",
+    view: "chantier",
+    section: CHA.produits,
+    label: "Prestations de services 10 %",
+    kind: "poste",
+    sign: -1,
+    entityScope: "vbtp",
+    notes: "Code K chez VBTP — ventes au taux réduit (70600010), ligne du TG de VBTP",
+  },
+  {
+    code: "cha_produits_travaux_sinistres",
+    view: "chantier",
+    section: CHA.produits,
+    label: "Travaux / sinistres exonérés",
+    kind: "poste",
+    sign: -1,
+    entityScope: "vbtp",
+    notes: "Code K chez VBTP — travaux sur sinistres exonérés et situations (70640000, 70650000). Les indemnités d'assurance (75870000) que le TG y ajoute restent hors CA HT, en autres produits chantier, comme pour tout le groupe",
+  },
+  {
+    code: "cha_produits_travaux_lq",
+    view: "chantier",
+    section: CHA.produits,
+    label: "Travaux LQ",
+    kind: "poste",
+    sign: -1,
+    entityScope: "covarbat",
+    notes: "Code K chez CovarBat — ventes en autoliquidation (70400000) et travaux en cours (71335000) : le bloc que la saisie des prévisions décompose, ligne « TRAVAUX LQ » du TG",
+  },
+  {
+    code: "cha_produits_travaux_10",
+    view: "chantier",
+    section: CHA.produits,
+    label: "Travaux 10 %",
+    kind: "poste",
+    sign: -1,
+    entityScope: "covarbat",
+    notes: "Code K chez CovarBat — ventes de travaux au taux réduit (70401000)",
+  },
+  {
+    code: "cha_produits_travaux_20",
+    view: "chantier",
+    section: CHA.produits,
+    label: "Travaux 20 %",
+    kind: "poste",
+    sign: -1,
+    entityScope: "covarbat",
+    notes: "Code K chez CovarBat — ventes de travaux au taux normal (70402000) et prestations de service (70610000)",
+  },
+  {
+    code: "cha_produits_travaux_55",
+    view: "chantier",
+    section: CHA.produits,
+    label: "Travaux 5,5 %",
+    kind: "poste",
+    sign: -1,
+    entityScope: "covarbat",
+    notes: "Code K chez CovarBat — ventes de travaux au taux super réduit (70405000)",
   },
   {
     code: "cha_produits_location",
@@ -1146,6 +1229,14 @@ export const chantier: NomenclatureLine[] = [
       op: "sum",
       operands: [
         { code: "cha_produits_travaux", sign: 1 },
+        { code: "cha_produits_prestations_20", sign: 1 },
+        { code: "cha_produits_prestations_0", sign: 1 },
+        { code: "cha_produits_prestations_10", sign: 1 },
+        { code: "cha_produits_travaux_sinistres", sign: 1 },
+        { code: "cha_produits_travaux_lq", sign: 1 },
+        { code: "cha_produits_travaux_10", sign: 1 },
+        { code: "cha_produits_travaux_20", sign: 1 },
+        { code: "cha_produits_travaux_55", sign: 1 },
         { code: "cha_produits_location", sign: 1 },
         { code: "cha_produits_prestations", sign: 1 },
         { code: "cha_produits_modules", sign: 1 },

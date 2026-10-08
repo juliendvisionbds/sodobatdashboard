@@ -86,10 +86,12 @@ montant. Les périmètres restreints sont de deux natures :
 - une **couche de détail par entité**, sous les sous-totaux communs, reprise du
   tableau de gestion de l'entité : produits d'Easy Mat et d'Easy Home dans la
   Synthèse et les Chantiers (locations, prestations d'aménagement, modules en
-  location, prestations administratives, assurances refacturées, à la place de
-  la ligne commune « Produits travaux ») ; indemnités sur charges de personnel,
-  franchise sinistre et honoraires avocats dans les Chantiers de VBTP. Les
-  totaux ne changent pas, seul le détail s'ouvre.
+  location, prestations administratives, assurances refacturées) ; ventes par
+  taux de TVA dans les Chantiers de VBTP (prestations 20 %, 0 % LQ, 10 %,
+  travaux sur sinistres) et de CovarBat (travaux LQ, 10 %, 20 %, 5,5 %), la
+  ligne commune « Produits travaux » ne restant qu'à Sodobat ; indemnités sur
+  charges de personnel, franchise sinistre et honoraires avocats dans les
+  Chantiers de VBTP. Les totaux ne changent pas, seul le détail s'ouvre.
 
 ```bash
 npm run entite:installer -- covarbat            # rapport seul
