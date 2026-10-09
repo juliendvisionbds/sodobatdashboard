@@ -4,6 +4,9 @@
 //   npm run import:file -- "<fichier ventilée>"
 //   npm run import:file -- "<fichier analytique>" --period 2026-06
 //   npm run import:file -- "<analytique d'un exercice clos>" --period 2024-10 --annuel
+//   npm run import:file -- "<2025_BALANCE GENERALE.xlsx>" --entite vbtp --period 2025-12
+//       (balance générale annuelle Quadra, sans colonne de mois : l'exercice entier
+//        est posé sur le mois indiqué, il sert de N-1 et de CA de référence)
 //   npm run import:file -- "<fichier>" --entite covarbat
 //
 // --entite : entité visée (sodobat par défaut). Un export Pennylane porte sa
@@ -77,7 +80,9 @@ async function main() {
   const exercice = fiscalYearLabel(summary.fiscalYearStart, debutExercice(entity.code));
   const nature =
     summary.type === "ventilee"
-      ? `ventilée · exercice ${exercice} · jusqu'à ${summary.period.slice(0, 7)}`
+      ? summary.annual
+        ? `ventilée annuelle · exercice ${exercice} entier, posé sur ${summary.period.slice(0, 7)}`
+        : `ventilée · exercice ${exercice} · jusqu'à ${summary.period.slice(0, 7)}`
       : `analytique · ${summary.cumulMois ? `cumul de ${summary.cumulMois} mois, arrêté à ${summary.period.slice(0, 7)}` : summary.annual ? `exercice ${exercice} entier` : `snapshot ${summary.period.slice(0, 7)}`} · ${summary.centreCount} centres`;
   console.log(`Nature  : ${nature} · ${summary.lineCount} lignes`);
   if (summary.replaces)

@@ -106,6 +106,7 @@ npm run init:reports -- "<tableau de gestion.xlsx>" --entite covarbat [--apply]
 npm run entite:installer -- vbtp --apply
 npm run import:file -- "<balance Pennylane>" --entite vbtp
 npm run import:file -- "<VBTP_2025 BALANCE ANALYTIQUE.xlsx>" --entite vbtp --annuel --period 2025-12
+npm run import:file -- "<2025_BALANCE GENERALE.xlsx>" --entite vbtp --period 2025-12   # balance annuelle Quadra
 npm run rapprochement:synthese -- "<2026 06_TG VBTP.xlsx>" --entite vbtp
 npm run init:reports -- "<2026 06_TG VBTP.xlsx>" --entite vbtp [--apply]
 npm run entite:installer -- easymat --apply
@@ -230,3 +231,10 @@ frais généraux) ou exercice en cours arrêté à un mois (cumul N des frais
 généraux, sans détail mensuel, tant qu'aucune balance mensuelle n'existe). Tout
 autre export de plusieurs mois est refusé. Un centre exporté sans code est rangé sous
 « # » suivi de son libellé, et signalé par une alerte.
+
+Balance générale annuelle Quadra (« Balance d'Exploitation » d'un exercice clos,
+soldes débiteur et créditeur, sans colonne de mois) : elle entre comme ventilée
+annuelle, l'exercice entier posé sur son dernier mois, donné à l'import
+(`--period 2025-12`). Elle fournit le total N-1 de la Synthèse et le CA de
+référence des frais généraux, pas de lecture mois par mois : la comparaison N-1
+« au même rang de mois » reste vide tant qu'une ventilée mensuelle n'existe pas.

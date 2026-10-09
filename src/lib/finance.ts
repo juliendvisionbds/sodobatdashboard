@@ -178,8 +178,12 @@ const latestValidatedImportMemo = cache(async function latestValidatedImportMemo
     eq(tables.imports.entityId, entityId),
     eq(tables.imports.type, type),
     eq(tables.imports.status, "validated"),
-    notAnnual,
   ];
+  // Une balance ventilée annuelle (exercice clos posé sur son dernier mois) ne
+  // fait pas partie du cycle mensuel, mais elle est bien l'exercice qu'on lui
+  // demande quand l'exercice est nommé : N-1 de la Synthèse, CA de référence
+  // des frais généraux.
+  if (fiscalYearStart == null || type !== "ventilee") conds.push(notAnnual);
   if (fiscalYearStart != null) conds.push(eq(tables.imports.fiscalYearStart, fiscalYearStart));
   if (beforePeriod) conds.push(lt(tables.imports.period, beforePeriod));
   if (atPeriod) conds.push(eq(tables.imports.period, atPeriod));
@@ -283,7 +287,15 @@ export type SyntheseData = {
    */
   moisSansAnalytique: string[];
   hasPrevYear: boolean;
+  /** CA N-1 au même rang de mois ; null quand N-1 n'est connu qu'en annuel */
   prevCaTotal: number | null;
+  /**
+   * L'exercice précédent n'est connu que par une balance annuelle : ses totaux
+   * d'exercice existent (prevTotalFull), pas sa lecture au même rang de mois.
+   */
+  prevYearAnnual: boolean;
+  /** CA N-1 de l'exercice entier */
+  prevCaTotalFull: number | null;
   importId: number;
 };
 
@@ -649,6 +661,9 @@ const syntheseMemo = cache(async function syntheseMemo(
   const prevImp = await latestValidatedImport(entity.id, "ventilee", {
     fiscalYearStart: imp.fiscalYearStart - 1,
   });
+  // Balance annuelle : tout l'exercice est posé sur son dernier mois, la lecture
+  // au même rang de mois n'a pas de sens ; seul le total de l'exercice vaut.
+  const prevAnnual = !!(prevImp?.summary as { annual?: boolean } | null)?.annual;
   const prevYtd = new Map<string, number>();
   const prevFull = new Map<string, number>();
   if (prevImp) {
@@ -704,7 +719,16 @@ const syntheseMemo = cache(async function syntheseMemo(
 
   // Dotations lissées : N sur les mois affichés, N-1 au même rang de mois.
   const dotations = await dotationsLissees(entity.id, imp.fiscalYearStart, debut);
-  const dotationsVec = vecteurDotations(dotations.lissee, months, monthsWithData);
+  // Balance annuelle : l'exercice entier est posé sur un seul mois, sa dotation
+  // y va en entier plutôt qu'au douzième de ce mois.
+  const impAnnual = !!(imp.summary as { annual?: boolean } | null)?.annual;
+  const dotationsVec = vecteurDotations(
+    impAnnual
+      ? { [imp.period]: round2(Object.values(dotations.lissee).reduce((t, v) => t + v, 0)) }
+      : dotations.lissee,
+    months,
+    monthsWithData
+  );
   const dotationsPrev = prevImp
     ? (await dotationsLissees(entity.id, prevImp.fiscalYearStart, debut)).lissee
     : {};
@@ -719,7 +743,8 @@ const syntheseMemo = cache(async function syntheseMemo(
       provided: new Map([[SYNTHESE_CODES.fxDotations, { v: dotationsN1 }]]),
     });
   };
-  const prevYtdEval = prevImp ? evalOn(prevYtd, dotationsPrevSur(monthsWithData.length)) : null;
+  const prevYtdEval =
+    prevImp && !prevAnnual ? evalOn(prevYtd, dotationsPrevSur(monthsWithData.length)) : null;
   const prevFullEval = prevImp ? evalOn(prevFull, dotationsPrevSur(12)) : null;
 
   // ── Évaluation ─────────────────────────────────────────────────────────────
@@ -765,6 +790,7 @@ const syntheseMemo = cache(async function syntheseMemo(
   const caTotalVec = values.get(SYNTHESE_CODES.caTotal) ?? {};
   const caTotal = caTotalVec[TOTAL_COLUMN] ?? 0;
   const prevCaTotal = prevYtdEval?.get(SYNTHESE_CODES.caTotal)?.v ?? null;
+  const prevCaTotalFull = prevFullEval?.get(SYNTHESE_CODES.caTotal)?.v ?? null;
 
   // ── Lignes de la maquette, groupées par section ────────────────────────────
   const sections: SyntheseSection[] = [];
@@ -834,6 +860,8 @@ const syntheseMemo = cache(async function syntheseMemo(
     moisSansAnalytique,
     hasPrevYear: !!prevImp,
     prevCaTotal,
+    prevYearAnnual: prevAnnual,
+    prevCaTotalFull,
     importId: imp.id,
   };
 });

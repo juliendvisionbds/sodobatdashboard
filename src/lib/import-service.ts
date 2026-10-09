@@ -69,7 +69,9 @@ export async function createImportPreview(opts: {
   // L'exercice de l'entité situe chaque mois : ouvert en novembre chez Sodobat
   // et CovarBat, en janvier chez VBTP.
   const debut = debutExercice(entity.code);
-  const parsed = parseBalanceFile(buffer, { debutExercice: debut });
+  // Une balance annuelle (Quadra, sans colonne de mois) prend le mois indiqué
+  // pour dernier mois de son exercice.
+  const parsed = parseBalanceFile(buffer, { debutExercice: debut, periode: opts.periodOverride });
   const fileHash = createHash("sha256").update(buffer).digest("hex");
 
   // Un export de chiffre d'affaires par chantier a les mêmes colonnes qu'une
@@ -91,6 +93,10 @@ export async function createImportPreview(opts: {
   if (parsed.type === "ventilee") {
     period = parsed.period;
     fiscalYearStart = parsed.fiscalYearStart;
+    // Une balance annuelle est l'exercice clos entier : elle donne le total de
+    // l'exercice (N-1 de la Synthèse, CA de référence des frais généraux) mais
+    // aucun mois, et reste hors du cycle mensuel comme une analytique annuelle.
+    annual = !!parsed.annuelle;
   } else {
     // Un export Pennylane porte sa période dans son nom, et il est cumulé sur
     // toute cette période. L'application lit une balance analytique comme le
@@ -179,7 +185,7 @@ export async function createImportPreview(opts: {
     replaces: replaced
       ? { id: replaced.id, fileName: replaced.fileName, period: replaced.period }
       : null,
-    ...(annual && parsed.type === "analytique" ? { annual: true } : {}),
+    ...(annual ? { annual: true } : {}),
     ...(cumulMois ? { cumulMois } : {}),
     ...(parsed.type === "analytique" && parsed.famille ? { famille: parsed.famille } : {}),
   };
@@ -461,7 +467,7 @@ async function generateAlerts(importId: number) {
   // n'appelle aucune action. Les contrôles d'intégrité, eux, valent pour tout
   // exercice. On se fie au contenu du fichier plutôt qu'à la date du jour, pour
   // que le résultat ne dépende pas du moment où l'import est fait.
-  const exerciceClos = (summary.months?.length ?? 0) >= 12;
+  const exerciceClos = (summary.months?.length ?? 0) >= 12 || !!summary.annual;
 
   if (imp.type === "ventilee" && !exerciceClos) {
     const lines = await db

@@ -137,7 +137,9 @@ export default async function SynthesePage({
             <div className="kpi-sub">
               {data.hasPrevYear && data.prevCaTotal
                 ? `N-1 : ${fmtEurAuto(data.prevCaTotal)}`
-                : "historique N-1 non importé"}
+                : data.prevYearAnnual && data.prevCaTotalFull
+                  ? `N-1, exercice entier : ${fmtEurAuto(data.prevCaTotalFull)}`
+                  : "historique N-1 non importé"}
             </div>
           </div>
           <div className="kpi">

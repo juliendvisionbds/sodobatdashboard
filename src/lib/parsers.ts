@@ -25,6 +25,11 @@ export type ParsedVentilee = {
   months: string[]; // mois présents, triés
   period: string; // dernier mois = période de l'import
   fiscalYearStart: number;
+  /**
+   * Balance annuelle d'un exercice clos (Quadra, soldes débiteur / créditeur
+   * sans colonne de mois) : tout l'exercice est posé sur son dernier mois.
+   */
+  annuelle?: boolean;
   // contrôles : totaux par classe lus dans le fichier vs recalculés par nous
   classTotals: {
     class: string;
@@ -170,11 +175,27 @@ function sheetToGrid(ws: XLSX.WorkSheet): Grid {
 // Structure Pennylane : "N° de compte" / "Libellé de compte" / "Solde" puis un
 // mois par colonne, écrit en toutes lettres. Aucune ligne de total : le contrôle
 // porte alors sur la colonne Solde, qui doit égaler la somme des mois.
+// Balance annuelle Quadra (« Balance d'Exploitation » d'un exercice clos) :
+// "Numéro" / "Intitulé" / Débit / Crédit / "Solde Débiteur" / "Solde Créditeur",
+// sans colonne de mois. Elle ne porte pas sa date : l'appelant donne le dernier
+// mois de l'exercice, sur lequel tout l'exercice est posé. Elle sert de N-1
+// (total de l'exercice, CA de référence des frais généraux), pas de mois.
 
 const EN_TETE_COMPTE = ["Numéro", "N° de compte"];
 const EN_TETE_LIBELLE = ["Intitulé", "Libellé de compte"];
 
-function tryParseVentilee(grid: Grid, debutExercice: number): ParsedVentilee | null {
+/** Levée quand une balance annuelle est reconnue sans que son mois de clôture soit donné. */
+export class BalanceAnnuelleSansPeriode extends Error {
+  constructor() {
+    super(
+      "Cette balance générale est annuelle (soldes débiteur et créditeur, sans colonne de " +
+        "mois) : indiquez le dernier mois de l'exercice qu'elle clôture, par exemple 2025-12."
+    );
+    this.name = "BalanceAnnuelleSansPeriode";
+  }
+}
+
+function tryParseVentilee(grid: Grid, debutExercice: number, periode?: string): ParsedVentilee | null {
   // trouver la ligne d'en-tête
   let headerRow = -1;
   for (let i = 0; i < Math.min(grid.length, 20); i++) {
@@ -198,7 +219,14 @@ function tryParseVentilee(grid: Grid, debutExercice: number): ParsedVentilee | n
     const m = parseMonthHeader(header[c]);
     if (m) monthCols.push({ col: c, month: m });
   }
-  if (monthCols.length === 0) return null;
+  // Balance annuelle Quadra : pas de mois, un solde débiteur et un solde
+  // créditeur par compte, l'exercice entier posé sur le mois donné.
+  const colSoldeDeb = header.findIndex((c) => c === "Solde Débiteur");
+  const colSoldeCred = header.findIndex((c) => c === "Solde Créditeur");
+  const annuelle = monthCols.length === 0 && colSoldeDeb >= 0 && colSoldeCred >= 0;
+  if (monthCols.length === 0 && !annuelle) return null;
+  if (annuelle && !periode) throw new BalanceAnnuelleSansPeriode();
+  const soldeAnnuel = (row: unknown[]) => toNumber(row[colSoldeDeb]) - toNumber(row[colSoldeCred]);
   const soldeCol = header.findIndex((c) => c === "Solde");
 
   const lines: VentileeLine[] = [];
@@ -216,7 +244,7 @@ function tryParseVentilee(grid: Grid, debutExercice: number): ParsedVentilee | n
     if (rawAccount == null || String(rawAccount).trim() === "") {
       // ligne de total du fichier ("Total classe 601", "TOTAL GENERAL")
       const mTot = label.match(/^Total classe (\d+)$/i);
-      const solde = soldeCol >= 0 ? toNumber(row[soldeCol]) : 0;
+      const solde = annuelle ? soldeAnnuel(row) : soldeCol >= 0 ? toNumber(row[soldeCol]) : 0;
       if (mTot) fileClassTotals.set(mTot[1], solde);
       else if (/^TOTAL GENERAL$/i.test(label)) fileGrandTotal = solde;
       continue;
@@ -233,8 +261,10 @@ function tryParseVentilee(grid: Grid, debutExercice: number): ParsedVentilee | n
       soldeParClasse.set(account[0], (soldeParClasse.get(account[0]) ?? 0) + toNumber(row[soldeCol]));
 
     let accTotal = 0;
-    for (const { col, month } of monthCols) {
-      const amount = toNumber(row[col]);
+    const montants = annuelle
+      ? [{ month: periode!, amount: soldeAnnuel(row) }]
+      : monthCols.map(({ col, month }) => ({ month, amount: toNumber(row[col]) }));
+    for (const { month, amount } of montants) {
       if (amount !== 0) {
         lines.push({ account, label, month, amount: round2(amount) });
         accTotal += amount;
@@ -280,6 +310,7 @@ function tryParseVentilee(grid: Grid, debutExercice: number): ParsedVentilee | n
     months,
     period,
     fiscalYearStart: fiscalYearOf(months[0], debutExercice),
+    ...(annuelle ? { annuelle: true } : {}),
     classTotals,
     fileGrandTotal: fileGrandTotal != null ? round2(fileGrandTotal) : null,
     accounts: [...accountTotals.entries()].map(([account, v]) => ({
@@ -414,10 +445,12 @@ function tryParseAnalytique(grid: Grid): ParsedAnalytique | null {
 /**
  * @param opts.debutExercice mois d'ouverture de l'exercice de l'entité (1 à 12),
  *        qui situe les mois d'une balance ventilée dans leur exercice
+ * @param opts.periode mois (« AAAA-MM-01 ») donné par l'appelant : dernier mois
+ *        de l'exercice d'une balance annuelle, qui ne porte pas sa date
  */
 export function parseBalanceFile(
   buffer: Buffer | ArrayBuffer,
-  opts?: { debutExercice?: number }
+  opts?: { debutExercice?: number; periode?: string }
 ): ParsedFile {
   const debutExercice = opts?.debutExercice ?? DEBUT_EXERCICE_DEFAUT;
   const wb = XLSX.read(buffer, { type: buffer instanceof Buffer ? "buffer" : "array" });
@@ -436,9 +469,18 @@ export function parseBalanceFile(
     return -ko * 1_000_000 + v.lines.length;
   };
 
+  // Une balance annuelle reconnue sans son mois de clôture n'empêche pas de
+  // lire un autre onglet ; elle n'est signalée que si rien d'autre n'est lu.
+  let sansPeriode: BalanceAnnuelleSansPeriode | null = null;
   for (const name of wb.SheetNames) {
     const grid = sheetToGrid(wb.Sheets[name]);
-    const v = tryParseVentilee(grid, debutExercice);
+    let v: ParsedVentilee | null = null;
+    try {
+      v = tryParseVentilee(grid, debutExercice, opts?.periode);
+    } catch (e) {
+      if (!(e instanceof BalanceAnnuelleSansPeriode)) throw e;
+      sansPeriode = e;
+    }
     if (v && (!bestVentilee || ventileeScore(v) > ventileeScore(bestVentilee))) {
       bestVentilee = v;
     }
@@ -450,6 +492,7 @@ export function parseBalanceFile(
 
   if (bestVentilee) return bestVentilee;
   if (bestAnalytique) return bestAnalytique;
+  if (sansPeriode) throw sansPeriode;
   throw new Error(
     "Format non reconnu : ni balance ventilée (colonnes Numéro/Intitulé + mois MM/AAAA), ni balance analytique (colonnes Centre/Compte/Solde)."
   );
