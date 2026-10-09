@@ -33,13 +33,13 @@ const toParam = (period: string) => period.slice(0, 7);
 const fromParam = (p: string | null) => (p && /^\d{4}-\d{2}$/.test(p) ? `${p}-01` : null);
 
 function signed(n: number | null, unit = "\u00A0%") {
-  if (n == null) return "-";
+  if (n == null) return "–";
   const r = Math.round(n);
   return `${r > 0 ? "+" : r < 0 ? "−" : ""}${Math.abs(r)}${unit}`;
 }
 
 function signedEur(n: number | null) {
-  if (n == null) return "-";
+  if (n == null) return "–";
   return `${n > 0 ? "+" : ""}${eur(n)}`;
 }
 
@@ -470,7 +470,7 @@ function Kpis({ f }: { f: AnalyseFigures }) {
       />
       <Kpi
         label="Objectifs tenus"
-        value={o.renseignes ? `${o.tenus} / ${o.renseignes}` : "-"}
+        value={o.renseignes ? `${o.tenus} / ${o.renseignes}` : "–"}
         sub={
           o.renseignes
             ? {
@@ -921,10 +921,10 @@ function ObjectifRow({ r, scale }: { r: ObjectifAnalyse; scale: number }) {
       </span>
       <span className="am-obj-values">
         <b>{pct(r.realiseCumul)}</b>{" "}
-        <span className="muted">/ {r.objectif == null ? "-" : pct(r.objectif)}</span>
+        <span className="muted">/ {r.objectif == null ? "–" : pct(r.objectif)}</span>
       </span>
       <span className="am-obj-status">
-        {r.statut ? <span className={`tag ${tone}`}>{r.statut}</span> : <span className="muted">-</span>}
+        {r.statut ? <span className={`tag ${tone}`}>{r.statut}</span> : <span className="muted">–</span>}
       </span>
     </li>
   );

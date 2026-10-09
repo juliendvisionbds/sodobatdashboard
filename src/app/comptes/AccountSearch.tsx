@@ -29,7 +29,7 @@ export default function AccountSearch({
           onChange={(e) => setSearch(e.target.value)}
           autoFocus
         />
-        <span style={{ fontSize: 11, color: "var(--gray3)", alignSelf: "center" }}>
+        <span className="tctl-stats">
           {filtered.length} compte{filtered.length > 1 ? "s" : ""} sur {accounts.length}
         </span>
       </div>

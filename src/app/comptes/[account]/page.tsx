@@ -49,7 +49,7 @@ export default async function ComptePage({
 
         <div style={{ display: "flex", gap: 12, marginBottom: 20, flexWrap: "wrap" }}>
           {data.postes.map((p) => (
-            <span key={p.view} className={`tag ${p.label ? "blue" : "gray"}`}>
+            <span key={p.view} className={`tag ${p.label ? "brand" : "gray"}`}>
               {VIEW_LABEL[p.view]} :{" "}
               {p.label ?? "non mappé"}
             </span>
@@ -123,21 +123,21 @@ export default async function ComptePage({
                     <tr key={v.centreCode}>
                       <td className="code-cell">{v.centreCode}</td>
                       <td className="label-cell">{v.centreLabel}</td>
-                      <td className="muted">{v.pole ?? "-"}</td>
+                      <td className="muted">{v.pole ?? "–"}</td>
                       <td>
-                        <span className={`tag ${v.kind === "chantier" ? "blue" : "gray"}`}>
+                        <span className={`tag ${v.kind === "chantier" ? "brand" : "gray"}`}>
                           {v.kind === "chantier" ? "chantier" : "structure"}
                         </span>
                       </td>
                       <td className={v.debit ? "" : "muted"}>
-                        {v.debit ? fmtEur(v.debit) : "-"}
+                        {v.debit ? fmtEur(v.debit) : "–"}
                       </td>
                       <td className={v.credit ? "" : "muted"}>
-                        {v.credit ? fmtEur(v.credit) : "-"}
+                        {v.credit ? fmtEur(v.credit) : "–"}
                       </td>
                       <td className={v.solde < 0 ? "neg" : ""}>{fmtEur(v.solde)}</td>
                       <td className={v.mois == null ? "muted" : v.mois < 0 ? "neg" : ""}>
-                        {v.mois == null ? "-" : fmtEur(v.mois)}
+                        {v.mois == null ? "–" : fmtEur(v.mois)}
                       </td>
                     </tr>
                   ))}
@@ -145,7 +145,7 @@ export default async function ComptePage({
               </table>
             </div>
           )}
-          <p style={{ marginTop: 10, fontSize: 11, color: "var(--gray3)" }}>
+          <p className="table-note">
             Débit, crédit et cumul additionnent les balances analytiques mensuelles de
             l&apos;exercice ; la colonne « Mois » reprend la dernière importée. C&apos;est la nature du centre (chantier ou structure) qui décide si une
             écriture alimente la vue Chantiers ou la vue Frais généraux.

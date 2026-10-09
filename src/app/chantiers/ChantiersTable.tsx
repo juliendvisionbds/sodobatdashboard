@@ -4,7 +4,7 @@ import { Fragment, useMemo, useState, useTransition } from "react";
 import type { Category } from "@/lib/mapping";
 import type { ChantierRow, ChantiersData } from "@/lib/finance";
 import { CHANTIER_CODES, ratioEnAlerte } from "@/lib/nomenclature/codes";
-import { fmtEur, fmtPct } from "@/lib/format";
+import { VIDE, fmtNum, fmtPct } from "@/lib/format";
 import { saveManualEntryAction } from "@/app/actions";
 
 // Les postes de la maquette en lignes, un chantier par colonne, regroupés par
@@ -19,8 +19,8 @@ function amountClass(v: number | null, posGreen = false) {
 }
 
 function amountText(v: number | null, posGreen = false) {
-  if (v == null || v === 0) return "-";
-  return `${v > 0 && posGreen ? "+" : ""}${fmtEur(v)}`;
+  if (v == null || v === 0) return VIDE;
+  return `${v > 0 && posGreen ? "+" : ""}${fmtNum(v)}`;
 }
 
 const isRatio = (line: Category) => line.kind === "ratio";
@@ -35,8 +35,8 @@ function cellClass(line: Category, v: number | null) {
 }
 
 function cellText(line: Category, v: number | null) {
-  if (isRatio(line)) return v == null ? "-" : fmtPct(v);
-  if (isDiv(line)) return v == null ? "-" : v.toFixed(2).replace(".", ",");
+  if (isRatio(line)) return v == null ? VIDE : fmtPct(v);
+  if (isDiv(line)) return v == null ? VIDE : v.toFixed(2).replace(".", ",");
   return amountText(v, isProduit(line));
 }
 
@@ -151,7 +151,7 @@ export default function ChantiersTable({
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
-        <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12 }}>
+        <label className="check-chip">
           <input
             type="checkbox"
             checked={hideInactive}
@@ -159,7 +159,7 @@ export default function ChantiersTable({
           />
           Masquer les chantiers sans activité
         </label>
-        <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12 }}>
+        <label className="check-chip">
           <input
             type="checkbox"
             checked={hideEmptyLines}
@@ -174,11 +174,11 @@ export default function ChantiersTable({
       </div>
 
       <div className="table-wrap">
-        <table className="ct chantiers-ct">
+        <table className="ct tree-ct chantiers-ct">
           <thead>
             <tr>
               <th className="left" rowSpan={2}>
-                Intitulé
+                Intitulé <span className="th-unit">(en €)</span>
               </th>
               {byPole.map(([p, list]) => (
                 <th key={`pole-${p}`} className="pole-head" colSpan={list.length}>
@@ -230,7 +230,7 @@ export default function ChantiersTable({
         </table>
       </div>
 
-      <p style={{ marginTop: 10, fontSize: 11, color: "var(--gray3)" }}>
+      <p className="table-note">
         Montants du mois = mouvements de la balance analytique du mois, lue telle quelle. Les
         cumuls de fin de tableau additionnent en revanche tous les mois importés, sur toute la
         durée de vie du chantier. La colonne Total porte sur tous les chantiers du mois, filtres
@@ -282,7 +282,7 @@ function LineTr({
     <tr className={rowClass(line)} style={isPending ? { opacity: 0.5 } : undefined}>
       <td className="label-cell" title={line.notes ?? undefined}>
         {line.label}
-        {isProvision && canEdit && " 🟡"}
+        {isProvision && canEdit && <span className="manual-dot" title="Ligne saisie à la main" />}
       </td>
       {columns.map((row) => {
         if (isProvision)
@@ -331,7 +331,7 @@ function ProvisionTd({
         title={[isFinal ? "Valeur figée" : null, trace].filter(Boolean).join(" · ") || undefined}
       >
         {amountText(value)}
-        {isFinal && " 🔒"}
+        {isFinal && <span className="frozen-mark">figé</span>}
         {isFinal && canFreeze && (
           <button
             className="tag cell-unfreeze"
@@ -427,7 +427,7 @@ function StatutTd({ row, canFreeze, send }: { row: ChantierRow; canFreeze: boole
           })
         }
       >
-        {final ? "figé 🔒" : "brouillon"}
+        {final ? "figé" : "brouillon"}
       </button>
     </td>
   );

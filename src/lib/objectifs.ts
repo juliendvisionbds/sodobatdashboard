@@ -125,7 +125,7 @@ export function statutObjectif(ecart: number | null): ObjectifStatut {
 
 export const STATUT_CLASS: Record<Exclude<ObjectifStatut, null>, string> = {
   BON: "green",
-  BIEN: "blue",
+  BIEN: "brand",
   "À SURVEILLER": "amber",
   MAUVAIS: "red",
 };

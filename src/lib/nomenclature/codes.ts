@@ -103,6 +103,9 @@ const LIGNES_DE_RESULTAT = new Set([
 
 type LigneLue = { code: string; section: string; kind: string };
 
+/** Un résultat : sa valeur négative est une perte, et se lit en rouge. */
+export const estResultat = (code: string) => LIGNES_DE_RESULTAT.has(code);
+
 /**
  * Sens d'une ligne : un produit ou un résultat qui monte est bon, une charge
  * qui monte est mauvaise. Les lignes de contrôle, de cumul et de saisie n'ont

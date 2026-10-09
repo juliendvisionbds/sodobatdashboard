@@ -71,24 +71,26 @@ export default async function ChantiersPage({
     <>
       <AppHeader active="chantiers" fiscalYearStart={data.fiscalYearStart} />
       <div className="page">
-        <div className="page-header">
-          <div className="page-header-row">
+        <div className="page-top">
+          <div className="page-header">
             <h1>Chantiers · {monthLabelLong(data.period)}</h1>
-            {periods.length > 0 && (
-              <MonthSelect basePath="/chantiers" periods={periods} current={data.period} />
-            )}
+            <p>
+              Activité du mois : mouvements de la balance analytique de{" "}
+              {monthLabelLong(data.period)}
+              {data.prevPeriod
+                ? ` · reports de cumul arrêtés à ${monthLabelLong(data.prevPeriod)}`
+                : " · premier mois importé, aucun report de cumul"}
+            </p>
           </div>
-          <p>
-            Activité du mois : mouvements de la balance analytique de{" "}
-            {monthLabelLong(data.period)}
-            {data.prevPeriod
-              ? ` · reports de cumul arrêtés à ${monthLabelLong(data.prevPeriod)}`
-              : " · premier mois importé, aucun report de cumul"}
-          </p>
+          {periods.length > 0 && (
+            <div className="page-actions">
+              <MonthSelect basePath="/chantiers" periods={periods} current={data.period} large />
+            </div>
+          )}
         </div>
 
-        <div style={{ display: "flex", gap: 12, marginBottom: 20, flexWrap: "wrap" }}>
-          <span className={`tag ${totalProduits >= 0 ? "blue" : "red"}`}>
+        <div className="tag-row">
+          <span className={`tag ${totalProduits >= 0 ? "brand" : "red"}`}>
             CA HT total : {fmtEurAuto(totalProduits)}
           </span>
           <span className={`tag ${resultat >= 0 ? "green" : "red"}`}>
@@ -115,7 +117,7 @@ export default async function ChantiersPage({
           canEdit={writer}
           canFreeze={freezer}
         />
-        <p style={{ marginTop: 10, fontSize: 11, color: "var(--gray3)" }}>
+        <p className="table-note">
           Résultat chantier = CA HT total − charges d&apos;exploitation − charges de
           personnel affectées. Les centres de structure (FX, siège) sont exclus : voir
           Frais généraux. La ligne Prévision (TEC) et la note se saisissent tant que la DAF

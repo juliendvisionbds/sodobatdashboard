@@ -2,7 +2,7 @@ import Link from "next/link";
 import AppHeader from "@/components/AppHeader";
 import { getObjectifs } from "@/lib/views";
 import { getSession, canFiger, canWrite } from "@/lib/auth";
-import { fmtEurAuto, fmtPct, monthLabelLong } from "@/lib/format";
+import { fmtPct, monthLabelLong, splitAutoEur } from "@/lib/format";
 import { listAnalyses, listMoisAnalysables } from "@/lib/analyse-mensuelle";
 import ObjectifsTable from "./ObjectifsTable";
 import AnalysesMensuelles from "./AnalysesMensuelles";
@@ -58,6 +58,8 @@ export default async function ObjectifsPage({
     );
   }
 
+  const caSplit = splitAutoEur(data.caTotal);
+
   return (
     <>
       <AppHeader active="objectifs" fiscalYearStart={data.fiscalYearStart} />
@@ -74,12 +76,16 @@ export default async function ObjectifsPage({
         <div className="kpi-strip">
           <div className="kpi">
             <div className="kpi-label">CA de référence</div>
-            <div className="kpi-value">{fmtEurAuto(data.caTotal)}</div>
+            <div className="kpi-value">
+              {data.caTotal < 0 ? "−" : ""}
+              {caSplit.amount}
+              <span className="unit">{caSplit.unit}</span>
+            </div>
             <div className="kpi-sub">base de tous les ratios</div>
           </div>
           <div className="kpi">
             <div className="kpi-label">Total de contrôle</div>
-            <div className="kpi-value" style={{ color: "var(--blue)" }}>
+            <div className="kpi-value" style={{ color: "var(--brand)" }}>
               {fmtPct(data.totalControle)}
             </div>
             <div className="kpi-sub">somme des indicateurs suivis · cible ≈ 100 %</div>

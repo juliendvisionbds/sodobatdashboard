@@ -1,7 +1,7 @@
 import Link from "next/link";
 import AppHeader from "@/components/AppHeader";
 import { getFx, getFxMensuel, listAnalytiquePeriods } from "@/lib/views";
-import { fmtEurAuto, fmtPct, monthLabelLong, splitAutoEur } from "@/lib/format";
+import { VIDE, fmtEurAuto, fmtPct, monthLabelLong, splitAutoEur } from "@/lib/format";
 import MonthSelect from "@/components/MonthSelect";
 import FxTable from "./FxTable";
 import FxMensuelTable from "./FxMensuelTable";
@@ -56,17 +56,15 @@ export default async function FxPage({
     <>
       <AppHeader active="fx" fiscalYearStart={data.fiscalYearStart} />
       <div className="page">
-        <div className="page-header">
-          <div className="page-header-row">
+        <div className="page-top">
+          <div className="page-header">
             <h1>Frais généraux · {monthLabelLong(data.period)}</h1>
-            {periods.length > 0 && (
-              <MonthSelect
-                basePath="/frais-generaux"
-                periods={periods}
-                current={data.period}
-                extraQuery={mensuel ? "vue=mensuel" : undefined}
-              />
-            )}
+            <p>
+              Centres de structure (FX, dépôt, siège) · cumul exercice à date ·{" "}
+              {data.nbMois} mois écoulés
+            </p>
+          </div>
+          <div className="page-actions">
             {!data.cumulSeul && (
               <nav className="view-switch" aria-label="Lecture du tableau">
                 <Link
@@ -83,11 +81,16 @@ export default async function FxPage({
                 </Link>
               </nav>
             )}
+            {periods.length > 0 && (
+              <MonthSelect
+                basePath="/frais-generaux"
+                periods={periods}
+                current={data.period}
+                extraQuery={mensuel ? "vue=mensuel" : undefined}
+                large
+              />
+            )}
           </div>
-          <p>
-            Centres de structure (FX, dépôt, siège) · cumul exercice à date ·{" "}
-            {data.nbMois} mois écoulés
-          </p>
         </div>
 
         {data.cumulSeul && (
@@ -117,7 +120,7 @@ export default async function FxPage({
             <div className="kpi-label">FX du mois</div>
             <div className="kpi-value">
               {data.cumulSeul ? (
-                "-"
+                VIDE
               ) : (
                 <>
                   {moisSplit.amount}
@@ -131,8 +134,8 @@ export default async function FxPage({
           </div>
           <div className="kpi">
             <div className="kpi-label">Ratio FX / CA</div>
-            <div className="kpi-value" style={{ color: "var(--blue)" }}>
-              {ratioFx != null ? fmtPct(ratioFx) : "-"}
+            <div className="kpi-value">
+              {ratioFx != null ? fmtPct(ratioFx) : VIDE}
             </div>
             <div className="kpi-sub">
               {caN != null
@@ -145,14 +148,14 @@ export default async function FxPage({
             <div className="kpi-value" style={{ color: data.unmapped.length ? "var(--amber)" : "var(--green)" }}>
               {data.unmapped.length}
             </div>
-            <div className="kpi-sub warn">
+            <div className={`kpi-sub${data.unmapped.length ? " warn" : ""}`}>
               {data.unmapped.length ? "à affecter dans Mapping" : "tout est affecté"}
             </div>
           </div>
         </div>
 
         {mensuelData ? <FxMensuelTable data={mensuelData} /> : <FxTable data={data} />}
-        <p style={{ marginTop: 10, fontSize: 11, color: "var(--gray3)" }}>
+        <p className="table-note">
           Négatif = produit venant en déduction (indemnités, refacturations). Les
           comptes partagés avec les chantiers (carburant, entretien, locations) ne
           sont comptés ici que pour leur part imputée à un centre de structure.

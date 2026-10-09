@@ -9,13 +9,12 @@ function LoginForm() {
   const [state, action, pending] = useActionState(loginAction, undefined);
 
   return (
-    <form action={action} className="card" style={{ width: 380 }}>
-      <div style={{ marginBottom: 24, textAlign: "center" }}>
-        <div style={{ fontSize: 20, fontWeight: 700, letterSpacing: "-0.02em" }}>
-          Groupe SDG
-        </div>
-        <div style={{ fontSize: 13, color: "var(--gray2)", marginTop: 4 }}>
-          Tableaux de gestion
+    <form action={action} className="card login-card">
+      <div className="login-brand">
+        <div className="brand-logo">S</div>
+        <div>
+          <div className="login-brand-name">Groupe SDG</div>
+          <div className="brand-group">Tableaux de gestion</div>
         </div>
       </div>
       <input type="hidden" name="next" value={params.get("next") ?? "/"} />
@@ -54,7 +53,7 @@ function LoginForm() {
 
 export default function LoginPage() {
   return (
-    <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
+    <div className="login-wrap">
       <Suspense>
         <LoginForm />
       </Suspense>

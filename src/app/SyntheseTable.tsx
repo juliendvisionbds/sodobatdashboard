@@ -6,10 +6,11 @@ import { TOTAL_COLUMN } from "@/lib/nomenclature/columns";
 import {
   SYNTHESE_CODES,
   classeEcart,
+  estResultat,
   pourcentageEnAlerte,
   ratioEnAlerte,
 } from "@/lib/nomenclature/codes";
-import { fiscalYearLabel, fmtEur, fmtPct, monthLabel } from "@/lib/format";
+import { VIDE, fmtNum, fmtPct, monthLabel } from "@/lib/format";
 import { saveManualEntryAction } from "@/app/actions";
 
 // Structure de référence : Intitulé · les 12 mois de l'exercice · Total exercice ·
@@ -17,29 +18,45 @@ import { saveManualEntryAction } from "@/app/actions";
 // et les postes sans montant sont masqués par défaut (« Masquer les colonnes
 // vides », « Masquer les lignes vides ») ; décocher les options restitue les
 // 12 mois et toutes les lignes pour retrouver la structure complète de la maquette.
+// Les montants sont en euros, l'unité est portée par l'en-tête « Intitulé (en €) ».
 
 function pctBadge(pct: number | null, alerte = false) {
   return pct == null ? (
-    <span className="muted">-</span>
+    <span className="muted">{VIDE}</span>
   ) : (
     <span className={`pct-badge${alerte ? " neg" : ""}`}>{fmtPct(pct)}</span>
   );
 }
 
-/** Moins de 50 centimes s'affiche « 0 € » : autant le lire comme un vide, jamais « -0 € ». */
+/** Moins de 50 centimes s'affiche « 0 » : autant le lire comme un vide, jamais « −0 ». */
 const vide = (v: number | null | undefined) => v == null || Math.abs(v) < 0.5;
 
 function money(v: number | null) {
-  if (vide(v)) return <span className="muted">-</span>;
-  return fmtEur(v as number);
+  if (vide(v)) return <span className="muted">{VIDE}</span>;
+  return fmtNum(v as number);
 }
 
-const negClass = (v: number | null) => (v != null && v < 0 ? "neg" : "");
+/** Un écart se lit avec son signe : « +219 280 », « −104 298 ». */
+function ecart(v: number | null) {
+  if (vide(v)) return <span className="muted">{VIDE}</span>;
+  return `${(v as number) > 0 ? "+" : ""}${fmtNum(v as number)}`;
+}
 
-/** Une ligne de total, sous-total ou résultat est mise en avant. */
-const rowClass = (kind: string) => {
-  if (kind === "total" || kind === "computed") return "total-row";
-  if (kind === "subtotal") return "subtotal-row";
+/**
+ * Le rouge dit « défavorable » : dans les montants, il est réservé aux pertes
+ * (un résultat négatif). Une annulation, un avoir ou un produit en déduction
+ * sont négatifs par construction et se lisent à l'encre, avec leur signe.
+ */
+const lossClass = (code: string, v: number | null) =>
+  v != null && v < 0 && estResultat(code) ? "neg" : "";
+
+/**
+ * Totaux de section et résultats : fond de ligne de total. Sous-totaux,
+ * retraitements et contrôles : en gras, sans fond.
+ */
+const rowClass = ({ kind, code }: { kind: string; code: string }) => {
+  if (kind === "total" || (kind === "computed" && estResultat(code))) return "total-row";
+  if (kind === "subtotal" || kind === "computed") return "subtotal-row";
   return "";
 };
 
@@ -119,59 +136,63 @@ export default function SyntheseTable({
   const colCount = monthsShown.length + 6;
 
   return (
-    <div style={{ marginTop: 32 }}>
-      <div className="card-label" style={{ border: "none", padding: 0, marginBottom: 12 }}>
-        Tableau de synthèse · exercice {fiscalYearLabel(data.fiscalYearStart, data.debutExercice)}
-      </div>
-      <div className="table-controls">
-        <div className="view-switch" role="group" aria-label="Lecture des colonnes de mois">
-          <button type="button" className={cumul ? undefined : "active"} onClick={() => setCumul(false)}>
-            Mensuel
-          </button>
-          <button type="button" className={cumul ? "active" : undefined} onClick={() => setCumul(true)}>
-            Cumulé
-          </button>
+    <div className="card flush">
+      <div className="card-head">
+        <div className="card-head-group">
+          <div className="card-label">Tableau de synthèse</div>
+          <div className="view-switch" role="group" aria-label="Lecture des colonnes de mois">
+            <button type="button" className={cumul ? undefined : "active"} onClick={() => setCumul(false)}>
+              Mensuel
+            </button>
+            <button type="button" className={cumul ? "active" : undefined} onClick={() => setCumul(true)}>
+              Cumulé
+            </button>
+          </div>
         </div>
-        <select
-          className="tctl-select"
-          value={section}
-          onChange={(e) => setSection(e.target.value)}
-        >
-          <option value="">Toutes les sections</option>
-          {data.sections.map((s) => (
-            <option key={s.name} value={s.name}>
-              {s.name}
-            </option>
-          ))}
-        </select>
-        <input
-          className="tctl-input"
-          placeholder="Rechercher une ligne (libellé, section)…"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
-        <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12 }}>
+        <div className="table-controls">
+          <select
+            className="tctl-select"
+            value={section}
+            onChange={(e) => setSection(e.target.value)}
+          >
+            <option value="">Toutes les sections</option>
+            {data.sections.map((s) => (
+              <option key={s.name} value={s.name}>
+                {s.name}
+              </option>
+            ))}
+          </select>
           <input
-            type="checkbox"
-            checked={hideEmpty}
-            onChange={(e) => setHideEmpty(e.target.checked)}
+            className="tctl-input"
+            placeholder="Rechercher une ligne…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
           />
-          Masquer les lignes vides
-        </label>
-        <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12 }}>
-          <input
-            type="checkbox"
-            checked={hideEmptyCols}
-            onChange={(e) => setHideEmptyCols(e.target.checked)}
-          />
-          Masquer les colonnes vides
-        </label>
+          <label className="check-chip">
+            <input
+              type="checkbox"
+              checked={hideEmpty}
+              onChange={(e) => setHideEmpty(e.target.checked)}
+            />
+            Masquer les lignes vides
+          </label>
+          <label className="check-chip">
+            <input
+              type="checkbox"
+              checked={hideEmptyCols}
+              onChange={(e) => setHideEmptyCols(e.target.checked)}
+            />
+            Masquer les colonnes vides
+          </label>
+        </div>
       </div>
-      <div className="table-wrap">
-        <table className="ct synthese-ct">
+      <div className="table-wrap bare">
+        <table className="ct tree-ct synthese-ct">
           <thead>
             <tr>
-              <th className="left">Intitulé</th>
+              <th className="left">
+                Intitulé <span className="th-unit">(en €)</span>
+              </th>
               {monthsShown.map((m) => (
                 <th
                   key={m}
@@ -181,11 +202,11 @@ export default function SyntheseTable({
                   {cumul ? `→ ${monthLabel(m)}` : monthLabel(m)}
                 </th>
               ))}
-              <th>Total exercice</th>
-              <th className="pct-col">% / CA</th>
-              <th>N-1 Total</th>
-              <th className="pct-col">% N-1</th>
-              <th>Écart N–N-1</th>
+              <th className="sum-col sum-first">Total exercice</th>
+              <th className="sum-col pct-col">% / CA</th>
+              <th className="sum-col">N-1 Total</th>
+              <th className="sum-col pct-col">% N-1</th>
+              <th className="sum-col">Écart N–N-1</th>
             </tr>
           </thead>
           <tbody>
@@ -212,10 +233,12 @@ export default function SyntheseTable({
           </tbody>
         </table>
       </div>
-      <p style={{ marginTop: 10, fontSize: 11, color: "var(--gray3)" }}>
+      <p className="card-foot">
         Chiffres recalculés à la volée depuis les lignes de balance importées (aucun
         agrégat stocké). Le total N-1 est arrêté au même rang de mois que l&apos;exercice
-        en cours, pour une comparaison à périmètre égal. Les charges partagées entre
+        en cours, pour une comparaison à périmètre égal. Écart :{" "}
+        <span className="pos">vert = favorable</span>, <span className="neg">rouge = défavorable</span>.
+        Les charges partagées entre
         chantiers et siège (achats, locations, entretien, carburant, EDF/eau, masse
         salariale) sont découpées d&apos;après la balance analytique du mois : la part
         imputée aux centres de structure figure en frais généraux.
@@ -251,7 +274,9 @@ function SectionRows({
   return (
     <>
       <tr className="section-row">
-        <td colSpan={colCount}>{name}</td>
+        <td colSpan={colCount}>
+          <span className="section-name">{name}</span>
+        </td>
       </tr>
       {rows.map((r) => {
         if (r.category.code === SYNTHESE_CODES.notes)
@@ -268,7 +293,7 @@ function SectionRows({
         const isRatio = r.category.kind === "ratio";
         const ecartClass = classeEcart(r.category, r.ecart);
         return (
-          <tr key={r.category.code} className={rowClass(r.category.kind)}>
+          <tr key={r.category.code} className={rowClass(r.category)}>
             <td className="label-cell" title={r.category.notes ?? undefined}>
               {r.category.label}
             </td>
@@ -281,7 +306,7 @@ function SectionRows({
                   </td>
                 );
               return (
-                <td key={m} className={v ? negClass(v) : "muted"}>
+                <td key={m} className={v ? lossClass(r.category.code, v) : "muted"}>
                   {money(v)}
                 </td>
               );
@@ -292,29 +317,29 @@ function SectionRows({
               // ratio ne le répète pas. Elle garde le mois par mois et l'écart,
               // en points.
               <>
-                <td />
-                <td className="pct-col" />
-                <td />
-                <td className="pct-col" />
-                <td className={ecartClass === "muted" ? "muted" : ""}>
+                <td className="sum-col sum-first" />
+                <td className="sum-col pct-col" />
+                <td className="sum-col" />
+                <td className="sum-col pct-col" />
+                <td className={`sum-col ${ecartClass === "muted" ? "muted" : ""}`}>
                   {pctBadge(r.ecart, ecartClass === "neg")}
                 </td>
               </>
             ) : (
               <>
-                <td className={negClass(r.total)} style={{ fontWeight: 500 }}>
+                <td className={`sum-col sum-first ${lossClass(r.category.code, r.total)}`}>
                   {money(r.cells[TOTAL_COLUMN] ?? r.total)}
                 </td>
-                <td className="pct-col">
+                <td className="sum-col pct-col">
                   {pctBadge(r.pctCa, pourcentageEnAlerte(r.category, r.pctCa))}
                 </td>
-                <td className={r.prevTotal != null ? negClass(r.prevTotal) : "muted"}>
+                <td className={`sum-col ${r.prevTotal != null ? lossClass(r.category.code, r.prevTotal) : "muted"}`}>
                   {money(r.prevTotal)}
                 </td>
-                <td className="pct-col">
+                <td className="sum-col pct-col">
                   {pctBadge(r.pctPrev, pourcentageEnAlerte(r.category, r.pctPrev))}
                 </td>
-                <td className={ecartClass}>{money(r.ecart)}</td>
+                <td className={`sum-col ${ecartClass}`}>{ecart(r.ecart)}</td>
               </>
             )}
           </tr>
@@ -358,7 +383,7 @@ function NotesTr({
     <tr style={isPending ? { opacity: 0.5 } : undefined}>
       <td className="label-cell">
         {label}
-        {canEdit && " 🟡"}
+        {canEdit && <span className="manual-dot" title="Ligne saisie à la main" />}
       </td>
       {months.map((m) => {
         const note = notes[m];
@@ -388,7 +413,7 @@ function NotesTr({
           </td>
         );
       })}
-      <td colSpan={5} />
+      <td colSpan={5} className="sum-col sum-first" />
     </tr>
   );
 }

@@ -42,26 +42,26 @@ export default function ObjectifsTable({
             ))}
             <tr className="total-row">
               <td className="label-cell">Total de contrôle (≈ 100 % du CA)</td>
-              <td className="muted">-</td>
+              <td className="muted">–</td>
               <td className="pct-col">{fmtPct(data.totalControle)}</td>
               <td colSpan={3} className="muted" />
             </tr>
             <tr className="total-row">
               <td className="label-cell">Charges directes cumulées / CA</td>
-              <td className="muted">-</td>
+              <td className="muted">–</td>
               <td className="pct-col">{fmtPct(data.chargesDirectes)}</td>
               <td colSpan={3} className="muted" />
             </tr>
             <tr className="total-row">
               <td className="label-cell">Marge — résultat d&apos;exploitation / CA</td>
-              <td className="muted">-</td>
+              <td className="muted">–</td>
               <td className="pct-col">{fmtPct(data.margeExploitation)}</td>
               <td colSpan={3} className="muted" />
             </tr>
           </tbody>
         </table>
       </div>
-      <p style={{ marginTop: 10, fontSize: 11, color: "var(--gray3)" }}>
+      <p className="table-note">
         Écart = réalisé − objectif, en points de pourcentage : négatif = on dépense
         moins que prévu. Statut : BON si l&apos;écart est favorable d&apos;au moins
         0,2 point, BIEN entre −0,2 et +0,2, À SURVEILLER jusqu&apos;à 2 points de
@@ -116,7 +116,7 @@ function ObjectifTr({
       </span>
     ) : (
       <span className={value == null ? "muted" : undefined}>
-        {value == null ? "-" : fmtPct(value)}
+        {value == null ? "–" : fmtPct(value)}
       </span>
     );
 
@@ -127,24 +127,24 @@ function ObjectifTr({
         {row.notes && <span className="charge-code" style={{ marginLeft: 8 }}>ⓘ</span>}
       </td>
       <td className={row.montant == null ? "muted" : row.montant < 0 ? "neg" : ""}>
-        {row.montant == null ? "-" : fmtEur(row.montant)}
+        {row.montant == null ? "–" : fmtEur(row.montant)}
       </td>
       <td className="pct-col">
         {row.realise == null ? (
-          <span className="muted">-</span>
+          <span className="muted">–</span>
         ) : (
           <span className="pct-badge">{fmtPct(row.realise)}</span>
         )}
       </td>
       <td className="pct-col">{numCell("objectif_annuel", row.objectif)}</td>
       <td className="pct-col">
-        {row.ecart == null ? <span className="muted">-</span> : fmtPct(row.ecart)}
+        {row.ecart == null ? <span className="muted">–</span> : fmtPct(row.ecart)}
       </td>
       <td>
         {row.statut ? (
           <span className={`tag ${STATUT_CLASS[row.statut]}`}>{row.statut}</span>
         ) : (
-          <span className="muted">-</span>
+          <span className="muted">–</span>
         )}
       </td>
     </tr>

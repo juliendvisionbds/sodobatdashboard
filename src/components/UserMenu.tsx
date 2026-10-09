@@ -18,6 +18,11 @@ export default function UserMenu({
 }) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
+  // « Marie Blanc » → MB ; un nom d'un seul mot donne ses deux premières lettres.
+  const words = name.trim().split(/\s+/).filter(Boolean);
+  const initials = (
+    words.length > 1 ? words[0][0] + words[words.length - 1][0] : (words[0] ?? "").slice(0, 2)
+  ).toUpperCase();
 
   useEffect(() => {
     if (!open) return;
@@ -46,15 +51,7 @@ export default function UserMenu({
         title={`${name} (${role})`}
         onClick={() => setOpen((v) => !v)}
       >
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
-          <circle cx="12" cy="8" r="3.5" stroke="currentColor" strokeWidth="1.75" />
-          <path
-            d="M5.5 19.5c.8-3.2 3.1-5 6.5-5s5.7 1.8 6.5 5"
-            stroke="currentColor"
-            strokeWidth="1.75"
-            strokeLinecap="round"
-          />
-        </svg>
+        {initials}
       </button>
 
       {open && (

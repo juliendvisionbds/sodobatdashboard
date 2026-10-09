@@ -43,7 +43,7 @@ export default function UploadForm() {
       />
 
       <label className="field-label" htmlFor="period">
-        Mois de la balance <span style={{ fontWeight: 400, textTransform: "none" }}>
+        Mois de la balance <span style={{ fontWeight: 400 }}>
           (requis pour une balance analytique Cegid ; pour la ventilée et pour un export
           Pennylane, il est lu dans le fichier ou dans son nom)
         </span>
@@ -66,7 +66,7 @@ export default function UploadForm() {
       <button type="submit" className="btn" disabled={pending}>
         {pending ? "Analyse du fichier…" : "Analyser et prévisualiser →"}
       </button>
-      <p style={{ fontSize: 11, color: "var(--gray3)", marginTop: 12 }}>
+      <p className="table-note">
         Rien n&apos;est intégré à cette étape : un écran de contrôle (totaux par classe,
         comptes non mappés) s&apos;affiche avant validation.
       </p>

@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import type { FxMensuelData, FxMensuelRow } from "@/lib/finance";
 import { TOTAL_COLUMN } from "@/lib/nomenclature/columns";
 import { pourcentageEnAlerte, ratioEnAlerte } from "@/lib/nomenclature/codes";
-import { fmtEur, fmtPct, monthLabel } from "@/lib/format";
+import { VIDE, fmtNum, fmtPct, monthLabel } from "@/lib/format";
 
 // Vue mensuelle des frais généraux : Intitulé · un mois par colonne · Cumul ·
 // % / CA du cumul. Les ratios se recalculent dans chaque colonne contre le CA du
@@ -12,15 +12,15 @@ import { fmtEur, fmtPct, monthLabel } from "@/lib/format";
 
 function pctBadge(pct: number | null, alerte = false) {
   return pct == null ? (
-    <span className="muted">-</span>
+    <span className="muted">{VIDE}</span>
   ) : (
     <span className={`pct-badge${alerte ? " neg" : ""}`}>{fmtPct(pct)}</span>
   );
 }
 
 function money(v: number | null) {
-  if (v == null || v === 0) return <span className="muted">-</span>;
-  return fmtEur(v);
+  if (v == null || v === 0) return <span className="muted">{VIDE}</span>;
+  return fmtNum(v);
 }
 
 const negClass = (v: number | null) => (v != null && v < 0 ? "neg" : "");
@@ -59,10 +59,12 @@ export default function FxMensuelTable({ data }: { data: FxMensuelData }) {
         />
       </div>
       <div className="table-wrap">
-        <table className="ct fx-mensuel-ct">
+        <table className="ct tree-ct fx-mensuel-ct">
           <thead>
             <tr>
-              <th className="left">Intitulé</th>
+              <th className="left">
+                Intitulé <span className="th-unit">(en €)</span>
+              </th>
               {data.months.map((m) => (
                 <th
                   key={m}
@@ -71,8 +73,8 @@ export default function FxMensuelTable({ data }: { data: FxMensuelData }) {
                   {monthLabel(m)}
                 </th>
               ))}
-              <th className="total-col">Cumul</th>
-              <th className="pct-col">% / CA</th>
+              <th className="sum-col sum-first">Cumul</th>
+              <th className="sum-col pct-col">% / CA</th>
             </tr>
           </thead>
           <tbody>
@@ -89,7 +91,7 @@ export default function FxMensuelTable({ data }: { data: FxMensuelData }) {
           </tbody>
         </table>
       </div>
-      <p style={{ marginTop: 10, fontSize: 11, color: "var(--gray3)" }}>
+      <p className="table-note">
         Chaque colonne reprend la balance analytique de son mois ; le cumul est la
         somme des mois affichés, et son « % / CA » est rapporté au CA cumulé des
         mêmes mois.
@@ -114,7 +116,9 @@ function Section({
   return (
     <>
       <tr className="section-row">
-        <td colSpan={colCount}>{name}</td>
+        <td colSpan={colCount}>
+          <span className="section-name">{name}</span>
+        </td>
       </tr>
       {rows.map((r) => {
         const isRatio = r.category.kind === "ratio";
@@ -148,13 +152,11 @@ function Section({
             {isRatio ? (
               // Le ratio du cumul figure déjà dans la colonne % / CA de la ligne
               // de total juste au-dessus : la ligne ratio ne le répète pas.
-              <td className="total-col" />
+              <td className="sum-col sum-first" />
             ) : (
-              <td className={`total-col ${negClass(cumul)}`} style={{ fontWeight: 500 }}>
-                {money(cumul)}
-              </td>
+              <td className={`sum-col sum-first ${negClass(cumul)}`}>{money(cumul)}</td>
             )}
-            <td className="pct-col">
+            <td className="sum-col pct-col">
               {pctBadge(r.pctCumul, pourcentageEnAlerte(r.category, r.pctCumul))}
             </td>
           </tr>

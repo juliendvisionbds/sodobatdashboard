@@ -66,7 +66,7 @@ export default function NewRuleForm({
           <input
             id="pattern"
             name="pattern"
-            className="field-input"
+            className="tctl-input"
             style={{ width: 140 }}
             placeholder="ex. 6135"
             value={pattern}
@@ -112,7 +112,7 @@ export default function NewRuleForm({
       {impact && (
         <div className="alert info" style={{ marginTop: 14 }}>
           <div className="alert-ico">ℹ</div>
-          <div style={{ fontSize: 12.5 }}>
+          <div style={{ fontSize: 13 }}>
             {impact.current ? (
               <div>
                 Aujourd&apos;hui, un compte « {pattern.trim()} » est classé via la règle{" "}

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { switchEntityAction } from "@/app/actions";
 import { ENTITY_COOKIE, GROUP_ENTITIES } from "@/components/entity-cookie";
@@ -47,19 +48,27 @@ export default function EntityMenu({
 
   const name = entities?.find((e) => e.code === current)?.name ?? waitingName;
 
+  // Bloc d'identité de l'en-tête : le carré à l'initiale de l'entité ramène à
+  // la Synthèse, le nom ouvre la liste des entités du groupe.
   return (
-    <div className="entity-menu" ref={rootRef}>
-      <button
-        type="button"
-        className="entity-btn"
-        aria-haspopup="menu"
-        aria-expanded={open}
-        title="Entités du Groupe SDG"
-        onClick={() => setOpen((v) => !v)}
-      >
-        {name}
-        <span style={{ fontSize: 10, color: "var(--gray3)" }}>▼</span>
-      </button>
+    <div className="brand entity-menu" ref={rootRef}>
+      <Link href="/" className="brand-logo" title="Synthèse" aria-label="Synthèse">
+        {name.charAt(0).toUpperCase() || "S"}
+      </Link>
+      <div className="brand-text">
+        <button
+          type="button"
+          className="entity-btn"
+          aria-haspopup="menu"
+          aria-expanded={open}
+          title="Entités du Groupe SDG"
+          onClick={() => setOpen((v) => !v)}
+        >
+          {name}
+          <span className="entity-chevron" aria-hidden>▼</span>
+        </button>
+        <div className="brand-group">Groupe SDG</div>
+      </div>
 
       {open && entities && (
         <div className="entity-dropdown" role="menu">

@@ -189,7 +189,7 @@ export default async function MappingPage() {
                   {a.amount != null ? fmtEur(Number(a.amount)) : ""} · {a.description}
                 </div>
                 {suggestions.length > 0 && (
-                  <div className="charge-code" style={{ color: "var(--blue)" }}>
+                  <div className="charge-code" style={{ color: "var(--brand)" }}>
                     Suggestion :{" "}
                     {suggestions
                       .map((s) => `${VIEW_LABEL[s.view]} → ${s.cat.label} (comme le ${s.voisin})`)
@@ -264,16 +264,7 @@ export default async function MappingPage() {
               if (viewRules.length === 0) return null;
               return (
                 <div key={view} style={{ marginBottom: 16 }}>
-                  <div
-                    style={{
-                      fontSize: 11,
-                      fontWeight: 700,
-                      color: "var(--blue)",
-                      textTransform: "uppercase",
-                      letterSpacing: "0.08em",
-                      margin: "10px 0 6px",
-                    }}
-                  >
+                  <div className="section-label">
                     {VIEW_LABEL[view]}
                   </div>
                   {viewRules.map((r) => {
@@ -315,7 +306,7 @@ export default async function MappingPage() {
                               : cat?.section}
                           </div>
                         </div>
-                        <span className={`tag ${own && !r.createdBy?.startsWith("seed") ? "blue" : "gray"}`}>
+                        <span className={`tag ${own && !r.createdBy?.startsWith("seed") ? "brand" : "gray"}`}>
                           {origine}
                         </span>
                         {overridden ? null : !own ? (
@@ -367,16 +358,7 @@ export default async function MappingPage() {
 
           {inactiveRules.length > 0 && (
             <div style={{ marginTop: 16, paddingTop: 14, borderTop: "1px solid var(--gray4)" }}>
-              <div
-                style={{
-                  fontSize: 11,
-                  fontWeight: 700,
-                  color: "var(--amber)",
-                  textTransform: "uppercase",
-                  letterSpacing: "0.08em",
-                  marginBottom: 6,
-                }}
-              >
+              <div className="section-label warn">
                 Règles désactivées (réversibles)
               </div>
               {inactiveRules.map((r) => {
@@ -431,16 +413,7 @@ export default async function MappingPage() {
           <div style={{ maxHeight: 420, overflowY: "auto" }}>
             {(["synthese", "chantier", "fx"] as const).map((view) => (
               <div key={view} style={{ marginBottom: 14 }}>
-                <div
-                  style={{
-                    fontSize: 11,
-                    fontWeight: 700,
-                    color: "var(--blue)",
-                    textTransform: "uppercase",
-                    letterSpacing: "0.08em",
-                    margin: "10px 0 6px",
-                  }}
-                >
+                <div className="section-label">
                   {VIEW_LABEL[view]}
                 </div>
                 {categories
@@ -449,8 +422,8 @@ export default async function MappingPage() {
                     const catRules = activeRules.filter((r) => r.categoryId === c.id);
                     return (
                       <div key={c.id} style={{ padding: "5px 0", borderBottom: "1px solid var(--gray5)" }}>
-                        <div style={{ fontSize: 12.5, color: "var(--gray1)" }}>{c.label}</div>
-                        <div style={{ fontSize: 10.5, color: "var(--gray3)" }}>
+                        <div style={{ fontSize: 13 }}>{c.label}</div>
+                        <div style={{ fontSize: 12, color: "var(--gray2)" }}>
                           {c.section} ·{" "}
                           {catRules
                             .map((r) => `${r.pattern}${r.matchType === "prefix" ? "…" : ""}`)

@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import type { FxData, FxRow } from "@/lib/finance";
 import { classeEcart, pourcentageEnAlerte } from "@/lib/nomenclature/codes";
-import { fmtEur, fmtPct } from "@/lib/format";
+import { VIDE, fmtNum, fmtPct } from "@/lib/format";
 
 // Colonnes imposées par la maquette, dans cet ordre exact :
 // Intitulé · N-2 (€) · % / CA · N-1 (€) · % / CA · N YTD (€) · % / CA · Nb mois ·
@@ -14,15 +14,21 @@ const COL_COUNT = 10;
 
 function pctBadge(pct: number | null, alerte = false) {
   return pct == null ? (
-    <span className="muted">-</span>
+    <span className="muted">{VIDE}</span>
   ) : (
     <span className={`pct-badge${alerte ? " neg" : ""}`}>{fmtPct(pct)}</span>
   );
 }
 
 function money(v: number | null) {
-  if (v == null || v === 0) return <span className="muted">-</span>;
-  return fmtEur(v);
+  if (v == null || v === 0) return <span className="muted">{VIDE}</span>;
+  return fmtNum(v);
+}
+
+/** Un écart se lit avec son signe : « +12 400 », « −3 150 ». */
+function ecart(v: number | null) {
+  if (v == null || v === 0) return <span className="muted">{VIDE}</span>;
+  return `${v > 0 ? "+" : ""}${fmtNum(v)}`;
 }
 
 const negClass = (v: number | null) => (v != null && v < 0 ? "neg" : "");
@@ -75,7 +81,7 @@ export default function FxTable({ data }: { data: FxData }) {
         />
       </div>
       <div className="table-wrap">
-        <table className="ct">
+        <table className="ct tree-ct">
           <thead>
             <tr>
               <th className="left">Intitulé</th>
@@ -86,7 +92,7 @@ export default function FxTable({ data }: { data: FxData }) {
               <th>N YTD (€)</th>
               <th className="pct-col">% / CA</th>
               <th>Nb mois</th>
-              <th>Écart N–N-1 (€)</th>
+              <th className="sum-first">Écart N–N-1 (€)</th>
               <th className="pct-col">Écart (%)</th>
             </tr>
           </thead>
@@ -104,7 +110,7 @@ export default function FxTable({ data }: { data: FxData }) {
           </tbody>
         </table>
       </div>
-      <p style={{ marginTop: 10, fontSize: 11, color: "var(--gray3)" }}>
+      <p className="table-note">
         Chaque « % / CA » est calculé contre le CA total de son propre exercice ; le
         ratio d&apos;une section se lit sur sa ligne de total, la vue Mensuel le donne
         mois par mois. Un écart est vert quand la charge baisse, rouge quand elle monte.
@@ -118,7 +124,9 @@ function Section({ name, rows, nbMois }: { name: string; rows: FxRow[]; nbMois: 
   return (
     <>
       <tr className="section-row">
-        <td colSpan={COL_COUNT}>{name}</td>
+        <td colSpan={COL_COUNT}>
+          <span className="section-name">{name}</span>
+        </td>
       </tr>
       {rows.map((r) => {
         const accountList = r.accounts.map((a) => a.account);
@@ -141,12 +149,12 @@ function Section({ name, rows, nbMois }: { name: string; rows: FxRow[]; nbMois: 
             <td className="pct-col">{pct("n2")}</td>
             <td className={negClass(r.cells.n1)}>{money(r.cells.n1)}</td>
             <td className="pct-col">{pct("n1")}</td>
-            <td className={negClass(r.cells.n)} style={{ fontWeight: 500 }}>
+            <td className={negClass(r.cells.n)} style={{ fontWeight: 600 }}>
               {money(r.cells.n)}
             </td>
             <td className="pct-col">{pct("n")}</td>
             <td className="muted">{nbMois}</td>
-            <td className={ecartClass}>{money(r.ecart)}</td>
+            <td className={`sum-first ${ecartClass}`}>{ecart(r.ecart)}</td>
             <td className="pct-col">{pctBadge(r.ecartPct, ecartClass === "neg")}</td>
           </tr>
         );

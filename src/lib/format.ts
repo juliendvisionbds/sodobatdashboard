@@ -1,12 +1,18 @@
 // Intl sépare les milliers d'une espace fine insécable (U+202F), presque
 // invisible à l'écran : « 1 511 234 » se lit comme un bloc. On la remplace par
 // une espace insécable ordinaire, nettement plus large, sur tous les nombres.
+// Le signe moins est le signe typographique « − » (U+2212), jamais le trait
+// d'union : il a la largeur d'un chiffre et s'aligne dans les colonnes.
 const THIN_SPACE = /\u202f/g;
-const group = (formatted: string) => formatted.replace(THIN_SPACE, "\u00a0");
+const group = (formatted: string) =>
+  formatted.replace(THIN_SPACE, "\u00a0").replace("-", "\u2212");
+
+/** Valeur absente : tiret demi-cadratin. */
+export const VIDE = "\u2013";
 
 const MONTH_LABELS = [
-  "Jan", "Fév", "Mar", "Avr", "Mai", "Jun",
-  "Jul", "Aoû", "Sep", "Oct", "Nov", "Déc",
+  "Jan", "Fév", "Mar", "Avr", "Mai", "Juin",
+  "Juil", "Aoû", "Sep", "Oct", "Nov", "Déc",
 ];
 
 /** "2026-03-01" → "Mar 26" */
@@ -78,7 +84,7 @@ export function fmtEurAuto(n: number): string {
 }
 
 export function fmtPct(n: number | null, decimals = 1): string {
-  if (n == null) return "-";
+  if (n == null) return VIDE;
   return (
     group(new Intl.NumberFormat("fr-FR", {
       maximumFractionDigits: decimals,

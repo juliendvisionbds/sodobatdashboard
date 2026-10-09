@@ -105,7 +105,7 @@ export default async function AlertesPage() {
               <div className="card-label">
                 {meta?.label ?? type} ({items.length})
               </div>
-              <p style={{ fontSize: 12.5, color: "var(--gray2)", margin: "10px 0 4px" }}>
+              <p style={{ fontSize: 13, color: "var(--gray2)", margin: "0 0 4px" }}>
                 {meta?.conseil}
               </p>
               {items.map((a) => (
@@ -120,9 +120,7 @@ export default async function AlertesPage() {
                     flexWrap: "wrap",
                   }}
                 >
-                  <div className="alert-ico" style={{ flexShrink: 0 }}>
-                    {a.severity === "error" ? "✕" : "⚠"}
-                  </div>
+                  <div className={`alert-ico${a.severity === "error" ? " error" : ""}`} style={{ marginTop: 0 }} />
                   <div style={{ flex: "1 1 320px" }}>
                     <div className="alert-title">{a.title}</div>
                     <div className="alert-desc">
@@ -169,7 +167,7 @@ export default async function AlertesPage() {
         {closedYears.length > 0 && (
           <div className="card" style={{ marginBottom: 20 }}>
             <div className="card-label">Exercices clos ({closedYears.length}) · hors compteur</div>
-            <p style={{ fontSize: 12.5, color: "var(--gray2)", margin: "10px 0 4px" }}>
+            <p style={{ fontSize: 13, color: "var(--gray2)", margin: "0 0 4px" }}>
               Comptes sans ligne dans les balances analytiques des exercices antérieurs, importées
               pour les colonnes N-1 et N-2 des frais généraux. Leurs montants restent hors de ces
               colonnes ; aucune écriture n&apos;est à corriger, le point 13 du Rapprochement les
@@ -184,7 +182,7 @@ export default async function AlertesPage() {
                   gap: 12,
                   padding: "8px 0",
                   borderBottom: "1px solid var(--gray5)",
-                  fontSize: 12.5,
+                  fontSize: 13,
                 }}
               >
                 <div style={{ flex: "1 1 320px" }}>
@@ -197,7 +195,7 @@ export default async function AlertesPage() {
                 {writer && (
                   <form action={resolveAlertAction}>
                     <input type="hidden" name="alertId" value={a.id} />
-                    <button type="submit" className="btn secondary" style={{ padding: "5px 10px", fontSize: 12 }}>
+                    <button type="submit" className="btn secondary sm">
                       Marquer comme traitée
                     </button>
                   </form>
@@ -223,13 +221,13 @@ export default async function AlertesPage() {
                 }}
               >
                 <div style={{ flex: "1 1 320px" }}>
-                  <div className="charge-name" style={{ color: "var(--gray3)" }}>
+                  <div className="charge-name" style={{ color: "var(--gray2)", fontWeight: 400 }}>
                     {a.title}
                   </div>
                   <div className="charge-code">
                     {TYPE_META[a.type]?.label ?? a.type}
                     {a.amount != null ? ` · ${fmtEur(Number(a.amount))}` : ""} · traitée par{" "}
-                    {a.resolvedBy ?? "-"}
+                    {a.resolvedBy ?? "–"}
                     {a.resolvedAt
                       ? ` le ${new Date(a.resolvedAt).toLocaleDateString("fr-FR")}`
                       : ""}
