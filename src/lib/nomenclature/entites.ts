@@ -530,13 +530,15 @@ const VBTP: EntiteConfig = {
 // Règle du groupe appliquée : à compte égal et de même nature, le code de
 // Sodobat prévaut sur le plan Easy Mat — 62800000 « frais divers don » reste en
 // cotisations, où la maquette du groupe et le tableau de gestion le mettent ;
-// 70880000 « comptes prorata » reste en refacturation ; 61100000 reste en
-// sous-traitance, comme le plan le code, bien que le classeur FX de la DAF
-// l'appelle « honoraire informatique (Planiphère) » (point ouvert). Les écarts
-// de nature sont tranchés par le plan Easy Mat : 61351000 « location bennes »
-// est du déchet (code E), 60611000 « carburant chantier » du carburant (code I),
+// 70880000 « comptes prorata » reste en refacturation. Les écarts de nature
+// sont tranchés par le plan Easy Mat : 61351000 « location bennes » est du
+// déchet (code E), 60611000 « carburant chantier » du carburant (code I),
 // 62261000 « honoraires divers » un honoraire de structure (code V), 62262000
-// « prestations management » l'honoraire SDG (code U).
+// « prestations management » l'honoraire SDG (code U). Réponses de la DAF du
+// 9 octobre 2026 : le 61100000 (Planisphère) « n'est absolument pas de la
+// sous-traitance », c'est un honoraire divers — le comptable l'a reporté sur
+// le 62261000 dans les exports du 9 octobre, le compte est lu de même ici ;
+// les assurances refacturées (70410000) restent dans le chiffre d'affaires.
 
 // Les produits suivent les lignes du tableau de gestion d'Easy Mat : Locations,
 // Presta aménagement, Modules en loc, Ventes M/ses, Assurances. Les comptes de
@@ -560,10 +562,10 @@ const EASYMAT_CA_MARCHANDISES = ["70700000", "70700500", "70703000", "70711000",
 /** Code N — assurance / location refacturée (exercice 2021) ; le 70880000 est commun au groupe. */
 const EASYMAT_CA_REFACTURATION = ["70890110"];
 /**
- * Code O — le compte de prévision : « Travaux en cours » 71331000 depuis
- * février 2026 ; de décembre 2025 à février 2026, le cabinet a passé la
- * prévision et sa reprise sur le 71340000 « Variation de stock en cours ».
- * Les deux comptes forment un même bloc, lu chantier par chantier.
+ * Code O — le compte de prévision « Travaux en cours » 71331000. Dans les
+ * exports du 6 octobre 2026, le comptable avait passé la prévision de décembre
+ * à février sur le 71340000 « Variation de stock en cours » (erreur corrigée
+ * le 9 octobre) : les deux comptes forment un même bloc, lu chantier par chantier.
  */
 const EASYMAT_PROVISION = "71331000";
 const EASYMAT_PROVISION_ANCIEN = "71340000";
@@ -633,8 +635,12 @@ const EASYMAT_ASSURANCES = [
 ];
 /** Code U — prestations de management SDG (ligne « Honoraires SDG » du classeur FX). */
 const EASYMAT_HONORAIRES_MANAGEMENT = ["62262000"];
-/** Code V — honoraires divers (chantier chez Sodobat) et commissions sur ventes (2024). */
-const EASYMAT_HONORAIRES_DIVERS = ["62261000", "62220000"];
+/**
+ * Code V — honoraires divers (chantier chez Sodobat), commissions sur ventes
+ * (2024) et le 61100000 « sous-traitance générale », qui porte en fait les
+ * honoraires informatiques Planisphère (réponse de la DAF du 9 octobre 2026).
+ */
+const EASYMAT_HONORAIRES_DIVERS = ["62261000", "62220000", "61100000"];
 /** Code W — publicité, annonces, sponsoring, dons et mécénat, décoration. */
 const EASYMAT_SPONSORING = ["62300000", "62310000", "62331000", "62380000", "62380100"];
 /** Code AA — téléphone (dont de chantier), internet. */
@@ -703,27 +709,30 @@ const EASYMAT_CHA_PRODUITS_DIVERS = [
  * = chantier — prendrait pour de la structure : la structure est donc énumérée,
  * tout autre centre est une affaire. Sont de la structure : FX (frais généraux),
  * QUADRA (« Créé par QuadraCOMPTA » : crédits-baux, dotations, VNC), les dépôts
- * (DEPOT MP, DEPOT MP2, DEPOT PISAN), SDG, DIVERS (charges non affectées :
- * loyers, intérim, créances irrécouvrables dans les exercices Quadra), les
- * véhicules suivis comme des centres (Audi Q3, Nemo, camion benne, Jaguar), le
- * centre « ? » des écritures Quadra sans code, et les écritures que Pennylane
- * exporte sans code (« Non catégorisé » — tout le chiffre d'affaires 2025/26 —
- * et « Créé par Import ASCII »). Lecture à confirmer avec la DAF pour DIVERS et
- * EXTERIEUR (locations et prestations hors affaire, lu ici comme une affaire).
+ * (DEPOT MP, DEPOT MP2, DEPOT PISAN), SDG, les véhicules suivis comme des
+ * centres (Audi Q3, Nemo, camion benne, Jaguar), le centre « ? » des écritures
+ * Quadra sans code, et les écritures que Pennylane exporte sans code (« Non
+ * catégorisé » — tout le chiffre d'affaires 2025/26 — et « Créé par Import
+ * ASCII »). DIVERS n'en est pas : d'après la DAF (9 octobre 2026), le comptable
+ * y range une charge en attendant son code chantier ; lu comme une affaire, il
+ * garde ces charges dans la vue Chantiers au lieu de les verser aux frais
+ * généraux. EXTERIEUR (prestations extérieures) n'est plus utilisé.
  */
 const EASYMAT_STRUCTURE = [
-  /^FX$/, /^QUADRA$/, /^DEPOT\b/, /^SDG$/, /^DIVERS$/,
+  /^FX$/, /^QUADRA$/, /^DEPOT\b/, /^SDG$/,
   /^GM683ER$/, /^615[ A-Z]/, /^417ET$/, /^\?$/, /^#/,
 ];
 
 const EASYMAT: EntiteConfig = {
   exercice: { debut: 11 },
-  // Réponse de la DAF du 6 octobre 2026 : prévision sur le 71331 « en une seule
-  // écriture ». Les balances analytiques Pennylane la ventilent pourtant
-  // chantier par chantier (SPL101, AMI100, AO250428… : chaque prévision reprise
-  // le mois suivant), comme chez Sodobat : elle se lit donc dans le compte, et
-  // la Synthèse retrouve à l'euro les lignes « Travaux en cours mois » et
-  // « Reprise travaux en cours » de son tableau de gestion.
+  // La prévision est ventilée chantier par chantier sur le 71331000 (SPL101,
+  // AMI100, AO250428… : chaque prévision reprise le mois suivant), comme chez
+  // Sodobat — confirmé par la DAF le 9 octobre 2026 : « toujours ventilés par
+  // chantier ». Elle se lit donc dans le compte, et la Synthèse retrouve à
+  // l'euro les lignes « Travaux en cours mois » et « Reprise travaux en cours »
+  // de son tableau de gestion. Le 71340000 des exports du 6 octobre était une
+  // erreur du comptable, corrigée le 9 octobre ; il reste lu avec le 71331000
+  // pour une balance antérieure à la correction.
   provisions: { compte: EASYMAT_PROVISION, mode: "compte", autresComptes: [EASYMAT_PROVISION_ANCIEN] },
   centresStructure: EASYMAT_STRUCTURE,
   libelles: {
@@ -828,7 +837,7 @@ const EASYMAT: EntiteConfig = {
     // Sous-traitance imputée à un centre de structure : hors maquette FX, gardée en autres charges.
     fx_autres: [
       ...EASYMAT_AUTRES_CHARGES, ...EASYMAT_DOTATIONS_FINANCIERES,
-      ...EASYMAT_SOUS_TRAITANCE, "60400000", "60412000", "61100000",
+      ...EASYMAT_SOUS_TRAITANCE, "60400000", "60412000",
     ],
     fx_produits_structure: [
       ...EASYMAT_CA_PRESTATIONS, ...EASYMAT_CA_ASSURANCES, ...EASYMAT_CA_LOCATION,
