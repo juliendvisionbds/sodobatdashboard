@@ -16,7 +16,7 @@ import {
   COMPTES_TOUJOURS_FX,
   COMPTES_DOTATIONS,
   FX_CODES,
-  PREMIER_EXERCICE_DOTATIONS_MENSUELLES,
+  MOIS_DOTATIONS_MENSUELLES,
   SYNTHESE_CODES,
 } from "./nomenclature/codes";
 import { fx as nomenclatureFx, synthese as nomenclatureSynthese } from "./nomenclature/sodobat";
@@ -368,19 +368,15 @@ async function structurePartParMois(
 // Le lissage se lit sur tout ce que la base connaît de l'exercice, même quand
 // l'écran est arrêté à un mois passé : un mois déjà recalé ne change plus.
 //
-// À partir de l'exercice ouvert en novembre 2026, les dotations sont passées
-// chaque mois en comptabilité : elles sont lues telles quelles, sans lissage,
-// et la ligne perd sa mention « (lissées) ».
-
-/** Les dotations de cet exercice sont-elles comptabilisées chaque mois ? */
-const dotationsMensuelles = (fiscalYearStart: number) =>
-  fiscalYearStart >= PREMIER_EXERCICE_DOTATIONS_MENSUELLES;
+// Un exercice dont les balances portent une dotation sur au moins trois mois
+// distincts est comptabilisé chaque mois : il est lu tel quel, sans lissage,
+// et la ligne perd sa mention « (lissées) ». La décision se prend sur les
+// balances, pas sur une date : au 9 octobre 2026, les cinq entités passent
+// encore leurs dotations en une écriture par exercice.
 
 /** La ligne des dotations, sous le libellé qui convient à l'exercice. */
-function ligneDotations<T extends { label: string }>(line: T, fiscalYearStart: number): T {
-  return dotationsMensuelles(fiscalYearStart)
-    ? { ...line, label: line.label.replace(/\s*\(lissées\)/, "") }
-    : line;
+function ligneDotations<T extends { label: string }>(line: T, mensuelles: boolean): T {
+  return mensuelles ? { ...line, label: line.label.replace(/\s*\(lissées\)/, "") } : line;
 }
 
 export type DotationsLissees = {
@@ -390,6 +386,8 @@ export type DotationsLissees = {
   lissee: Record<string, number>;
   /** dotation de l'exercice précédent, base du douzième */
   reference: number;
+  /** l'exercice est comptabilisé chaque mois : lu tel quel */
+  mensuelles: boolean;
 };
 
 const dotationsLissees = cache(async function dotationsLissees(
@@ -440,10 +438,11 @@ const dotationsLissees = cache(async function dotationsLissees(
   }
 
   const mois = months.filter((m) => couverts.has(m));
-  if (dotationsMensuelles(fiscalYearStart)) {
+  const mensuelles = mois.filter((m) => comptabilisee[m]).length >= MOIS_DOTATIONS_MENSUELLES;
+  if (mensuelles) {
     const lissee: Record<string, number> = {};
     for (const m of mois) lissee[m] = comptabilisee[m] ?? 0;
-    return { comptabilisee, lissee, reference };
+    return { comptabilisee, lissee, reference, mensuelles };
   }
   const dernier = [...mois].reverse().find((m) => comptabilisee[m]);
   const rang = dernier ? months.indexOf(dernier) + 1 : 0;
@@ -459,7 +458,7 @@ const dotationsLissees = cache(async function dotationsLissees(
     else if (i === rang) lissee[m] = round2(cumul - part * (rang - 1));
     else if (couverts.has(m)) lissee[m] = douzieme;
   }
-  return { comptabilisee, lissee, reference };
+  return { comptabilisee, lissee, reference, mensuelles };
 });
 
 /** Vecteur des dotations lissées sur les mois affichés, total compris. */
@@ -779,7 +778,7 @@ const syntheseMemo = cache(async function syntheseMemo(
 
     const row: SyntheseRow = {
       category:
-        line.code === SYNTHESE_CODES.fxDotations ? ligneDotations(line, imp.fiscalYearStart) : line,
+        line.code === SYNTHESE_CODES.fxDotations ? ligneDotations(line, dotations.mensuelles) : line,
       cells: vec,
       cumulCells: cumulValues.get(line.code) ?? {},
       total,
@@ -2079,7 +2078,7 @@ export async function getFx(
 
     const ecart = cells.n != null && cells.n1 != null ? round2(cells.n - cells.n1) : null;
     const rows: FxRow = {
-      category: line.code === FX_CODES.dotations ? ligneDotations(line, imp.fiscalYearStart) : line,
+      category: line.code === FX_CODES.dotations ? ligneDotations(line, dotations.mensuelles) : line,
       cells,
       pct,
       ecart,
@@ -2253,7 +2252,7 @@ export async function getFxMensuel(
     const cumul = cells[TOTAL_COLUMN];
     const ca = caReference[TOTAL_COLUMN];
     const row: FxMensuelRow = {
-      category: line.code === FX_CODES.dotations ? ligneDotations(line, last.fiscalYearStart) : line,
+      category: line.code === FX_CODES.dotations ? ligneDotations(line, dotations.mensuelles) : line,
       cells,
       pctCumul: line.kind !== "ratio" && ca && cumul != null ? round2((cumul / ca) * 100) : null,
       accounts: [...(accountsByCat.get(line.code) ?? [])].sort(),

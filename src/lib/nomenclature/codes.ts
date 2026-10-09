@@ -55,12 +55,14 @@ export const COMPTES_TOUJOURS_FX = new Set(["68111000", "68112000", "65700000", 
 export const COMPTES_DOTATIONS = new Set(["68111000", "68112000"]);
 
 /**
- * Premier exercice dont les dotations sont comptabilisées chaque mois, donc
- * lues telles quelles : celui ouvert en novembre 2026, à l'arrivée de Sodobat
- * sur Pennylane (décision de la DAF du 1er octobre 2026). Les exercices
- * antérieurs, comptabilisés en bloc, restent lissés.
+ * Nombre de mois distincts portant une dotation à partir duquel un exercice est
+ * lu mois par mois, sans lissage. Les cabinets passent les dotations en bloc,
+ * une ou deux fois par exercice, quoi qu'en dise la règle « une écriture par
+ * mois » : l'application lisse tant que les balances le montrent, et bascule
+ * d'elle-même en lecture directe dès que trois mois portent une dotation
+ * (réponse de la DAF du 9 octobre 2026 confrontée aux balances).
  */
-export const PREMIER_EXERCICE_DOTATIONS_MENSUELLES = 2026;
+export const MOIS_DOTATIONS_MENSUELLES = 3;
 
 export const FX_CODES = {
   dotations: "fx_dotations",
