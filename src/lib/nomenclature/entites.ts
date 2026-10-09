@@ -978,28 +978,29 @@ const EASYHOME_CHA_PRODUITS_DIVERS = [
  * des codes lettrés (PR364, STRA125, AI115, MSR115…) : la structure est
  * énumérée, tout autre centre est une affaire. Structure : FX, QUADRA
  * (crédits-baux, dotations, VNC), les dépôts (DEPOT, DEPOT NEW), le centre
- * « 601 » (achats de matières non affectés), DIVERS (frais de déplacement,
- * honoraires, taxe sur les véhicules dans les exercices Quadra), SDG, BUREAU,
- * STOCKAGE, EASYHOME, les véhicules suivis comme des centres (615…, GB067JC),
- * le centre « (Aucun) » des écritures Quadra sans code et les écritures que
- * Pennylane exporte sans code (« Non catégorisé » : tout le chiffre d'affaires
- * et toute la paie en 2025/26). EXT (ventes et locations hors affaire) et DIV
- * (clients divers) sont lus comme des affaires. Lecture à confirmer avec la DAF.
+ * « 601 » (achats de matières non affectés), SDG, BUREAU, STOCKAGE, EASYHOME,
+ * les véhicules suivis comme des centres (615…, GB067JC), le centre « (Aucun) »
+ * des écritures Quadra sans code et les écritures que Pennylane exporte sans
+ * code (« Non catégorisé » : tout le chiffre d'affaires et toute la paie en
+ * 2025/26). DIVERS est lu comme chez Easy Mat — une charge en attente de son
+ * code chantier, gardée dans la vue Chantiers — par homogénéité demandée par
+ * la DAF le 9 octobre 2026 (dans les exercices Quadra il portait aussi des
+ * frais de structure). EXT (ventes et locations hors affaire) et DIV (clients
+ * divers) sont lus comme des affaires.
  */
 const EASYHOME_STRUCTURE = [
-  /^FX$/, /^QUADRA$/, /^DEPOT\b/, /^601$/, /^DIVERS$/, /^SDG$/, /^BUREAU$/, /^STOCKAGE$/,
+  /^FX$/, /^QUADRA$/, /^DEPOT\b/, /^601$/, /^SDG$/, /^BUREAU$/, /^STOCKAGE$/,
   /^EASYHOME$/, /^615[ A-Z]/, /^GB067JC$/, /^\(AUCUN\)$/i, /^#/,
 ];
 
 const EASYHOME: EntiteConfig = {
   exercice: { debut: 11 },
-  // Réponse de la DAF du 6 octobre 2026 : prévision sur le 71331 « en une seule
-  // écriture ». Le compte est en fait le 71350000, et les balances analytiques
-  // Pennylane la portent affaire par affaire (CAV107, AB100, PR363, AI115,
-  // PR364, PR368, PR361…), reprise le mois suivant ; en décembre et janvier
-  // 2025/26 elle est passée sur le centre FX. Lue dans le compte, comme chez
-  // Sodobat : la Synthèse retrouve les lignes « Travaux en cours mois » et
-  // « Reprise travaux en cours » du tableau de gestion.
+  // Prévision sur le 71350000, portée affaire par affaire (CAV107, AB100,
+  // PR363, AI115, PR364, PR368, PR361…), reprise le mois suivant ; en décembre
+  // et janvier 2025/26 elle est passée sur le centre FX. Lue dans le compte
+  // « comme Sodobat », confirmé par la DAF le 9 octobre 2026 : la Synthèse
+  // retrouve les lignes « Travaux en cours mois » et « Reprise travaux en
+  // cours » du tableau de gestion.
   provisions: { compte: EASYHOME_PROVISION, mode: "compte" },
   centresStructure: EASYHOME_STRUCTURE,
   libelles: {
