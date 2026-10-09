@@ -333,15 +333,18 @@ export const synthese: NomenclatureLine[] = [
       "Code R — marchandises revendues en l'état (607), suivies à part des matières premières " +
       "(maquette du groupe : « je séparerais le 607 ») ; comptes déclarés par l'entité",
   },
+  // La variation de stock est une charge d'exploitation (réponse de la DAF du
+  // 9 octobre 2026, comme la maquette et les tableaux de gestion d'Easy Mat,
+  // Easy Home et CovarBat). Le compte est porté par le centre de structure,
+  // mais il n'est pas transféré en frais généraux : il reste ici en entier.
   {
     code: "syn_variation_stock",
-    structureTo: "syn_fx_achats_structure",
     view: "synthese",
     section: SYN.exploitation,
     label: "Variation de stock",
     kind: "poste",
     accounts: ["60310000"],
-    notes: "Code Z",
+    notes: "Code Z — écriture de clôture, charge d'exploitation même quand elle est portée par le centre FX",
   },
   {
     code: "syn_st_achats",
@@ -1904,14 +1907,19 @@ export const fx: NomenclatureLine[] = [
     entityScope: "easymat,easyhome",
     notes: "Code R — marchandises imputées à la structure ; comptes déclarés par l'entité",
   },
+  // Ligne de rattachement : la variation de stock est portée par le centre FX
+  // mais c'est une charge d'exploitation (DAF, 9 octobre 2026). Elle est captée
+  // ici pour ne pas remonter en non-mappé, hors du Total 2 et de l'écran ; la
+  // Synthèse la compte en exploitation.
   {
     code: "fx_variation_stock",
     view: "fx",
     section: FX.generaux,
-    label: "Variation de stock",
+    label: "Variation de stock (charge d'exploitation, hors frais généraux)",
     kind: "poste",
+    hidden: true,
     accounts: ["60310000"],
-    notes: "Code Z — porté par le centre FX de la balance réelle",
+    notes: "Code Z — rattachée pour ne pas remonter en non-mappé, exclue du TOTAL 2 : charge d'exploitation lue dans la Synthèse",
   },
   {
     code: "fx_location_immo",
@@ -2114,7 +2122,6 @@ export const fx: NomenclatureLine[] = [
         { code: "fx_edf_eau", sign: 1 },
         { code: "fx_achats_fournitures", sign: 1 },
         { code: "fx_achats_marchandises", sign: 1 },
-        { code: "fx_variation_stock", sign: 1 },
         { code: "fx_location_immo", sign: 1 },
         { code: "fx_location_vehicules", sign: 1 },
         { code: "fx_dechets", sign: 1 },
