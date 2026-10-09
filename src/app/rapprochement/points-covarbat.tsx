@@ -8,17 +8,18 @@ import { N, type Contenu } from "./points";
 
 export const COVARBAT: Contenu = {
   fiscalYearStart: 2025,
-  dateConstats: "7 octobre 2026",
+  dateConstats: "9 octobre 2026",
   sourceReponses: "courriel du 6 octobre 2026",
   intro: (
     <>
       Ce document est le vôtre. Il reprend l&apos;échange sur Covarbat du début octobre et vos
       réponses du 6 octobre, telles que vous les avez écrites, avec ce que l&apos;application en
-      a fait le jour même, puis vos envois du 7 octobre : vos neuf balances mensuelles sont en
-      place, les centres sont codés, la balance 2024/2025 donne le N-1 de la Synthèse, la vue
-      Chantiers et le détail mois par mois des frais généraux sont en ligne. L&apos;état de
-      chaque mois (partie A) est lu en base à chaque affichage ; deux points restent ouverts
-      (partie B), avec une zone de réponse sous chacun ; la suite du calendrier est en partie C.
+      a fait le jour même, puis vos envois des 7 et 9 octobre : vos neuf balances mensuelles
+      sont en place, les centres sont codés, le 713 de juillet est ventilé par chantier, la
+      balance 2024/2025 donne le N-1 de la Synthèse, la vue Chantiers et le détail mois par
+      mois des frais généraux sont en ligne. L&apos;état de chaque mois (partie A) est lu en base
+      à chaque affichage ; un seul point reste ouvert (partie B), les objectifs des dirigeants ;
+      la suite du calendrier est en partie C.
     </>
   ),
   noteMois: (
@@ -97,8 +98,8 @@ export const COVARBAT: Contenu = {
       key: "c33",
       n: 3,
       title: "Le compte 70400000 et le passage au 713",
-      tone: "warn",
-      stake: "la balance analytique de juillet, après ventilation, reste à recevoir",
+      tone: "ok",
+      stake: "réglé le 9 octobre 2026",
       reponseCourriel:
         "Effectivement. Tu as raison. Il me semble plus cohérent d'enregistrer l'écriture en 713 comme Sodobat. Quant à l'analytique, je te le ventile sur le dernier mois pour que l'annulation soit correctement ventilée.",
       suite: (
@@ -111,25 +112,22 @@ export const COVARBAT: Contenu = {
             d&apos;affaires du chantier est celui de la comptabilité.
           </p>
           <p>
-            Le grand livre analytique de juillet reçu le 7 octobre montre votre ventilation : les
-            PCA du 30 juin repris chantier par chantier sur le 704, reportés sur le 713 chantier
-            par chantier, et la FAE de 432 au crédit du 713. C&apos;est bien la lecture de
-            Sodobat. Mais un grand livre n&apos;est pas une balance : l&apos;application
-            n&apos;en lit pas le format, et la balance analytique de juillet en base, exportée
-            avant cette ventilation, porte encore le 713 sur « Non catégorisé ». Les deux comptes
-            y sont lus comme un seul bloc, rien ne bouge, et la prévision par chantier reste
-            celle de votre tableau.
+            Votre balance analytique de juillet du 9 octobre est en base : les PCA du 30 juin
+            sont repris chantier par chantier sur le 704 et reportés sur le 713 chantier par
+            chantier, la FAE de 432 est au crédit du 713. C&apos;est la lecture de Sodobat. Le
+            net par chantier est inchangé : les écrans de juillet n&apos;ont pas bougé d&apos;un
+            euro.
           </p>
           <p>
-            Pour cet exercice, l&apos;application garde donc votre tableau comme référence des
+            Pour cet exercice, l&apos;application garde votre tableau comme référence des
             prévisions par chantier, sur le 704 avant juillet comme sur le 713 après : ses
-            chiffres sont justes dans les deux cas. La lecture directe du 713, comme pour Sodobat,
-            prendra le relais au 1er novembre, avec l&apos;exercice 2026/27, sans mois de
-            transition.
+            chiffres sont justes dans les deux cas. D&apos;août à octobre, continuez de passer la
+            prévision chantier par chantier sur le 713, et reportez le montant par chantier dans
+            la vue Chantiers. La lecture directe du 713, comme pour Sodobat, prendra le relais au
+            1er novembre, avec l&apos;exercice 2026/27.
           </p>
         </>
       ),
-      ask: "Pouvez-vous exporter la balance analytique de juillet, le même export que les autres mois, maintenant que le 713 y est ventilé ? Et d'août à octobre, continuez de passer la prévision chantier par chantier sur le 713, avec le montant par chantier reporté dans la vue Chantiers.",
     },
     {
       key: "c34",
@@ -238,8 +236,7 @@ export const COVARBAT: Contenu = {
   suite: [
     {
       titre: "Juillet",
-      texte:
-        "La balance analytique de juillet, exportée après la ventilation du 713, remplace celle en base depuis l'écran Imports ; le mois repasse à valider.",
+      texte: "Le mois est complet, à valider dans la vue Chantiers.",
     },
     {
       titre: "Août, septembre, octobre",
