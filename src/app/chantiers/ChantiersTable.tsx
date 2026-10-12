@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useMemo, useState, useTransition } from "react";
+import { Fragment, useMemo, useRef, useState, useTransition } from "react";
 import type { Category } from "@/lib/mapping";
 import type { ChantierRow, ChantiersData } from "@/lib/finance";
 import { CHANTIER_CODES, ratioEnAlerte } from "@/lib/nomenclature/codes";
@@ -305,6 +305,9 @@ function LineTr({
 
 type Send = (centreCode: string, fields: Record<string, string>) => void;
 
+/** Un montant se tape comme il s'affiche : « 20 000 » ou « 20000,5 » valent 20000 et 20000.5. */
+const saisieNum = (raw: string) => raw.replace(/\s/g, "").replace(",", ".");
+
 function ProvisionTd({
   row,
   canEdit,
@@ -321,6 +324,14 @@ function ProvisionTd({
   const isFinal = manual?.status === "final";
   const save = (valueNum: string, status: "draft" | "final") =>
     send(row.centreCode, { field: "tec_provision", valueNum, status });
+  const inputRef = useRef<HTMLInputElement>(null);
+  // Figer porte sur ce que la case affiche, pas sur la dernière valeur reçue du
+  // serveur : cliquer « figer » juste après avoir tapé, avant que le brouillon
+  // soit revenu, figeait l'ancienne valeur et la saisie semblait ignorée.
+  const freeze = () => {
+    const typed = saisieNum(inputRef.current?.value ?? "");
+    save(Number.isFinite(parseFloat(typed)) ? typed : String(manual!.value), "final");
+  };
   // Qui a saisi, et quand : la DAF relit avant de figer.
   const trace = manual?.by ? `Saisi par ${manual.by}${manual.at ? ` le ${manual.at}` : ""}` : null;
 
@@ -348,6 +359,7 @@ function ProvisionTd({
     <td>
       <span className="cell-edit">
         <input
+          ref={inputRef}
           className={`inline-num${manual ? " draft" : ""}`}
           defaultValue={value || ""}
           placeholder="0"
@@ -357,8 +369,8 @@ function ProvisionTd({
               : "Prévision issue de la balance, modifiable"
           }
           onBlur={(e) => {
-            const v = e.target.value.trim();
-            if (v !== "" && parseFloat(v.replace(",", ".")) !== value) save(v, "draft");
+            const v = saisieNum(e.target.value);
+            if (v !== "" && parseFloat(v) !== value) save(v, "draft");
           }}
         />
         {manual && canFreeze && (
@@ -366,7 +378,7 @@ function ProvisionTd({
             className="tag amber"
             style={{ border: "none", cursor: "pointer" }}
             title="Figer cette valeur jusqu'au mois suivant"
-            onClick={() => save(String(manual.value), "final")}
+            onClick={freeze}
           >
             figer
           </button>

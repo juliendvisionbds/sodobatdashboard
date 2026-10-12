@@ -282,7 +282,8 @@ export async function saveManualEntryAction(formData: FormData) {
   if (!droit) throw new Error("Accès en écriture refusé.");
   if (status === "final" && !canFiger(session))
     throw new Error("Seule la DAF peut figer une saisie.");
-  const valueNumRaw = String(formData.get("valueNum") ?? "").replace(",", ".").trim();
+  // « 20 000 » se lit 20000 : sans cela parseFloat s'arrêterait à l'espace et garderait 20.
+  const valueNumRaw = String(formData.get("valueNum") ?? "").replace(/\s/g, "").replace(",", ".");
   const valueText = String(formData.get("valueText") ?? "") || null;
   if (!period || !field) return;
 
