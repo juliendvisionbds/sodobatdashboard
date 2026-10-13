@@ -3,7 +3,7 @@ import { and, eq, inArray, isNull, or } from "drizzle-orm";
 import { db, tables } from "@/db";
 
 import type { Formula, LineKind } from "@/lib/nomenclature/types";
-import { ENTITE_DE_REFERENCE, entiteConfig } from "@/lib/nomenclature/entites";
+import { ENTITE_DE_REFERENCE, codeMaquette, entiteConfig } from "@/lib/nomenclature/entites";
 
 export type View = "synthese" | "chantier" | "fx";
 
@@ -31,12 +31,15 @@ export type Rule = {
   entityId: number | null;
 };
 
-/** La ligne concerne-t-elle cette entité ? ("all" ou liste de codes) */
+/**
+ * La ligne concerne-t-elle cette entité ? ("all" ou liste de codes). Une entité
+ * qui reprend la maquette d'une autre (Demo lit celle de Sodobat) est jugée
+ * sous ce code-là.
+ */
 export function inEntityScope(entityScope: string, entityCode: string): boolean {
-  return (
-    entityScope === "all" ||
-    entityScope.split(",").map((s) => s.trim()).includes(entityCode)
-  );
+  if (entityScope === "all") return true;
+  const codes = entityScope.split(",").map((s) => s.trim());
+  return codes.includes(entityCode) || codes.includes(codeMaquette(entityCode));
 }
 
 /** Identifiant de l'entité de référence du groupe, dont les règles valent par défaut. */

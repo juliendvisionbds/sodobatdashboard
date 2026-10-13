@@ -42,3 +42,6 @@ next-env.d.ts
 
 # données locales (PGlite dev + uploads)
 .data/
+
+# fichiers Excel de l'entité de démonstration, régénérés par npm run demo:installer
+/demo/

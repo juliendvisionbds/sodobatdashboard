@@ -122,6 +122,41 @@ npm run rapprochement:synthese -- "<2026 06_TG EASYHOME.xlsx>" --entite easyhome
 `entite:installer` remplace `db:nomenclature` sur une base en service : il ne
 supprime rien et ne modifie aucune règle créée par un utilisateur.
 
+### Entité de démonstration
+
+L'entité **Demo** sert aux démonstrations et aux formations : une PME de
+bâtiment fictive, tenue dans le format Cegid de Sodobat (exercice novembre →
+octobre, prévisions sur le 71331000 par chantier, centres FX et DEPOT). Elle se
+lit comme Sodobat dans la maquette (`maquette: "sodobat"` dans
+`src/lib/nomenclature/entites.ts`) et n'a aucune règle de compte en propre. Le
+compte `demo@visionbds.com` (rôle DAF) n'a accès qu'à elle : il ne voit ni les
+autres entités, ni leur chiffre d'affaires.
+
+```bash
+npm run demo:installer                                   # écrit les fichiers Excel dans demo/, rien en base
+npm run demo:installer -- --apply --password '…'         # installe l'entité et le compte (base locale)
+npm run demo:installer -- --apply --reset                # efface d'abord ce que Demo avait
+DOTENV_CONFIG_PATH=.env.local npm run demo:installer -- --apply --password '…'   # production
+```
+
+Le script (`scripts/demo-entite.ts`, données dans `scripts/demo/donnees.ts`)
+génère un jeu déterministe — relancé, il redonne les mêmes chiffres — et rejoue
+le cycle réel avec les fonctions de l'écran Imports et du bouton « Valider le
+mois » : quatre exercices clos (balances ventilées 2021/22 → 2024/25, analytiques
+2023/24 et 2024/25), puis chaque mois de novembre 2025 à août 2026 — ventilée,
+analytique, prévisions saisies égales aux prévisions comptabilisées, notes,
+reports d'ouverture, objectifs du dirigeant — et sa validation, aux dates
+qu'aurait eues un vrai cycle. Les fichiers vont dans `demo/` (ignoré par git) :
+
+- `demo/historique/` : tout ce qui est déjà en base ;
+- `demo/a-importer/` : les deux balances de **septembre 2026**, le mois que la
+  démonstration importe en direct (ventilée jusqu'à septembre, analytique de
+  septembre avec le mois saisi à la main), puis saisit et valide.
+
+Tout est rattaché à l'entité Demo : `--reset` n'efface que ses données. Les
+comptes de la holding (admin, DAF, lecteur) voient aussi l'entité dans leur
+menu, les comptes rattachés à une autre entité non.
+
 Pour répéter une opération avant de la lancer en production, copier une
 sauvegarde dans une base locale jetable :
 

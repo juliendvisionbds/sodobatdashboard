@@ -10,4 +10,5 @@ export const GROUP_ENTITIES: { code: string; name: string }[] = [
   { code: "easyhome", name: "Easy Home" },
   { code: "vbtp", name: "VBTP" },
   { code: "covarbat", name: "CovarBat" },
+  { code: "demo", name: "Demo" },
 ];

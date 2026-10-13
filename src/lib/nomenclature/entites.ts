@@ -60,6 +60,12 @@ export type EntiteConfig = {
    * énumère ici sa structure : tout centre qui n'y répond pas est un chantier.
    */
   centresStructure?: RegExp[];
+  /**
+   * Entité dont cette entité reprend les lignes de la maquette : une ligne
+   * ouverte à « sodobat » (colonne `entityScope`) vaut aussi pour elle. Sert à
+   * l'entité de démonstration, qui se lit comme Sodobat sans en être.
+   */
+  maquette?: string;
 };
 
 const SODOBAT: EntiteConfig = {
@@ -1114,12 +1120,30 @@ const EASYHOME: EntiteConfig = {
   centres: [],
 };
 
+// ── Demo ─────────────────────────────────────────────────────────────────────
+// Entité de démonstration et de formation : des données fictives, générées par
+// `npm run demo:installer` (scripts/demo-entite.ts), dans le format Cegid de
+// Sodobat. Elle se lit comme Sodobat dans la maquette (mêmes lignes, mêmes
+// règles de comptes) ; seuls les libellés qui nomment Sodobat ou ses
+// partenaires sont neutralisés. Aucune règle de compte en propre.
+
+const DEMO: EntiteConfig = {
+  ...SODOBAT,
+  maquette: "sodobat",
+  libelles: {
+    syn_sous_traitance_sodobat: "Sous-traitance (TVA 20 % / 0 % / EXO LQ)",
+    cha_sous_traitance: "Sous-traitance (TVA 20 % / 0 % / EXO LQ)",
+    fx_honoraires_management: "Honoraires de management",
+  },
+};
+
 const ENTITES: Record<string, EntiteConfig> = {
   sodobat: SODOBAT,
   covarbat: COVARBAT,
   vbtp: VBTP,
   easymat: EASYMAT,
   easyhome: EASYHOME,
+  demo: DEMO,
 };
 
 /**
@@ -1138,6 +1162,14 @@ export const ENTITES_DECLAREES = Object.keys(ENTITES);
 /** Configuration d'une entité ; à défaut, celle de Sodobat, base du groupe. */
 export function entiteConfig(entityCode: string): EntiteConfig {
   return ENTITES[entityCode] ?? SODOBAT;
+}
+
+/**
+ * Code sous lequel une entité lit la maquette : le sien, ou celui de l'entité
+ * dont elle reprend les lignes (`maquette`).
+ */
+export function codeMaquette(entityCode: string): string {
+  return entiteConfig(entityCode).maquette ?? entityCode;
 }
 
 /** Mois d'ouverture de l'exercice d'une entité (1 à 12). */

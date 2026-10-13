@@ -11,6 +11,8 @@ export const seedEntities = [
   { code: "easyhome", name: "Easy Home", active: false },
   { code: "vbtp", name: "VBTP", active: false },
   { code: "covarbat", name: "CovarBat", active: false },
+  // Entité de démonstration (données fictives) : ouverte par `npm run demo:installer`.
+  { code: "demo", name: "Demo", active: false },
 ];
 
 // Un compte par rôle.
