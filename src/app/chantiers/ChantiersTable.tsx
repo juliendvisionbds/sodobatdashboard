@@ -1,11 +1,12 @@
 "use client";
 
-import { Fragment, useMemo, useRef, useState, useTransition } from "react";
+import { Fragment, memo, useDeferredValue, useMemo, useRef, useState, useTransition } from "react";
 import type { Category } from "@/lib/mapping";
 import type { ChantierRow, ChantiersData } from "@/lib/finance";
 import { CHANTIER_CODES, ratioEnAlerte } from "@/lib/nomenclature/codes";
 import { VIDE, fmtNum, fmtPct } from "@/lib/format";
 import { saveManualEntryAction } from "@/app/actions";
+import { CHANTIERS_PAR_PAGE, splitColumns, type ColumnGroup } from "@/components/print";
 
 // Les postes de la maquette en lignes, un chantier par colonne, regroupés par
 // pôle — la disposition demandée par la DAF (23 septembre 2026). La ligne
@@ -100,9 +101,10 @@ export default function ChantiersTable({
       const key = r.pole ?? "—";
       map.set(key, [...(map.get(key) ?? []), r]);
     }
-    return [...map.entries()].sort(([a], [b]) => a.localeCompare(b));
+    return [...map.entries()]
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([key, items]): ColumnGroup<ChantierRow> => ({ key, items }));
   }, [filtered]);
-  const columns = useMemo(() => byPole.flatMap(([, list]) => list), [byPole]);
 
   // Postes sans aucun montant ce mois-ci, sur l'ensemble des chantiers et au
   // total, filtres compris : le tableau ne bouge pas quand on filtre un pôle.
@@ -130,9 +132,11 @@ export default function ChantiersTable({
     return out;
   }, [lines, hideEmptyLines, emptyLines]);
 
-  // Intitulé + chantiers + total
-  const colCount = columns.length + 2;
   const hidden = rows.length - filtered.length;
+  // Les blocs imprimés suivent les filtres avec un temps de retard : la
+  // recherche reste fluide, le tableau écran a la priorité.
+  const printPoles = useDeferredValue(byPole);
+  const printSections = useDeferredValue(sections);
 
   return (
     <div style={{ marginTop: 24 }}>
@@ -173,62 +177,17 @@ export default function ChantiersTable({
         </span>
       </div>
 
-      <div className="table-wrap">
-        <table className="ct tree-ct chantiers-ct">
-          <thead>
-            <tr>
-              <th className="left" rowSpan={2}>
-                Intitulé <span className="th-unit">(en €)</span>
-              </th>
-              {byPole.map(([p, list]) => (
-                <th key={`pole-${p}`} className="pole-head" colSpan={list.length}>
-                  {p === "—" ? "Sans pôle" : `Pôle ${p}`}
-                </th>
-              ))}
-              <th className="tot-col" rowSpan={2} title="Tous les chantiers du mois, filtres compris">
-                Total
-              </th>
-            </tr>
-            <tr>
-              {columns.map((r) => (
-                <th key={r.centreCode} className="col-head" title={`${r.centreCode} · ${r.centreLabel}`}>
-                  <span className="col-code">{r.centreCode}</span>
-                  <span className="col-name">{r.centreLabel}</span>
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {columns.length === 0 && (
-              <tr>
-                <td colSpan={colCount} className="muted" style={{ textAlign: "center", padding: 20 }}>
-                  Aucun chantier ne correspond au filtre.
-                </td>
-              </tr>
-            )}
-            {columns.length > 0 &&
-              sections.map((s) => (
-                <Fragment key={s.name}>
-                  <tr className="section-row">
-                    <td className="label-cell">{s.name}</td>
-                    <td colSpan={colCount - 1} />
-                  </tr>
-                  {s.lines.map((line) => (
-                    <LineTr
-                      key={line.code}
-                      line={line}
-                      columns={columns}
-                      total={totals[line.code] ?? null}
-                      period={period}
-                      canEdit={canEdit}
-                      canFreeze={canFreeze}
-                    />
-                  ))}
-                </Fragment>
-              ))}
-          </tbody>
-        </table>
+      <div className="table-wrap chantiers-screen">
+        <ChantiersGrid
+          groups={byPole}
+          sections={sections}
+          totals={totals}
+          period={period}
+          canEdit={canEdit}
+          canFreeze={canFreeze}
+        />
       </div>
+      <PrintBlocks groups={printPoles} sections={printSections} totals={totals} period={period} />
 
       <p className="table-note">
         Montants du mois = mouvements de la balance analytique du mois, lue telle quelle. Les
@@ -243,6 +202,141 @@ export default function ChantiersTable({
     </div>
   );
 }
+
+const poleLabel = (g: ColumnGroup<ChantierRow>) =>
+  `${g.key === "—" ? "Sans pôle" : `Pôle ${g.key}`}${g.part ? ` (${g.part[0]}/${g.part[1]})` : ""}`;
+
+/** Le tableau lui-même : les postes en lignes, les chantiers des groupes en colonnes. */
+function ChantiersGrid({
+  groups,
+  sections,
+  totals,
+  period,
+  canEdit,
+  canFreeze,
+}: {
+  groups: ColumnGroup<ChantierRow>[];
+  sections: { name: string; lines: Category[] }[];
+  totals: ChantiersData["totals"];
+  period: string;
+  canEdit: boolean;
+  canFreeze: boolean;
+}) {
+  const columns = groups.flatMap((g) => g.items);
+  // Intitulé + chantiers + total
+  const colCount = columns.length + 2;
+
+  return (
+    <table className="ct tree-ct chantiers-ct">
+      <thead>
+        <tr>
+          <th className="left" rowSpan={2}>
+            Intitulé <span className="th-unit">(en €)</span>
+          </th>
+          {groups.map((g) => (
+            <th key={`pole-${g.key}-${g.part?.[0] ?? 0}`} className="pole-head" colSpan={g.items.length}>
+              {poleLabel(g)}
+            </th>
+          ))}
+          <th className="tot-col" rowSpan={2} title="Tous les chantiers du mois, filtres compris">
+            Total
+          </th>
+        </tr>
+        <tr>
+          {columns.map((r) => (
+            <th key={r.centreCode} className="col-head" title={`${r.centreCode} · ${r.centreLabel}`}>
+              <span className="col-code">{r.centreCode}</span>
+              <span className="col-name">{r.centreLabel}</span>
+            </th>
+          ))}
+        </tr>
+      </thead>
+      <tbody>
+        {columns.length === 0 && (
+          <tr>
+            <td colSpan={colCount} className="muted" style={{ textAlign: "center", padding: 20 }}>
+              Aucun chantier ne correspond au filtre.
+            </td>
+          </tr>
+        )}
+        {columns.length > 0 &&
+          sections.map((s) => (
+            <Fragment key={s.name}>
+              <tr className="section-row">
+                <td className="label-cell">{s.name}</td>
+                <td colSpan={colCount - 1} />
+              </tr>
+              {s.lines.map((line) => (
+                <LineTr
+                  key={line.code}
+                  line={line}
+                  columns={columns}
+                  total={totals[line.code] ?? null}
+                  period={period}
+                  canEdit={canEdit}
+                  canFreeze={canFreeze}
+                />
+              ))}
+            </Fragment>
+          ))}
+      </tbody>
+    </table>
+  );
+}
+
+/**
+ * Version imprimée du tableau : les chantiers répartis en pages de
+ * CHANTIERS_PAR_PAGE colonnes, pôles entiers quand ils tiennent, l'intitulé,
+ * les en-têtes et le total répétés sur chaque page. Toujours dans le DOM,
+ * masqués à l'écran et affichés par la feuille d'impression : rien ne dépend
+ * du moment où le navigateur imprime. En lecture seule : la saisie se fait sur
+ * le tableau écran, la valeur enregistrée est celle qui s'imprime.
+ */
+const PrintBlocks = memo(function PrintBlocks({
+  groups,
+  sections,
+  totals,
+  period,
+}: {
+  groups: ColumnGroup<ChantierRow>[];
+  sections: { name: string; lines: Category[] }[];
+  totals: ChantiersData["totals"];
+  period: string;
+}) {
+  const pages = splitColumns(groups, CHANTIERS_PAR_PAGE);
+  const total = groups.reduce((n, g) => n + g.items.length, 0);
+  // Chaque page sait quels chantiers elle porte (rang du premier et du dernier).
+  const blocks = (pages.length ? pages : [[]]).map((page, i, all) => {
+    const start = all.slice(0, i).reduce((n, p) => n + p.reduce((s, g) => s + g.items.length, 0), 1);
+    const end = start + page.reduce((s, g) => s + g.items.length, 0) - 1;
+    return { page, start, end };
+  });
+  return (
+    <div className="print-blocks" aria-hidden>
+      {blocks.map(({ page, start, end }, i) => {
+        return (
+          <section className="print-block" key={i}>
+            {blocks.length > 1 && (
+              <p className="print-block-title">
+                {page.map(poleLabel).join(" · ")} — chantiers {start} à {end} sur {total}
+              </p>
+            )}
+            <div className="table-wrap">
+              <ChantiersGrid
+                groups={page}
+                sections={sections}
+                totals={totals}
+                period={period}
+                canEdit={false}
+                canFreeze={false}
+              />
+            </div>
+          </section>
+        );
+      })}
+    </div>
+  );
+});
 
 function LineTr({
   line,

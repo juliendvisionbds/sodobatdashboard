@@ -84,7 +84,8 @@ body {
   align-items: center;
   column-gap: 20px;
 }
-.brand { display: flex; align-items: center; gap: 12px; flex: 0 0 auto; }
+/* Identité dans le bandeau (« .brand » seul attraperait aussi la puce « .tag.brand »). */
+.header .brand { display: flex; align-items: center; gap: 12px; flex: 0 0 auto; }
 .brand-logo {
   width: 32px; height: 32px; flex-shrink: 0;
   display: grid; place-items: center;
@@ -167,7 +168,7 @@ button.entity-switch:hover { background: var(--gray5); }
    alignés à gauche pour que le premier reste atteignable au défilement. */
 @media (max-width: 900px) {
   .header-inner { padding: 0 16px; }
-  .brand { min-height: 56px; }
+  .header .brand { min-height: 56px; }
   .header-right { margin-left: auto; }
   .nav { order: 3; flex-basis: 100%; justify-content: flex-start; min-height: 44px; margin: 0 -12px; }
 }
@@ -1502,4 +1503,119 @@ td.muted, .ct .muted { color: var(--gray-empty); }
   html.am-print .am-body { padding: 16px 0; }
   html.am-print .am-card, html.am-print .am-kpi { break-inside: avoid; }
   html.am-print .am-head-nav, html.am-print .am-foot-actions, html.am-print .am-link { display: none; }
+}
+
+/* ── IMPRESSION ──
+   Les quatre écrans de chiffres s'impriment tels qu'ils sont affichés, filtres
+   compris, en A4 paysage : le bandeau (entité, exercice) sert d'en-tête, la
+   navigation, les menus, les réglages et les boutons disparaissent, les
+   tableaux ne défilent plus et se paginent avec leurs en-têtes répétés. Les
+   largeurs de colonnes fixées ici sont reprises dans components/print.tsx, qui
+   en déduit la réduction d'un tableau trop large et le nombre de chantiers par
+   page : les deux doivent rester en phase. */
+.print-blocks { display: none; }
+@media print {
+  @page { size: A4 landscape; margin: 10mm; }
+  @page portrait { size: A4 portrait; }
+  html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body { background: #fff; }
+  /* La fenêtre d'analyse mensuelle garde son format. */
+  html.am-print .am-modal { page: portrait; }
+
+  /* Bandeau et titre */
+  .header { position: static; border-bottom: 1px solid var(--gray4); }
+  .header-inner { min-height: 0; padding: 6px 0 8px; }
+  .nav, .user-menu, .entity-chevron, .entity-dropdown { display: none !important; }
+  .page { padding: 12px 0 0; }
+  .page-header h1 { font-size: 20px; margin-bottom: 2px; }
+  .page-header p { font-size: 11px; max-width: none; }
+  .page-top, .page-header, .tag-row { margin-bottom: 12px; }
+
+  /* Réglages de la vue, filtres, boutons, saisies : masqués */
+  .page-actions, .table-controls, .view-switch, .card-link, .btn, button.tag,
+  .cell-unfreeze, .manual-dot, .alert-line .action, .alert-line > :nth-child(5),
+  .am-launcher, .am-link { display: none !important; }
+  .inline-num {
+    width: 100%; max-width: 100%; padding: 0; border-color: transparent;
+    background: transparent; color: inherit; font: inherit; text-align: inherit;
+  }
+  .inline-num.draft { background: var(--amber-lt); }
+  .inline-num::placeholder { color: transparent; }
+  .chantiers-ct .cell-note-input, .synthese-ct .cell-note-input { text-align: left; }
+
+  /* Conteneurs : plus de boîte de défilement (elle serait coupée à une page),
+     plus de collage au défilement. */
+  .table-wrap {
+    overflow: visible; max-height: none; border: none; border-radius: 0;
+    zoom: var(--print-zoom, 1);
+  }
+  .card.flush, .kpi-strip, .alert-list { overflow: visible; }
+  .ct thead th, .section-name,
+  .synthese-ct thead th.left, .synthese-ct td.label-cell,
+  .fx-mensuel-ct thead th.left, .fx-mensuel-ct td.label-cell,
+  .chantiers-ct thead th.left, .chantiers-ct td.label-cell,
+  .chantiers-ct thead th.tot-col, .chantiers-ct td.tot-col { position: static; }
+  .chantiers-ct thead tr:nth-child(2) th { top: auto; }
+  .ct tbody tr:hover, .ct tbody tr:hover td { background-image: none; }
+
+  /* Densité d'impression */
+  .ct { font-size: 10px; line-height: 1.3; }
+  .ct thead th { font-size: 9px; padding: 3px 5px; }
+  .ct td { padding: 2px 5px; }
+  .ct th:first-child, .ct td:first-child, .ct td.label-cell { padding-left: 8px; }
+  .ct th:last-child, .ct td:last-child { padding-right: 8px; }
+  .tree-ct td.label-cell { padding-left: 14px; }
+  .section-row td { padding: 8px 8px 4px; font-size: 9px; }
+  .ct td.label-cell { white-space: normal; }
+  .pct-badge.neg { padding: 0 4px; }
+  .synthese-ct .cell-note, .chantiers-ct .cell-note { max-width: none; }
+
+  /* Largeurs fixes des tableaux larges (voir PRINT dans components/print.tsx) */
+  .synthese-ct, .fx-mensuel-ct, .chantiers-ct { table-layout: fixed; width: 100%; }
+  .synthese-ct thead th.left, .synthese-ct td.label-cell,
+  .fx-mensuel-ct thead th.left, .fx-mensuel-ct td.label-cell {
+    width: 200px; min-width: 200px; max-width: 200px;
+  }
+  .chantiers-ct thead th.left, .chantiers-ct td.label-cell {
+    width: 230px; min-width: 230px; max-width: 230px;
+  }
+  .synthese-ct thead th:not(.left):not(.sum-col),
+  .fx-mensuel-ct thead th:not(.left):not(.sum-col) { width: 64px; min-width: 0; }
+  .synthese-ct thead th.sum-col, .fx-mensuel-ct thead th.sum-col { width: 72px; }
+  .synthese-ct thead th.pct-col, .fx-mensuel-ct thead th.pct-col { width: 56px; }
+  .chantiers-ct thead th.col-head { width: 70px; min-width: 0; max-width: none; }
+  .chantiers-ct .col-code { font-size: 8.5px; }
+  .chantiers-ct .col-name {
+    max-width: none; font-size: 8.5px; line-height: 1.2;
+    white-space: normal; overflow: visible; text-overflow: clip;
+  }
+  .chantiers-ct thead th.tot-col { width: 92px; }
+  .chantiers-ct thead tr:first-child th { height: auto; }
+
+  /* Pagination */
+  .ct thead { display: table-header-group; break-inside: avoid; }
+  .ct tr { break-inside: avoid; }
+  .ct tr.section-row { break-after: avoid; }
+  .kpi-strip, .grid-2, .card, .val-card, .chart-box { break-inside: avoid; }
+  .print-page-start { break-before: page; }
+  .kpi-strip { grid-template-columns: repeat(4, 1fr); }
+  .kpi { padding: 10px 14px; gap: 4px; }
+  .kpi-label, .kpi-sub { font-size: 11px; }
+  .kpi-value { font-size: 22px; }
+  .kpi-value .unit { font-size: 12px; }
+  .grid-2 { grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+  .card { padding: 12px 14px; }
+  .card-head { padding: 10px 14px; }
+  .card-label { font-size: 13px; }
+  .alert-line { min-width: 0; grid-template-columns: 90px 1fr 100px 1fr; padding: 6px 14px; font-size: 11px; }
+  .alert-line.head { padding: 5px 14px; }
+  .table-note, .card-foot { font-size: 9px; margin-top: 6px; }
+
+  /* Chantiers : le tableau écran laisse la place aux blocs de colonnes, chacun
+     sur ses propres pages avec l'intitulé, les en-têtes et le total ; la
+     première page garde le résumé du mois et sa validation. */
+  .chantiers-screen { display: none; }
+  .print-blocks { display: block; }
+  .print-block { break-before: page; }
+  .print-block-title { font-size: 11px; color: var(--gray2); margin: 0 0 6px; }
 }

@@ -7,6 +7,7 @@ import { getNotesEntite, listValidatedMonths } from "@/lib/finance";
 import { canSaisir, getSession, ownsEntity } from "@/lib/auth";
 import { VIDE, fmtEur, fmtEurAuto, fmtPct, monthLabel, monthLabelLong, splitAutoEur } from "@/lib/format";
 import MonthSelect from "@/components/MonthSelect";
+import PrintButton from "@/components/print";
 import { currentFiscalCutoff, splitAlerts } from "@/lib/alerts";
 import SyntheseTable from "./SyntheseTable";
 import { getCurrentEntity } from "@/lib/entity";
@@ -171,11 +172,12 @@ export default async function SynthesePage({
               {!isLatestPeriod && " · chiffres à jour des dernières révisions"}
             </p>
           </div>
-          {periods.length > 0 && (
-            <div className="page-actions">
+          <div className="page-actions">
+            {periods.length > 0 && (
               <MonthSelect basePath="/" periods={periods} current={data.period} prefix="Arrêté à" large />
-            </div>
-          )}
+            )}
+            <PrintButton title={`Synthèse · ${entity.name} · ${monthLabelLong(data.period)}`} />
+          </div>
         </div>
 
         <div className="kpi-strip">

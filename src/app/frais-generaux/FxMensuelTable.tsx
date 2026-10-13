@@ -5,6 +5,7 @@ import type { FxMensuelData, FxMensuelRow } from "@/lib/finance";
 import { TOTAL_COLUMN } from "@/lib/nomenclature/columns";
 import { pourcentageEnAlerte, ratioEnAlerte } from "@/lib/nomenclature/codes";
 import { VIDE, fmtNum, fmtPct, monthLabel } from "@/lib/format";
+import { PRINT, printVars } from "@/components/print";
 
 // Vue mensuelle des frais généraux : Intitulé · un mois par colonne · Cumul ·
 // % / CA du cumul. Les ratios se recalculent dans chaque colonne contre le CA du
@@ -34,6 +35,8 @@ const rowClass = (kind: string) => {
 export default function FxMensuelTable({ data }: { data: FxMensuelData }) {
   const [search, setSearch] = useState("");
   const colCount = data.months.length + 3;
+  // Largeur imprimée : intitulé, un mois par colonne, cumul et pourcentage.
+  const printStyle = printVars(PRINT.label + data.months.length * PRINT.month + PRINT.sum + PRINT.pct);
 
   const visibleSections = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -58,7 +61,7 @@ export default function FxMensuelTable({ data }: { data: FxMensuelData }) {
           onChange={(e) => setSearch(e.target.value)}
         />
       </div>
-      <div className="table-wrap">
+      <div className="table-wrap" style={printStyle}>
         <table className="ct tree-ct fx-mensuel-ct">
           <thead>
             <tr>

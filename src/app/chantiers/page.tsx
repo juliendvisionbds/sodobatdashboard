@@ -6,6 +6,7 @@ import MonthValidation from "./MonthValidation";
 import { getSession, canFiger, canSaisir } from "@/lib/auth";
 import { fmtEurAuto, monthLabelLong } from "@/lib/format";
 import MonthSelect from "@/components/MonthSelect";
+import PrintButton from "@/components/print";
 import ChantiersTable from "./ChantiersTable";
 import { CHANTIER_CODES } from "@/lib/nomenclature/codes";
 import { getCurrentEntity } from "@/lib/entity";
@@ -82,11 +83,12 @@ export default async function ChantiersPage({
                 : " · premier mois importé, aucun report de cumul"}
             </p>
           </div>
-          {periods.length > 0 && (
-            <div className="page-actions">
+          <div className="page-actions">
+            {periods.length > 0 && (
               <MonthSelect basePath="/chantiers" periods={periods} current={data.period} large />
-            </div>
-          )}
+            )}
+            <PrintButton title={`Chantiers · ${entity.name} · ${monthLabelLong(data.period)}`} />
+          </div>
         </div>
 
         <div className="tag-row">

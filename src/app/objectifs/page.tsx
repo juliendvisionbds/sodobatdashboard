@@ -6,6 +6,7 @@ import { fmtPct, monthLabelLong, splitAutoEur } from "@/lib/format";
 import { listAnalyses, listMoisAnalysables } from "@/lib/analyse-mensuelle";
 import ObjectifsTable from "./ObjectifsTable";
 import AnalysesMensuelles from "./AnalysesMensuelles";
+import PrintButton from "@/components/print";
 import { getCurrentEntity } from "@/lib/entity";
 
 export const dynamic = "force-dynamic";
@@ -64,13 +65,18 @@ export default async function ObjectifsPage({
     <>
       <AppHeader active="objectifs" fiscalYearStart={data.fiscalYearStart} />
       <div className="page">
-        <div className="page-header">
-          <h1>Objectifs Dirigeant · {monthLabelLong(data.period)}</h1>
-          <p>
-            Réalisé cumulé de l&apos;exercice comparé aux objectifs annuels, en % du CA.
-            Le réalisé reprend les ratios des vues Synthèse et Frais généraux : aucun
-            calcul indépendant, aucun mapping dupliqué.
-          </p>
+        <div className="page-top">
+          <div className="page-header">
+            <h1>Objectifs Dirigeant · {monthLabelLong(data.period)}</h1>
+            <p>
+              Réalisé cumulé de l&apos;exercice comparé aux objectifs annuels, en % du CA.
+              Le réalisé reprend les ratios des vues Synthèse et Frais généraux : aucun
+              calcul indépendant, aucun mapping dupliqué.
+            </p>
+          </div>
+          <div className="page-actions">
+            <PrintButton title={`Objectifs · ${entity.name} · ${monthLabelLong(data.period)}`} />
+          </div>
         </div>
 
         <div className="kpi-strip">

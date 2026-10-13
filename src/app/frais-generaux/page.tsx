@@ -3,6 +3,7 @@ import AppHeader from "@/components/AppHeader";
 import { getFx, getFxMensuel, listAnalytiquePeriods } from "@/lib/views";
 import { VIDE, fmtEurAuto, fmtPct, monthLabelLong, splitAutoEur } from "@/lib/format";
 import MonthSelect from "@/components/MonthSelect";
+import PrintButton from "@/components/print";
 import FxTable from "./FxTable";
 import FxMensuelTable from "./FxMensuelTable";
 import { getCurrentEntity } from "@/lib/entity";
@@ -90,6 +91,7 @@ export default async function FxPage({
                 large
               />
             )}
+            <PrintButton title={`Frais généraux · ${entity.name} · ${monthLabelLong(data.period)}`} />
           </div>
         </div>
 

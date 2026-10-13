@@ -12,6 +12,7 @@ import {
 } from "@/lib/nomenclature/codes";
 import { VIDE, fmtNum, fmtPct, monthLabel } from "@/lib/format";
 import { saveManualEntryAction } from "@/app/actions";
+import { PRINT, printVars } from "@/components/print";
 
 // Structure de référence : Intitulé · les 12 mois de l'exercice · Total exercice ·
 // % / CA · N-1 Total · % N-1 · Écart N–N-1, soit 18 colonnes. Les mois sans données
@@ -134,9 +135,14 @@ export default function SyntheseTable({
   }, [data.sections, section, search, hideEmpty]);
 
   const colCount = monthsShown.length + 6;
+  // Largeur imprimée du tableau : intitulé, mois affichés, trois colonnes en
+  // euros et deux pourcentages. Au-delà de la page, il est réduit.
+  const printStyle = printVars(
+    PRINT.label + monthsShown.length * PRINT.month + 3 * PRINT.sum + 2 * PRINT.pct,
+  );
 
   return (
-    <div className="card flush">
+    <div className="card flush print-page-start">
       <div className="card-head">
         <div className="card-head-group">
           <div className="card-label">Tableau de synthèse</div>
@@ -186,7 +192,7 @@ export default function SyntheseTable({
           </label>
         </div>
       </div>
-      <div className="table-wrap bare">
+      <div className="table-wrap bare" style={printStyle}>
         <table className="ct tree-ct synthese-ct">
           <thead>
             <tr>
