@@ -495,11 +495,11 @@ export async function computeAnalyse(entity: Entity, period: string) {
     );
   if (signal) {
     if (facturationEvolPct != null && facturationEvolPct <= -15)
-      lectures.push("La facturation du mois recule nettement : possible retard ou insuffisance de facturation.");
+      lectures.push("La facturation du mois est en net retrait : un décalage de facturation pourrait l'expliquer.");
     if (provisionMois <= 0)
       lectures.push("Aucune prévision (TEC) comptabilisée ce mois : le CA non encore facturé n'est pas pris en compte.");
     if (!lectures.length)
-      lectures.push("Facturation et prévisions ne l'expliquent pas : la marge de production se dégrade.");
+      lectures.push("Ni la facturation ni les prévisions ne l'expliquent : l'écart porte sur la marge de production.");
   }
 
   // ── Chantiers ──
@@ -615,6 +615,18 @@ const redactionSchema = z.object({
 const k = (n: number | null | undefined) => (n == null ? null : fmtEurAuto(n));
 const p1 = (n: number | null | undefined) => (n == null ? null : Math.round(n * 10) / 10);
 
+// Le modèle reprend volontiers les étiquettes qu'on lui donne : « MAUVAIS » ou
+// « critique » finissaient tels quels dans le texte. On lui passe une
+// description du statut, aussi précise mais sans jugement.
+const STATUT_REDACTION: Record<NonNullable<ObjectifStatut>, string> = {
+  BON: "sous l'objectif (favorable)",
+  BIEN: "conforme à l'objectif",
+  "À SURVEILLER": "au-dessus de l'objectif de 0,2 à 2 points, à suivre",
+  MAUVAIS: "au-dessus de l'objectif de plus de 2 points",
+};
+const statutRedaction = (s: ObjectifStatut) => (s ? STATUT_REDACTION[s] : null);
+const AMPLEUR: Record<Niveau, string> = { alerte: "marqué", critique: "très marqué" };
+
 /** Les chiffres utiles à la rédaction, en k€ et en %, sans le superflu. */
 function briefing(f: AnalyseFigures) {
   return {
@@ -637,15 +649,15 @@ function briefing(f: AnalyseFigures) {
         indicateur: r.label,
         "objectif (% CA)": p1(r.objectif),
         "réalisé cumulé (% CA)": p1(r.realiseCumul),
-        statut: r.statut,
-        "statut à fin du mois précédent": r.statutPrecedent,
+        situation: statutRedaction(r.statut),
+        "situation à fin du mois précédent": statutRedaction(r.statutPrecedent),
         "réalisé du mois seul (% CA)": p1(r.realiseMois),
       })),
     "indicateurs sans objectif saisi": f.objectifs.rows.filter((r) => r.objectif == null).map((r) => r.label),
     "fortes variations du mois vs moyenne des 3 mois précédents": f.variations.map((v) => ({
       poste: v.label,
       sens: v.sens,
-      niveau: v.niveau,
+      "écart par rapport à l'habitude": AMPLEUR[v.niveau],
       mois: k(v.mois),
       "moyenne des mois de référence": k(v.reference),
       "écart": k(v.ecart),
@@ -696,20 +708,30 @@ function briefing(f: AnalyseFigures) {
 }
 
 const consignes = (entite: string) => `Tu rédiges l'analyse mensuelle de performance de ${entite} (BTP) pour la DAF et les dirigeants.
+
+Ton : l'analyse est lue par les dirigeants et les équipes dont elle commente le travail. Elle doit rester claire sur les chiffres, sans jamais être blessante.
+- Décris, ne qualifie pas. Donne le chiffre, son sens et sa comparaison ; laisse le lecteur juger. Bannis les adjectifs et les verbes qui jugent ou dramatisent : faible, mauvais, médiocre, décevant, insuffisant, dégradé, très dégradé, critique, alarmant, inquiétant, préoccupant, grave, lourd, dérive, dérapage, s'effondre, plonge, chute, explose, flambe, échec, anomalie, erreur, oubli.
+- Préfère : « s'établit à », « ressort à », « en retrait », « en recul », « en deçà de », « au-dessus de l'objectif de X points », « pèse sur la marge », « à suivre », « mérite un point ».
+- Remets chaque chiffre du mois en perspective quand les données le permettent : moyenne des trois derniers mois, même mois N-1, cumul de l'exercice. Un mois isolé ne fait pas une tendance.
+- Ne mets personne en cause : ni le dirigeant, ni la DAF, ni un conducteur de travaux, ni une équipe. Parle des postes, des chantiers et des chiffres, jamais des personnes ni de leurs choix.
+- Les causes restent des hypothèses : « pourrait s'expliquer par », « à rapprocher de ».
+- Exemple, chiffres fictifs. À éviter : « CA du mois faible à 1,2 M€. Résultat d'exploitation du mois très dégradé : −450 k€ (marge −37,5 %). » Attendu : « Le CA du mois s'établit à 1,2 M€, en retrait par rapport à la moyenne des trois derniers mois. Le résultat d'exploitation du mois ressort à −450 k€, soit une marge de −37,5 %. »
+- Le ton adoucit la formulation, jamais le classement : un recul reste un point d'attention.
+
 Règles :
-- Français, ton factuel et direct, phrases courtes. Pas de formule de politesse, pas de jargon inutile.
+- Français, phrases courtes, ton factuel et mesuré. Pas de formule de politesse, pas de jargon inutile.
 - N'utilise QUE les chiffres fournis. N'invente aucun montant, aucun pourcentage, aucune cause certaine.
 - Les montants sont déjà écrits (« 410 k€ », « 1,911 M€ ») : recopie-les tels quels, sans les convertir. Les ratios sont en % du CA, écris-les « 5,3 % ».
 - Les variations comparent le mois à la moyenne des mois de référence fournis : dis « par rapport à la moyenne des trois derniers mois ».
 - Un résultat de chantier négatif qui vient surtout de la reprise de la prévision de M-1 n'est pas une perte de production : dis-le.
 - Ne mentionne jamais la structure des données : pas de nom de champ entre parenthèses, pas de « indicateur fourni ».
 - Les travaux en cours (TEC, « prévision ») ne sont ni un budget ni une cible : c'est du CA réalisé mais pas encore facturé, inclus dans le CA du mois. Ne compare jamais le CA à la prévision.
-- Un objectif est une part maximale du CA : réalisé au-dessus de l'objectif = dépassement (défavorable).
+- Un objectif est une part maximale du CA : un réalisé au-dessus de l'objectif est défavorable. Écris « au-dessus de l'objectif de X points », avec l'écart chiffré. La situation fournie vaut pour le réalisé cumulé ; si tu cites le mois seul, compare-le toi-même à l'objectif.
 - « enBref » : 2 à 3 phrases, l'essentiel du mois pour un dirigeant pressé.
 - « pointsForts » et « pointsAttention » : 2 à 5 puces chacune, une idée par puce, avec le chiffre qui la fonde.
-- « actions » : 2 à 4 vérifications ou décisions concrètes (qui regarde quoi), déduites des points d'attention.
+- « actions » : 2 à 4 vérifications ou décisions concrètes (qui regarde quoi), déduites des points d'attention, formulées comme des pistes de travail (« Faire le point sur… », « Vérifier avec… ») et jamais comme un reproche ou une injonction.
 - S'il y a des réserves sur les données, termine les points d'attention par une puce qui les résume. Ne cite jamais la validation du mois ni la qualité des données comme point fort.
-- Un point fort doit être un fait favorable du mois (poste en baisse, marge qui progresse, CA en hausse) ; s'il n'y en a pas, donne moins de puces plutôt que d'en inventer.`;
+- Un point fort doit être un fait favorable du mois (poste en baisse, marge qui progresse, CA en hausse, objectif tenu). Une baisse de CA ou de marge, un retard sur N-1 ou un réalisé au-dessus de l'objectif n'en sont jamais un, même formulés avec mesure. S'il n'y en a pas, donne moins de puces plutôt que d'en inventer.`;
 
 export async function rediger(figures: AnalyseFigures, entite = "Sodobat") {
   const { output, usage } = await generateText({

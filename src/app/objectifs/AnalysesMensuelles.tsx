@@ -768,7 +768,7 @@ function AlerteRow({ v }: { v: Variation }) {
         {v.label}
         <span className="am-alert-sub">
           {v.sens === "absent"
-            ? `à zéro ce mois, ${eur(v.reference)} d'habitude : écriture oubliée ?`
+            ? `à zéro ce mois, ${eur(v.reference)} d'habitude, à vérifier`
             : `${eur(v.mois)} contre ${eur(v.reference)} en moyenne`}
           {v.n1 != null && v.sens !== "absent" && ` · N-1 : ${eur(v.n1)}`}
         </span>
@@ -871,7 +871,7 @@ function Objectifs({ f }: { f: AnalyseFigures }) {
   ) * 1.1;
 
   return (
-    <Section title="Objectifs de Fred" hint="réalisé cumulé face à l'objectif">
+    <Section title="Objectifs de Frédéric" hint="réalisé cumulé face à l'objectif">
       {f.objectifs.renseignes === 0 ? (
         <p className="am-muted">Aucun objectif annuel saisi : les statuts ne peuvent pas être calculés.</p>
       ) : null}
@@ -886,7 +886,7 @@ function Objectifs({ f }: { f: AnalyseFigures }) {
         </span>
         {rows.length > visibles.length || all ? (
           <button className="am-link" onClick={() => setAll(!all)}>
-            {all ? "Ne montrer que les indicateurs en dérive" : `Voir les ${rows.length - visibles.length} autres indicateurs`}
+            {all ? "Ne montrer que les indicateurs à suivre" : `Voir les ${rows.length - visibles.length} autres indicateurs`}
           </button>
         ) : null}
       </div>
