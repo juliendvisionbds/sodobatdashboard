@@ -360,22 +360,33 @@ export default function GuidePage() {
           à partir de ces seuls chiffres. L’analyse comprend :
         </p>
         <ul>
-          <li>le flash du mois : CA du mois et cumulé, marge d’exploitation, objectifs tenus ;</li>
+          <li>
+            le flash du mois : chiffre d’affaires du mois et cumulé, marge d’exploitation, objectifs
+            tenus ;
+          </li>
           <li>
             le texte : <b>En bref</b>, <b>Points forts</b>, <b>Points d’attention</b> et{" "}
-            <b>Actions suggérées</b>, plus le commentaire de la DAF ;
+            <b>Actions suggérées</b>, réparties entre la DAF et l’exploitation, plus le commentaire de
+            la DAF ;
           </li>
           <li>
             les <b>alertes du mois</b> : les postes qui s’écartent nettement de la moyenne des trois
             mois précédents ;
           </li>
-          <li>les charges directes face au CA, les objectifs de Frédéric et les frais généraux ;</li>
+          <li>les objectifs de l’exploitation par rapport au réalisé, et les frais généraux ;</li>
           <li>
             les <b>chantiers à regarder</b> : charges importantes sans facturation ni prévision, ou
             résultat du mois négatif ;
           </li>
           <li>un rappel de la fiabilité des données du mois.</li>
         </ul>
+        <p>
+          Le texte est écrit en phrases simples et sans sigle. Il cite le chiffre d’affaires facturé,
+          suivi entre parenthèses de la variation des travaux en cours, et chaque comparaison dit par
+          rapport à quoi et de combien. Les points d’attention tiennent chacun sur une ligne, au
+          format « Sujet : constat », sans reprendre les postes déjà affichés dans les alertes du
+          mois.
+        </p>
         <p>
           L’analyse naît en <span className="tag amber">Brouillon</span>, visible de la DAF seule.
           Elle peut en modifier le texte, ajouter son commentaire, la relancer, puis la{" "}

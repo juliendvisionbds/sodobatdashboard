@@ -147,6 +147,16 @@ export type AnalyseFigures = {
     /** marge cumulée à la fin du mois précédent */
     margeCumulPrecedente: number | null;
     resultatNetCumul: number;
+    /**
+     * Chiffre d'affaires facturé, hors travaux en cours (prévision du mois et
+     * reprise de celle du mois précédent) : c'est celui que cite le texte, à
+     * la demande de la DAF. Absent des analyses générées avant le 14 octobre 2026.
+     */
+    factureMois?: number;
+    factureReference?: number | null;
+    factureMoisN1?: number | null;
+    factureCumul?: number;
+    factureCumulN1?: number | null;
   };
   objectifs: {
     rows: ObjectifAnalyse[];
@@ -157,6 +167,10 @@ export type AnalyseFigures = {
     totalControle: number | null;
   };
   variations: Variation[];
+  /**
+   * Charges directes face au CA. N'est plus affiché ni transmis à la rédaction
+   * (retour de la DAF du 14 octobre 2026) ; gardé dans les chiffres figés.
+   */
   ciseau: {
     chargesMois: number;
     chargesReference: number | null;
@@ -206,6 +220,10 @@ export type Redaction = {
   enBref: string;
   pointsForts: string[];
   pointsAttention: string[];
+  /** actions réparties entre la DAF et l'exploitation, depuis le 14 octobre 2026 */
+  actionsDaf?: string[];
+  actionsExploitation?: string[];
+  /** liste unique des analyses rédigées avant ; vide depuis */
   actions: string[];
 };
 
@@ -372,6 +390,8 @@ export async function computeAnalyse(entity: Entity, period: string) {
   const caCumulPrec = somme(SYNTHESE_CODES.caTotal, moisAvant);
   const rowCa = synthese.sections.flatMap((s) => s.rows).find((r) => r.category.code === SYNTHESE_CODES.caTotal);
 
+  const factureCode = "syn_ca_facturation";
+  const rowFacture = synthese.sections.flatMap((s) => s.rows).find((r) => r.category.code === factureCode);
   const flash: AnalyseFigures["flash"] = {
     caMois,
     caMoisN1: n1De(SYNTHESE_CODES.caTotal),
@@ -385,6 +405,11 @@ export async function computeAnalyse(entity: Entity, period: string) {
       ? pct(somme(SYNTHESE_CODES.resultatExploitation, moisAvant), caCumulPrec)
       : null,
     resultatNetCumul: cumul(SYNTHESE_CODES.resultatNet),
+    factureMois: cell(factureCode),
+    factureReference: refDe(factureCode),
+    factureMoisN1: n1De(factureCode),
+    factureCumul: cumul(factureCode),
+    factureCumulN1: rowFacture?.prevTotal ?? null,
   };
 
   // ── Objectifs ──
@@ -604,16 +629,35 @@ export async function computeAnalyse(entity: Entity, period: string) {
 export const ANALYSE_MODEL = process.env.ANALYSE_MODEL ?? "gpt-5-mini";
 
 const redactionSchema = z.object({
-  enBref: z.string().describe("2 à 3 phrases, 400 caractères au plus"),
-  pointsForts: z.array(z.string()).max(5),
-  pointsAttention: z.array(z.string()).max(5),
-  actions: z.array(z.string()).max(5),
+  enBref: z.string().describe("2 à 3 phrases complètes, 450 caractères au plus"),
+  pointsForts: z.array(z.string()).max(4),
+  pointsAttention: z.array(z.string()).max(5).describe("« Sujet : constat chiffré », une ligne chacun"),
+  actionsDaf: z.array(z.string()).max(2),
+  actionsExploitation: z.array(z.string()).max(2),
 });
 
 // Montants déjà écrits à la française (« 433 k€ », « 1,911 M€ ») : le modèle
 // les recopie tels quels au lieu de les reformater.
 const k = (n: number | null | undefined) => (n == null ? null : fmtEurAuto(n));
 const p1 = (n: number | null | undefined) => (n == null ? null : Math.round(n * 10) / 10);
+const diff = (a: number | null | undefined, b: number | null | undefined) =>
+  a == null || b == null ? null : round2(a - b);
+
+/**
+ * Écart à une référence : le sens en toutes lettres, le montant et le % sans
+ * signe. Avec des écarts signés, le modèle écrivait parfois « en retrait de
+ * 417 k€ » pour une hausse.
+ */
+function ecart(v: number | null | undefined, ref: number | null | undefined) {
+  if (v == null || ref == null) return null;
+  const e = round2(v - ref);
+  const pctE = evol(v, ref);
+  return {
+    sens: e > 0 ? "hausse" : e < 0 ? "baisse" : "stable",
+    montant: k(Math.abs(e)),
+    "en %": pctE == null ? null : p1(Math.abs(pctE)),
+  };
+}
 
 // Le modèle reprend volontiers les étiquettes qu'on lui donne : « MAUVAIS » ou
 // « critique » finissaient tels quels dans le texte. On lui passe une
@@ -627,56 +671,73 @@ const STATUT_REDACTION: Record<NonNullable<ObjectifStatut>, string> = {
 const statutRedaction = (s: ObjectifStatut) => (s ? STATUT_REDACTION[s] : null);
 const AMPLEUR: Record<Niveau, string> = { alerte: "marqué", critique: "très marqué" };
 
-/** Les chiffres utiles à la rédaction, en k€ et en %, sans le superflu. */
+/**
+ * Les chiffres utiles à la rédaction, en k€ et en %, sans le superflu. Les
+ * intitulés sont écrits sans sigle (ni « CA », ni « N-1 ») : le modèle les
+ * recopie. Chaque comparaison arrive avec sa référence et son écart, en euros
+ * et en %, pour que le texte dise toujours « par rapport à quoi et de combien ».
+ */
 function briefing(f: AnalyseFigures) {
+  const x = f.flash;
+  const facture = x.factureMois ?? null;
+  const factureCumul = x.factureCumul ?? null;
   return {
     mois: monthLabelLong(f.period),
     cumul: `${f.moisCumul} mois depuis l'ouverture de l'exercice`,
     "mois de référence": f.moisReference.map(monthLabelLong),
-    flash: {
-      "CA du mois": k(f.flash.caMois),
-      "CA du même mois N-1": k(f.flash.caMoisN1),
-      "CA cumulé": k(f.flash.caCumul),
-      "CA cumulé N-1 même période": k(f.flash.caCumulN1),
-      "résultat d'exploitation du mois": k(f.flash.resultatExploitationMois),
-      "marge d'exploitation du mois (%)": p1(f.flash.margeMois),
-      "marge d'exploitation cumulée (%)": p1(f.flash.margeCumul),
-      "marge d'exploitation cumulée à fin du mois précédent (%)": p1(f.flash.margeCumulPrecedente),
+    "chiffre d'affaires du mois": {
+      "facturé, hors travaux en cours": k(facture),
+      "variation des travaux en cours (prévision du mois moins reprise de celle du mois précédent)": k(
+        diff(x.caMois, facture)
+      ),
+      "total, travaux en cours compris": k(x.caMois),
+      "facturé, moyenne des trois mois précédents": k(x.factureReference),
+      "facturé par rapport à cette moyenne": ecart(facture, x.factureReference),
+      "facturé du même mois l'an dernier": k(x.factureMoisN1),
+      "facturé par rapport au même mois l'an dernier": ecart(facture, x.factureMoisN1),
     },
-    "objectifs du dirigeant (% du CA)": f.objectifs.rows
+    "chiffre d'affaires cumulé de l'exercice": {
+      "facturé, hors travaux en cours": k(factureCumul),
+      "variation cumulée des travaux en cours": k(diff(x.caCumul, factureCumul)),
+      "total, travaux en cours compris": k(x.caCumul),
+      "facturé sur la même période l'an dernier": k(x.factureCumulN1),
+      "facturé par rapport à la même période l'an dernier": ecart(factureCumul, x.factureCumulN1),
+    },
+    "résultat d'exploitation": {
+      "du mois": k(x.resultatExploitationMois),
+      "marge du mois, en % du chiffre d'affaires total du mois": p1(x.margeMois),
+      cumulé: k(x.resultatExploitationCumul),
+      "marge cumulée, en % du chiffre d'affaires total cumulé": p1(x.margeCumul),
+      "marge cumulée à la fin du mois précédent (%)": p1(x.margeCumulPrecedente),
+      "évolution de la marge cumulée sur le mois":
+        x.margeCumul == null || x.margeCumulPrecedente == null
+          ? null
+          : {
+              sens: x.margeCumul > x.margeCumulPrecedente ? "hausse" : x.margeCumul < x.margeCumulPrecedente ? "baisse" : "stable",
+              points: p1(Math.abs(x.margeCumul - x.margeCumulPrecedente)),
+            },
+    },
+    "objectifs de l'exploitation, en % du chiffre d'affaires cumulé": f.objectifs.rows
       .filter((r) => r.objectif != null)
       .map((r) => ({
         indicateur: r.label,
-        "objectif (% CA)": p1(r.objectif),
-        "réalisé cumulé (% CA)": p1(r.realiseCumul),
+        "objectif (%)": p1(r.objectif),
+        "réalisé cumulé (%)": p1(r.realiseCumul),
+        "écart (points)": p1(r.ecartCumul),
         situation: statutRedaction(r.statut),
-        "situation à fin du mois précédent": statutRedaction(r.statutPrecedent),
-        "réalisé du mois seul (% CA)": p1(r.realiseMois),
+        "situation à la fin du mois précédent": statutRedaction(r.statutPrecedent),
+        "réalisé du mois seul (%)": p1(r.realiseMois),
       })),
     "indicateurs sans objectif saisi": f.objectifs.rows.filter((r) => r.objectif == null).map((r) => r.label),
-    "fortes variations du mois vs moyenne des 3 mois précédents": f.variations.map((v) => ({
+    "fortes variations du mois, déjà affichées dans l'encadré « Alertes du mois »": f.variations.map((v) => ({
       poste: v.label,
       sens: v.sens,
-      "écart par rapport à l'habitude": AMPLEUR[v.niveau],
-      mois: k(v.mois),
-      "moyenne des mois de référence": k(v.reference),
-      "écart": k(v.ecart),
-      "écart (%)": p1(v.ecartPct),
-      "même mois N-1": k(v.n1),
+      "ampleur de l'écart": AMPLEUR[v.niveau],
+      "montant du mois": k(v.mois),
+      "moyenne des trois mois précédents": k(v.reference),
+      "par rapport à cette moyenne": ecart(v.mois, v.reference),
+      "même mois l'an dernier": k(v.n1),
     })),
-    "charges directes face au CA": {
-      "charges du mois": k(f.ciseau.chargesMois),
-      "évolution des charges vs moyenne (%)": p1(f.ciseau.chargesEvolPct),
-      "CA du mois": k(f.ciseau.caMois),
-      "évolution du CA vs moyenne (%)": p1(f.ciseau.caEvolPct),
-      "évolution de la facturation vs moyenne (%)": p1(f.ciseau.facturationEvolPct),
-      "travaux en cours (TEC) comptabilisés ce mois": k(f.ciseau.provisionMois),
-      "taux de charges du mois (%)": p1(f.ciseau.tauxMois),
-      "taux de charges cumulé (%)": p1(f.ciseau.tauxCumul),
-      "taux de charges cumulé N-1 (%)": p1(f.ciseau.tauxCumulN1),
-      signal: f.ciseau.signal,
-      lectures: f.ciseau.lectures,
-    },
     "chantiers avec charges sans facturation ni prévision": f.chantiers.sansFacturation.map((c) => ({
       chantier: `${c.code} ${c.label}`,
       "charges du mois": k(c.chargesMois),
@@ -685,13 +746,15 @@ function briefing(f: AnalyseFigures) {
       chantier: `${c.code} ${c.label}`,
       "résultat du mois": k(c.resultatMois),
       "charges du mois": k(c.chargesMois),
-      "facturation du mois": k(c.facturationMois),
-      "reprise de la prévision M-1": k(c.annulationMois),
+      "facturé du mois": k(c.facturationMois),
+      "reprise de la prévision du mois précédent": k(c.annulationMois),
     })),
     "frais généraux": {
-      mois: k(f.fraisGeneraux.mois),
-      "évolution vs moyenne (%)": p1(f.fraisGeneraux.evolPct),
-      "part du CA cumulé (%)": p1(f.fraisGeneraux.pctCaCumul),
+      "montant du mois": k(f.fraisGeneraux.mois),
+      "moyenne des trois mois précédents": k(f.fraisGeneraux.reference),
+      "par rapport à cette moyenne": ecart(f.fraisGeneraux.mois, f.fraisGeneraux.reference),
+      "frais généraux du mois, en % du chiffre d'affaires du mois": p1(f.fraisGeneraux.pctCaMois),
+      "frais généraux cumulés, en % du chiffre d'affaires cumulé": p1(f.fraisGeneraux.pctCaCumul),
     },
     // Seules les réserves sur les données sont transmises : un mois validé
     // n'est pas un point fort, c'est la condition de l'analyse.
@@ -707,42 +770,111 @@ function briefing(f: AnalyseFigures) {
   };
 }
 
-const consignes = (entite: string) => `Tu rédiges l'analyse mensuelle de performance de ${entite} (BTP) pour la DAF et les dirigeants.
+// Consignes revues avec la DAF : ton mesuré (14 octobre 2026), puis lisibilité
+// (retours sur les analyses de novembre 2025 et juin 2026, même jour).
+const consignes = (entite: string, postesAlertes: string[]) => `Tu rédiges l'analyse mensuelle de performance de ${entite} (BTP) pour la DAF et l'exploitation.
 
 Ton : l'analyse est lue par les dirigeants et les équipes dont elle commente le travail. Elle doit rester claire sur les chiffres, sans jamais être blessante.
-- Décris, ne qualifie pas. Donne le chiffre, son sens et sa comparaison ; laisse le lecteur juger. Bannis les adjectifs et les verbes qui jugent ou dramatisent : faible, mauvais, médiocre, décevant, insuffisant, dégradé, très dégradé, critique, alarmant, inquiétant, préoccupant, grave, lourd, dérive, dérapage, s'effondre, plonge, chute, explose, flambe, échec, anomalie, erreur, oubli.
+- Décris, ne qualifie pas. Donne le chiffre, son sens et sa comparaison ; laisse le lecteur juger. Bannis les adjectifs et les verbes qui jugent ou dramatisent : faible, mauvais, médiocre, décevant, insuffisant, dégradé, très dégradé, critique, alarmant, inquiétant, préoccupant, grave, lourd, dérive, dérapage, s'effondre, plonge, chute, explose, flambe, échec, anomalie, erreur, oubli, redressement.
 - Préfère : « s'établit à », « ressort à », « en retrait », « en recul », « en deçà de », « au-dessus de l'objectif de X points », « pèse sur la marge », « à suivre », « mérite un point ».
-- Remets chaque chiffre du mois en perspective quand les données le permettent : moyenne des trois derniers mois, même mois N-1, cumul de l'exercice. Un mois isolé ne fait pas une tendance.
 - Ne mets personne en cause : ni le dirigeant, ni la DAF, ni un conducteur de travaux, ni une équipe. Parle des postes, des chantiers et des chiffres, jamais des personnes ni de leurs choix.
 - Les causes restent des hypothèses : « pourrait s'expliquer par », « à rapprocher de ».
-- Exemple, chiffres fictifs. À éviter : « CA du mois faible à 1,2 M€. Résultat d'exploitation du mois très dégradé : −450 k€ (marge −37,5 %). » Attendu : « Le CA du mois s'établit à 1,2 M€, en retrait par rapport à la moyenne des trois derniers mois. Le résultat d'exploitation du mois ressort à −450 k€, soit une marge de −37,5 %. »
 - Le ton adoucit la formulation, jamais le classement : un recul reste un point d'attention.
 
+Lisibilité :
+- Écris en français courant, en phrases complètes : un sujet, un verbe, des compléments. Pas de style télégraphique.
+- Aucun sigle. Écris « chiffre d'affaires » (jamais « CA »), « travaux en cours » (jamais « TEC »), « frais généraux » (jamais « FX »), « le même mois l'an dernier » (jamais « N-1 »), « le mois précédent » (jamais « M-1 »). Seuls « k€ », « M€ » et « % » restent.
+- Toute comparaison dit par rapport à quoi et de combien, dans le sens fourni (« hausse » ou « baisse ») : la référence (moyenne des trois mois précédents, même mois l'an dernier, même période l'an dernier, objectif) et l'écart, en euros et en pourcentage. Jamais « forte hausse des frais généraux » sans sa référence ni son écart.
+- Une marge dit toujours de quoi elle est la part : « une marge d'exploitation de −41,7 % du chiffre d'affaires du mois ».
+- Le chiffre d'affaires se cite facturé, hors travaux en cours, suivi entre parenthèses de la variation des travaux en cours : « 1,5 M€ (hors travaux en cours de −300 k€) ». La parenthèse accompagne chaque mention du chiffre d'affaires du mois, dans l'en bref comme dans les points forts. Ses comparaisons portent sur le facturé. Les marges, elles, se rapportent au chiffre d'affaires total, travaux en cours compris.
+- Exemple, chiffres fictifs. À éviter : « CA du mois faible à 1,2 M€. Résultat d'exploitation très dégradé : −450 k€ (marge −37,5 %). » Attendu : « Le chiffre d'affaires facturé du mois s'établit à 1,5 M€ (hors travaux en cours de −300 k€), en retrait de 200 k€, soit 12 %, par rapport à la moyenne des trois mois précédents. Le résultat d'exploitation du mois ressort à −450 k€, soit une marge de −37,5 % du chiffre d'affaires du mois. »
+
 Règles :
-- Français, phrases courtes, ton factuel et mesuré. Pas de formule de politesse, pas de jargon inutile.
-- N'utilise QUE les chiffres fournis. N'invente aucun montant, aucun pourcentage, aucune cause certaine.
-- Les montants sont déjà écrits (« 410 k€ », « 1,911 M€ ») : recopie-les tels quels, sans les convertir. Les ratios sont en % du CA, écris-les « 5,3 % ».
-- Les variations comparent le mois à la moyenne des mois de référence fournis : dis « par rapport à la moyenne des trois derniers mois ».
-- Un résultat de chantier négatif qui vient surtout de la reprise de la prévision de M-1 n'est pas une perte de production : dis-le.
+- N'utilise QUE les chiffres fournis. N'invente aucun montant, aucun pourcentage, aucune cause certaine ; ne fais aucun calcul toi-même.
+- Les montants sont déjà écrits (« 410 k€ », « 1,911 M€ ») : recopie-les tels quels, sans les convertir. Les pourcentages s'écrivent « 5,3 % ».
+- Un résultat de chantier négatif qui vient surtout de la reprise de la prévision du mois précédent n'est pas une perte de production : dis-le.
 - Ne mentionne jamais la structure des données : pas de nom de champ entre parenthèses, pas de « indicateur fourni ».
-- Les travaux en cours (TEC, « prévision ») ne sont ni un budget ni une cible : c'est du CA réalisé mais pas encore facturé, inclus dans le CA du mois. Ne compare jamais le CA à la prévision.
-- Un objectif est une part maximale du CA : un réalisé au-dessus de l'objectif est défavorable. Écris « au-dessus de l'objectif de X points », avec l'écart chiffré. La situation fournie vaut pour le réalisé cumulé ; si tu cites le mois seul, compare-le toi-même à l'objectif.
-- « enBref » : 2 à 3 phrases, l'essentiel du mois pour un dirigeant pressé.
-- « pointsForts » et « pointsAttention » : 2 à 5 puces chacune, une idée par puce, avec le chiffre qui la fonde.
-- « actions » : 2 à 4 vérifications ou décisions concrètes (qui regarde quoi), déduites des points d'attention, formulées comme des pistes de travail (« Faire le point sur… », « Vérifier avec… ») et jamais comme un reproche ou une injonction.
-- S'il y a des réserves sur les données, termine les points d'attention par une puce qui les résume. Ne cite jamais la validation du mois ni la qualité des données comme point fort.
-- Un point fort doit être un fait favorable du mois (poste en baisse, marge qui progresse, CA en hausse, objectif tenu). Une baisse de CA ou de marge, un retard sur N-1 ou un réalisé au-dessus de l'objectif n'en sont jamais un, même formulés avec mesure. S'il n'y en a pas, donne moins de puces plutôt que d'en inventer.`;
+- Les travaux en cours (la « prévision ») ne sont ni un budget ni une cible : c'est du chiffre d'affaires réalisé mais pas encore facturé. Ne compare jamais le chiffre d'affaires à la prévision.
+- Un objectif est une part maximale du chiffre d'affaires : un réalisé au-dessus de l'objectif est défavorable. Cite le réalisé, l'objectif et l'écart fourni : « Location : 2,6 % du chiffre d'affaires cumulé, 0,6 point sous l'objectif de 3,2 % ». La situation fournie vaut pour le réalisé cumulé.
+
+Contenu :
+- « enBref » : 2 à 3 phrases complètes, l'essentiel du mois : le chiffre d'affaires et le résultat d'exploitation, chacun avec sa comparaison en montant et en pourcentage. Ni deux-points, ni énumération.
+- « pointsForts » : 0 à 4 puces, chacune une phrase courte avec le chiffre qui la fonde et sa référence. Un point fort est un fait favorable du mois (poste en baisse, marge qui progresse, chiffre d'affaires en hausse, objectif tenu). Une baisse de chiffre d'affaires ou de marge, un retard sur l'an dernier ou un réalisé au-dessus de l'objectif n'en sont jamais un. S'il n'y en a pas, donne moins de puces plutôt que d'en inventer.
+- « pointsAttention » : 2 à 5 puces, chacune sur une ligne courte, au format « Sujet : constat chiffré », par exemple « Résultat d'exploitation du mois : −450 k€, soit −37,5 % du chiffre d'affaires du mois ». ${postesAlertes.length ? `Ces postes sont déjà affichés dans l'encadré « Alertes du mois » et n'y figurent donc pas : ${postesAlertes.map((p) => `« ${p} »`).join(", ")}. ` : ""}Porte l'attention sur le résultat et la marge, les objectifs au-dessus de leur cible, les chantiers à regarder, et les frais généraux s'ils ne figurent pas déjà dans cet encadré. S'il y a des réserves sur les données, termine par une puce « Données : … ». Ne cite jamais la validation du mois ni la qualité des données comme point fort.
+- « actionsDaf » : 0 à 2 actions pour la DAF (comptabilité, cabinet comptable, données, frais généraux). « actionsExploitation » : 0 à 2 actions pour l'exploitation (chantiers, achats, intérim, sous-traitance, avancement et facturation des travaux). Une ligne de quinze mots au plus : un verbe à l'infinitif puis son objet, sans dire qui s'en charge ni lister de chiffres. Ce sont des pistes de travail, jamais un reproche ni une injonction.`;
+
+// ── Finitions ──
+// Trois demandes de la DAF que le modèle ne suit pas à coup sûr, même
+// écrites dans les consignes : elles sont garanties après la rédaction.
+
+/** Mots d'un libellé, sans accent, pluriel ni mot vide : « Intérims / Personnel » → interim, personnel. */
+function motsCles(t: string) {
+  const vides = new Set(["total", "sous", "du", "de", "des", "la", "le", "les", "et", "ce", "mois", "cumule"]);
+  return t
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .split(/[^a-z0-9]+/)
+    .map((w) => w.replace(/s$/, ""))
+    .filter((w) => w.length > 1 && !vides.has(w));
+}
+
+/** Un point d'attention qui compare à la moyenne un poste déjà dans l'encadré « Alertes du mois ». */
+function repriseDesAlertes(point: string, postes: string[]) {
+  const i = point.indexOf(":");
+  if (i < 0 || !/moyenne/i.test(point)) return false;
+  const sujet = new Set(motsCles(point.slice(0, i)));
+  return postes.some((p) => {
+    const mots = motsCles(p);
+    return mots.length > 0 && mots.every((m) => sujet.has(m));
+  });
+}
+
+const echapper = (t: string) => t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+/** « 1,911 M€ » → « 1,911 M€ (hors travaux en cours de −552 k€) », là où la parenthèse manque. */
+function avecTravauxEnCours(t: string, facture: string | null, travaux: string | null) {
+  if (!facture || !travaux) return t;
+  return t.replace(
+    new RegExp(`${echapper(facture)}(?!\\s*\\(hors travaux en cours)`, "g"),
+    `${facture} (hors travaux en cours de ${travaux})`
+  );
+}
+
+/** « 3.3 % » → « 3,3 % » */
+const virgule = (t: string) => t.replace(/(\d)\.(\d+)(?=\s?(%|points?\b))/g, "$1,$2");
+
+function finitions(r: Omit<Redaction, "actions">, f: AnalyseFigures): Redaction {
+  const x = f.flash;
+  const tec = (texte: string) =>
+    avecTravauxEnCours(
+      avecTravauxEnCours(texte, k(x.factureMois), k(diff(x.caMois, x.factureMois))),
+      k(x.factureCumul),
+      k(diff(x.caCumul, x.factureCumul))
+    );
+  const postes = f.variations.map((v) => v.label);
+  const net = (t: string) => virgule(tec(t));
+  return {
+    enBref: net(r.enBref),
+    pointsForts: r.pointsForts.map(net),
+    pointsAttention: r.pointsAttention.filter((p) => !repriseDesAlertes(p, postes)).map(net),
+    actionsDaf: (r.actionsDaf ?? []).map(virgule),
+    actionsExploitation: (r.actionsExploitation ?? []).map(virgule),
+    actions: [],
+  };
+}
 
 export async function rediger(figures: AnalyseFigures, entite = "Sodobat") {
   const { output, usage } = await generateText({
     model: openai.chat(ANALYSE_MODEL),
     providerOptions: { openai: { reasoningEffort: "low" } },
-    system: consignes(entite),
+    system: consignes(entite, figures.variations.map((v) => v.label)),
     prompt: JSON.stringify(briefing(figures)),
     output: Output.object({ schema: redactionSchema }),
   });
+  const redaction = finitions(output, figures);
   return {
-    redaction: output as Redaction,
+    redaction,
     inputTokens: usage.inputTokens ?? null,
     outputTokens: usage.outputTokens ?? null,
   };

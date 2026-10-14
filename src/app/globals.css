@@ -1310,9 +1310,13 @@ td.muted, .ct .muted { color: var(--gray-empty); }
 .am-pts li::before { content: ""; position: absolute; left: 1px; top: 0.6em; width: 6px; height: 6px; border-radius: 50%; }
 .am-pts.pos li::before { background: var(--green); }
 .am-pts.neg li::before { background: var(--red); }
+/* « Sujet : constat » : le sujet en tête, comme le libellé d'une alerte du mois. */
+.am-pt-subject { font-weight: 600; color: var(--black); }
 .am-ai-note { padding: 14px 20px 0; font-size: 12px; color: var(--gray2); }
 
 .am-actions ol { list-style: none; display: flex; flex-direction: column; gap: 14px; }
+.am-action-group + .am-action-group { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--rule-row); }
+.am-action-group-title { font-size: 13px; font-weight: 600; color: var(--brand); margin-bottom: 10px; }
 .am-actions li { display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 10px; align-items: start; }
 .am-action-n {
   width: 22px; height: 22px; border-radius: 50%; background: var(--brand-lt); color: var(--brand);
@@ -1348,29 +1352,6 @@ td.muted, .ct .muted { color: var(--gray-empty); }
 .am-alert-sub { font-size: 12px; font-weight: 400; color: var(--gray2); }
 .am-alert-delta { font-size: 13px; font-weight: 600; white-space: nowrap; }
 
-.am-callout { font-size: 13px; line-height: 1.5; background: var(--red-lt); color: var(--red); padding: 10px 12px; border-radius: var(--radius-sm); margin-bottom: 14px; }
-.am-callout.ok { background: var(--green-lt); color: var(--green); }
-.am-callout .am-num { color: inherit; }
-.am-bars { display: flex; flex-direction: column; gap: 10px; }
-.am-div { display: grid; grid-template-columns: 110px 1fr 48px; align-items: center; gap: 10px; font-size: 12.5px; }
-.am-div.light { opacity: 0.75; }
-.am-div-label { color: var(--gray1); }
-.am-div-track { position: relative; height: 10px; background: var(--gray5); border-radius: 5px; }
-.am-div-axis { position: absolute; left: 50%; top: -3px; bottom: -3px; width: 1px; background: var(--gray3); }
-.am-div-bar { position: absolute; top: 0; bottom: 0; border-radius: 5px; }
-.am-div-bar.bad { background: var(--red); }
-.am-div-bar.good { background: var(--green); }
-.am-div-value { text-align: right; font-weight: 600; }
-.am-div-value.neg { color: var(--red); }
-.am-div-value.pos { color: var(--green); }
-.am-bars-caption { font-size: 12px; color: var(--gray2); }
-.am-rates { display: flex; flex-direction: column; gap: 8px; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--rule-row); }
-.am-rate-row { display: flex; gap: 28px; flex-wrap: wrap; }
-.am-rate-value { font-size: 17px; font-weight: 600; color: var(--gray1); }
-.am-rate.strong .am-rate-value { color: var(--black); font-size: 20px; font-weight: 600; }
-.am-rate-label { font-size: 12px; color: var(--gray2); }
-.am-small { font-size: 12px; color: var(--gray2); line-height: 1.5; }
-.am-small b { color: var(--black); font-weight: 600; white-space: nowrap; }
 
 /* Un objectif sur deux lignes : l'intitulé et son statut, puis la jauge et
    les deux taux. La jauge garde la même largeur d'une ligne à l'autre. */

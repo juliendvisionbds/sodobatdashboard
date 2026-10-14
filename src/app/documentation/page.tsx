@@ -530,8 +530,8 @@ export default function DocumentationPage() {
             Elle se lance sur un mois validé, dont la validation porte encore sur la balance
             analytique en place, et couvert par la balance ventilée. Les chiffres sont calculés et
             figés à la génération : flash du mois, objectifs (cumul, mois seul, statut à la fin du mois
-            précédent), fortes variations, charges directes face au CA, chantiers à regarder, frais
-            généraux et fiabilité des données.
+            précédent), fortes variations, chantiers à regarder, frais généraux et fiabilité des
+            données, ainsi que le chiffre d’affaires facturé, hors travaux en cours.
           </p>
           <div className="doc-table-wrap">
             <table className="doc-table">
@@ -559,14 +559,6 @@ export default function DocumentationPage() {
                   <td>charge à zéro qui pèse d’habitude 50 k€ ou plus</td>
                 </tr>
                 <tr>
-                  <td>Effet ciseau</td>
-                  <td>charges directes qui progressent de 10 points de plus que le CA</td>
-                </tr>
-                <tr>
-                  <td>Taux de charges</td>
-                  <td>taux du mois supérieur de 5 points au taux cumulé</td>
-                </tr>
-                <tr>
                   <td>Chantier à regarder</td>
                   <td>
                     20 k€ de charges ou plus sans facturation ni prévision (8 au plus), ou résultat du
@@ -577,9 +569,18 @@ export default function DocumentationPage() {
             </table>
           </div>
           <p>
-            L’IA rédige ensuite le texte (en bref, points forts, points d’attention, actions) à partir
-            de ces seuls chiffres, sur un ton factuel et mesuré qui ne met personne en cause. Si la
-            rédaction échoue, les chiffres sont enregistrés sans texte. L’analyse naît en brouillon ;
+            L’IA rédige ensuite le texte à partir de ces seuls chiffres, sur un ton factuel et
+            mesuré qui ne met personne en cause : un en bref en phrases complètes, des points forts,
+            des points d’attention au format « Sujet : constat », et des actions réparties entre la
+            DAF et l’exploitation, deux au plus de chaque côté. Les consignes, revues avec la DAF,
+            demandent un texte sans sigle, des comparaisons qui disent toujours leur référence et
+            leur écart, et une marge rapportée à son chiffre d’affaires.
+          </p>
+          <p>
+            Trois règles sont appliquées après la rédaction, sans dépendre de l’IA : le chiffre
+            d’affaires facturé est suivi de « (hors travaux en cours de X) », un point d’attention
+            qui reprend un poste des alertes du mois est retiré, et les décimales prennent la virgule.
+            Si la rédaction échoue, les chiffres sont enregistrés sans texte. L’analyse naît en brouillon ;
             la DAF relit, modifie, commente et publie. Relancer repasse en brouillon et garde le
             commentaire. L’analyse devient caduque si le mois est rouvert ou sa balance analytique
             réimportée, et ne peut plus être publiée avant d’être relancée.

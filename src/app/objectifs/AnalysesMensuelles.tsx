@@ -118,8 +118,8 @@ export default function AnalysesMensuelles({
               <tr>
                 <th className="left">Mois</th>
                 <th className="left">Statut</th>
-                <th>CA du mois</th>
-                <th className="pct-col">Marge expl. cumulée</th>
+                <th>Chiffre d&apos;affaires du mois</th>
+                <th className="pct-col">Marge d&apos;exploitation cumulée</th>
                 <th>Objectifs en mauvais</th>
                 <th>Alertes</th>
                 <th className="left">Publiée / générée</th>
@@ -355,11 +355,10 @@ function AnalyseModal({
           <div className="am-cols">
             <div className="am-col">
               <Alertes f={f} />
-              <Ciseau f={f} />
+              <FraisGeneraux f={f} />
             </div>
             <div className="am-col">
               <Objectifs f={f} />
-              <FraisGeneraux f={f} />
             </div>
           </div>
           <Chantiers f={f} />
@@ -454,16 +453,16 @@ function Kpis({ f }: { f: AnalyseFigures }) {
     x.margeCumul != null && x.margeCumulPrecedente != null ? x.margeCumul - x.margeCumulPrecedente : null;
   return (
     <div className="am-kpis">
-      <Kpi label="CA du mois" value={eur(x.caMois)} sub={vsN1(x.caMois, x.caMoisN1)} />
-      <Kpi label="CA cumulé" value={eur(x.caCumul)} sub={vsN1(x.caCumul, x.caCumulN1)} />
+      <Kpi label="Chiffre d'affaires du mois" value={eur(x.caMois)} sub={vsN1(x.caMois, x.caMoisN1)} />
+      <Kpi label="Chiffre d'affaires cumulé" value={eur(x.caCumul)} sub={vsN1(x.caCumul, x.caCumulN1)} />
       <Kpi
-        label="Marge expl. cumulée"
+        label="Marge d'exploitation cumulée"
         value={pct(x.margeCumul)}
         sub={
           deltaMarge == null
             ? { text: `mois seul : ${pct(x.margeMois)}` }
             : {
-                text: `${deltaMarge >= 0 ? "+" : "−"}${pct(Math.abs(deltaMarge)).replace("%", "pt")} sur le mois`,
+                text: `${deltaMarge >= 0 ? "+" : "−"}${pct(Math.abs(deltaMarge)).replace("%", Math.abs(deltaMarge) >= 2 ? "points" : "point")} sur le mois`,
                 tone: deltaMarge >= 0 ? "pos" : "neg",
               }
         }
@@ -485,9 +484,9 @@ function Kpis({ f }: { f: AnalyseFigures }) {
 }
 
 function vsN1(v: number, n1: number | null): { text: string; tone?: "pos" | "neg" } {
-  if (n1 == null || n1 === 0) return { text: "N-1 indisponible" };
+  if (n1 == null || n1 === 0) return { text: "pas de comparaison avec l'an dernier" };
   const e = ((v - n1) / Math.abs(n1)) * 100;
-  return { text: `${signed(e)} vs N-1`, tone: e >= 0 ? "pos" : "neg" };
+  return { text: `${signed(e)} par rapport à l'an dernier`, tone: e >= 0 ? "pos" : "neg" };
 }
 
 function Kpi({
@@ -510,10 +509,10 @@ function Kpi({
 
 function RedactionView({ a }: { a: AnalyseDetail }) {
   const r = a.redaction;
-  const actions = r?.actions ?? [];
+  const groupes = groupesActions(r);
   // Le constat se lit à gauche, ce qu'il appelle à droite ; sans action ni
   // commentaire, le texte prend toute la largeur.
-  const aside = actions.length > 0 || !!a.commentaire;
+  const aside = groupes.length > 0 || !!a.commentaire;
   return (
     <div className={`am-synth${aside ? "" : " solo"}`}>
       <section className="am-card am-read">
@@ -540,7 +539,7 @@ function RedactionView({ a }: { a: AnalyseDetail }) {
       </section>
       {aside && (
         <div className="am-col">
-          {actions.length > 0 && <Actions items={actions} />}
+          {groupes.length > 0 && <Actions groupes={groupes} />}
           {a.commentaire && (
             <section className="am-card am-comment">
               <div className="am-label">Commentaire de la DAF</div>
@@ -582,44 +581,75 @@ function Points({ title, tone, items }: { title: string; tone: "pos" | "neg"; it
     <div className={`am-pts ${tone}`}>
       <h3 className="am-pts-title">{title}</h3>
       <ul>
-        {items.map((t, i) => (
-          <li key={i}>
-            <Chiffres text={t} />
-          </li>
-        ))}
+        {items.map((t, i) => {
+          // Un point d'attention s'écrit « Sujet : constat » ; le sujet passe en
+          // tête, comme le libellé d'une ligne des alertes du mois.
+          const [sujet, constat] = tone === "neg" ? enTete(t, 70) : [null, t];
+          return (
+            <li key={i}>
+              {sujet && <span className="am-pt-subject">{sujet} : </span>}
+              <Chiffres text={constat} />
+            </li>
+          );
+        })}
       </ul>
     </div>
   );
 }
 
-/** « DAF : vérifier… » → qui s'en charge, puis quoi ; sinon l'action telle quelle. */
-function quiFaitQuoi(action: string): [string | null, string] {
-  const m = action.match(/^([^:\d]{2,48}?)\s*:\s+(\S[\s\S]*)$/);
-  return m ? [m[1].trim(), m[2]] : [null, action];
+/** « Sujet : suite » → [sujet, suite] si le sujet est court ; sinon [null, texte]. */
+function enTete(text: string, max: number, sansChiffre = false): [string | null, string] {
+  const i = text.search(/\s*:\s/);
+  if (i < 2 || i > max) return [null, text];
+  const tete = text.slice(0, i).trim();
+  if (sansChiffre && /\d/.test(tete)) return [null, text];
+  return [tete, text.slice(i).replace(/^\s*:\s+/, "")];
 }
 
-function Actions({ items }: { items: string[] }) {
+type GroupeActions = { qui: string | null; items: string[] };
+
+/**
+ * Depuis le 14 octobre 2026, les actions sont réparties entre la DAF et
+ * l'exploitation ; les analyses plus anciennes gardent leur liste unique.
+ */
+function groupesActions(r: Redaction | null): GroupeActions[] {
+  if (!r) return [];
+  if (r.actionsDaf || r.actionsExploitation)
+    return [
+      { qui: "DAF", items: r.actionsDaf ?? [] },
+      { qui: "Exploitation", items: r.actionsExploitation ?? [] },
+    ].filter((g) => g.items.length > 0);
+  return r.actions.length ? [{ qui: null, items: r.actions }] : [];
+}
+
+function Actions({ groupes }: { groupes: GroupeActions[] }) {
   return (
     <section className="am-card am-actions">
       <div className="am-label">Actions suggérées</div>
-      <ol>
-        {items.map((t, i) => {
-          const [qui, quoi] = quiFaitQuoi(t);
-          return (
-            <li key={i}>
-              <span className="am-action-n" aria-hidden>
-                {i + 1}
-              </span>
-              <span className="am-action-body">
-                {qui && <span className="am-action-who">{qui}</span>}
-                <span className="am-action-what">
-                  <Chiffres text={quoi} />
-                </span>
-              </span>
-            </li>
-          );
-        })}
-      </ol>
+      {groupes.map((g) => (
+        <div key={g.qui ?? "toutes"} className="am-action-group">
+          {g.qui && <div className="am-action-group-title">{g.qui}</div>}
+          <ol>
+            {g.items.map((t, i) => {
+              // Ancienne liste : « DAF : vérifier… » donnait qui s'en charge.
+              const [qui, quoi] = g.qui ? [null, t] : enTete(t, 48, true);
+              return (
+                <li key={i}>
+                  <span className="am-action-n" aria-hidden>
+                    {i + 1}
+                  </span>
+                  <span className="am-action-body">
+                    {qui && <span className="am-action-who">{qui}</span>}
+                    <span className="am-action-what">
+                      <Chiffres text={quoi} />
+                    </span>
+                  </span>
+                </li>
+              );
+            })}
+          </ol>
+        </div>
+      ))}
     </section>
   );
 }
@@ -629,7 +659,11 @@ function EditRedaction({ a, onDone }: { a: AnalyseDetail; onDone: () => void }) 
   const [enBref, setEnBref] = useState(r.enBref);
   const [forts, setForts] = useState(r.pointsForts.join("\n"));
   const [attention, setAttention] = useState(r.pointsAttention.join("\n"));
+  // Une analyse rédigée avant la répartition garde sa liste unique.
+  const ancienne = !r.actionsDaf && !r.actionsExploitation && r.actions.length > 0;
   const [actions, setActions] = useState(r.actions.join("\n"));
+  const [actionsDaf, setActionsDaf] = useState((r.actionsDaf ?? []).join("\n"));
+  const [actionsExpl, setActionsExpl] = useState((r.actionsExploitation ?? []).join("\n"));
   const [commentaire, setCommentaire] = useState(a.commentaire ?? "");
   const [pending, start] = useTransition();
   const lines = (s: string) => s.split("\n").map((l) => l.trim()).filter(Boolean);
@@ -640,7 +674,9 @@ function EditRedaction({ a, onDone }: { a: AnalyseDetail; onDone: () => void }) 
         enBref,
         pointsForts: lines(forts),
         pointsAttention: lines(attention),
-        actions: lines(actions),
+        ...(ancienne
+          ? { actions: lines(actions) }
+          : { actions: [], actionsDaf: lines(actionsDaf), actionsExploitation: lines(actionsExpl) }),
       };
       const res = await enregistrerAnalyseAction(a.period, redaction, commentaire);
       if (res.ok) onDone();
@@ -663,10 +699,23 @@ function EditRedaction({ a, onDone }: { a: AnalyseDetail; onDone: () => void }) 
         </label>
       </section>
       <section className="am-card">
-        <label>
-          <span className="am-label">Actions suggérées · une par ligne</span>
-          <textarea rows={9} value={actions} onChange={(e) => setActions(e.target.value)} />
-        </label>
+        {ancienne ? (
+          <label>
+            <span className="am-label">Actions suggérées · une par ligne</span>
+            <textarea rows={9} value={actions} onChange={(e) => setActions(e.target.value)} />
+          </label>
+        ) : (
+          <>
+            <label>
+              <span className="am-label">Actions DAF · une par ligne</span>
+              <textarea rows={3} value={actionsDaf} onChange={(e) => setActionsDaf(e.target.value)} />
+            </label>
+            <label>
+              <span className="am-label">Actions exploitation · une par ligne</span>
+              <textarea rows={3} value={actionsExpl} onChange={(e) => setActionsExpl(e.target.value)} />
+            </label>
+          </>
+        )}
         <label>
           <span className="am-label">Commentaire de la DAF</span>
           <textarea
@@ -770,85 +819,12 @@ function AlerteRow({ v }: { v: Variation }) {
           {v.sens === "absent"
             ? `à zéro ce mois, ${eur(v.reference)} d'habitude, à vérifier`
             : `${eur(v.mois)} contre ${eur(v.reference)} en moyenne`}
-          {v.n1 != null && v.sens !== "absent" && ` · N-1 : ${eur(v.n1)}`}
+          {v.n1 != null && v.sens !== "absent" && ` · l'an dernier : ${eur(v.n1)}`}
         </span>
       </span>
       <span className="am-alert-delta">{signedEur(v.ecart)}</span>
       <span className={`tag ${tone}`}>{v.sens === "absent" ? "absent" : signed(v.ecartPct)}</span>
     </li>
-  );
-}
-
-function Ciseau({ f }: { f: AnalyseFigures }) {
-  const c = f.ciseau;
-  const scale = Math.max(20, Math.abs(c.chargesEvolPct ?? 0), Math.abs(c.caEvolPct ?? 0));
-  return (
-    <Section title="Charges directes face au CA">
-      {c.signal ? (
-        <div className="am-callout">
-          <b>{c.signal === "ciseau" ? "Effet ciseau." : "Marge du mois en recul."}</b>{" "}
-          <Chiffres text={c.lectures.join(" ")} />
-        </div>
-      ) : (
-        <div className="am-callout ok">Charges et CA évoluent de concert ce mois-ci.</div>
-      )}
-      <div className="am-bars">
-        <Diverging label="Charges directes" value={c.chargesEvolPct} scale={scale} bad={(c.chargesEvolPct ?? 0) > 0} />
-        <Diverging label="CA" value={c.caEvolPct} scale={scale} bad={(c.caEvolPct ?? 0) < 0} />
-        <Diverging label="dont facturation" value={c.facturationEvolPct} scale={scale} bad={(c.facturationEvolPct ?? 0) < 0} light />
-        <div className="am-bars-caption">évolution du mois par rapport à la {refLabel(f)}</div>
-      </div>
-      <div className="am-rates">
-        <div className="am-rate-row">
-          <Rate label="Taux du mois" value={c.tauxMois} strong />
-          <Rate label="Cumul" value={c.tauxCumul} />
-          <Rate label="Cumul N-1" value={c.tauxCumulN1} />
-        </div>
-        <div className="am-small">
-          Charges d&apos;exploitation et de personnel en % du CA. Prévision (TEC) du mois :{" "}
-          <b>{eur(c.provisionMois)}</b>
-          {c.annulationMois !== 0 && `, reprise de M-1 : ${eur(c.annulationMois)}`}.
-        </div>
-      </div>
-    </Section>
-  );
-}
-
-function Diverging({
-  label,
-  value,
-  scale,
-  bad,
-  light,
-}: {
-  label: string;
-  value: number | null;
-  scale: number;
-  bad: boolean;
-  light?: boolean;
-}) {
-  const w = value == null ? 0 : Math.min(50, (Math.abs(value) / scale) * 50);
-  return (
-    <div className={`am-div ${light ? "light" : ""}`}>
-      <span className="am-div-label">{label}</span>
-      <span className="am-div-track">
-        <span className="am-div-axis" />
-        <span
-          className={`am-div-bar ${bad ? "bad" : "good"}`}
-          style={value != null && value < 0 ? { right: "50%", width: `${w}%` } : { left: "50%", width: `${w}%` }}
-        />
-      </span>
-      <span className={`am-div-value ${bad ? "neg" : "pos"}`}>{signed(value)}</span>
-    </div>
-  );
-}
-
-function Rate({ label, value, strong }: { label: string; value: number | null; strong?: boolean }) {
-  return (
-    <div className={`am-rate ${strong ? "strong" : ""}`}>
-      <div className="am-rate-value">{pct(value)}</div>
-      <div className="am-rate-label">{label}</div>
-    </div>
   );
 }
 
@@ -871,7 +847,7 @@ function Objectifs({ f }: { f: AnalyseFigures }) {
   ) * 1.1;
 
   return (
-    <Section title="Objectifs de Frédéric" hint="réalisé cumulé face à l'objectif">
+    <Section title="Objectifs de l'exploitation par rapport au réalisé" hint="réalisé cumulé face à l'objectif">
       {f.objectifs.renseignes === 0 ? (
         <p className="am-muted">Aucun objectif annuel saisi : les statuts ne peuvent pas être calculés.</p>
       ) : null}
@@ -987,7 +963,7 @@ function Chantiers({ f }: { f: AnalyseFigures }) {
                       </span>
                       {repriseDominante(s) && (
                         <span className="am-ch-sub">
-                          reprise de la prévision M-1 : {eur(s.annulationMois)}
+                          reprise de la prévision du mois précédent : {eur(s.annulationMois)}
                         </span>
                       )}
                     </span>
@@ -1025,7 +1001,7 @@ function FraisGeneraux({ f }: { f: AnalyseFigures }) {
           )}
         </span>
         <span className="muted">
-          {pct(x.pctCaMois)} du CA du mois · {pct(x.pctCaCumul)} en cumul
+          {pct(x.pctCaMois)} du chiffre d&apos;affaires du mois · {pct(x.pctCaCumul)} en cumul
         </span>
       </div>
     </Section>
