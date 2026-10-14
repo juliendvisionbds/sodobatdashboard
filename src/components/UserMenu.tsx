@@ -8,13 +8,10 @@ export default function UserMenu({
   name,
   role,
   showAdminLinks,
-  showRapprochement,
 }: {
   name: string;
   role: string;
   showAdminLinks: boolean;
-  /** le rapprochement avec le tableau de gestion n'existe que pour Sodobat */
-  showRapprochement: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -95,37 +92,23 @@ export default function UserMenu({
           >
             Alertes
           </Link>
-          {showRapprochement && (
-            <Link
-              href="/rapprochement"
-              role="menuitem"
-              className="user-dropdown-item"
-              onClick={() => setOpen(false)}
-            >
-              Rapprochement
-            </Link>
-          )}
           <div className="user-dropdown-sep" />
-          <a
-            href="/docs/guide-utilisateur.html"
-            target="_blank"
-            rel="noopener"
+          <Link
+            href="/guide"
             role="menuitem"
             className="user-dropdown-item"
             onClick={() => setOpen(false)}
           >
             Guide utilisateur
-          </a>
-          <a
-            href="/docs/documentation.html"
-            target="_blank"
-            rel="noopener"
+          </Link>
+          <Link
+            href="/documentation"
             role="menuitem"
             className="user-dropdown-item"
             onClick={() => setOpen(false)}
           >
             Documentation détaillée
-          </a>
+          </Link>
           <div className="user-dropdown-sep" />
           <form action={logoutAction}>
             <button type="submit" role="menuitem" className="user-dropdown-item danger">

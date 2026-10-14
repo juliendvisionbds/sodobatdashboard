@@ -170,8 +170,7 @@ export default async function AlertesPage() {
             <p style={{ fontSize: 13, color: "var(--gray2)", margin: "0 0 4px" }}>
               Comptes sans ligne dans les balances analytiques des exercices antérieurs, importées
               pour les colonnes N-1 et N-2 des frais généraux. Leurs montants restent hors de ces
-              colonnes ; aucune écriture n&apos;est à corriger, le point 13 du Rapprochement les
-              décrit.
+              colonnes ; aucune écriture n&apos;est à corriger.
             </p>
             {closedYears.map((a) => (
               <div

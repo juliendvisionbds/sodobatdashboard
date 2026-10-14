@@ -235,9 +235,9 @@ export const manualEntries = pgTable(
   ]
 );
 
-// Réponses de la DAF aux points du rapprochement (écran « Rapprochement »).
-// Une ligne par point : la saisie est partagée, pas conservée dans le navigateur,
-// pour que la réponse soit visible de tous et retrouvée après le rendez-vous.
+// Réponses de la DAF aux points du rapprochement. L'écran « Rapprochement » a
+// été retiré le 14 octobre 2026 ; la table est gardée pour ne pas perdre ces
+// réponses (db:push supprimerait une table retirée du schéma).
 export const rapprochementDecisions = pgTable(
   "rapprochement_decisions",
   {
