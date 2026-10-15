@@ -79,7 +79,7 @@ export const OBJECTIFS: ObjectifDef[] = [
   },
   {
     key: "sous_traitants_2",
-    label: "Sous-traitants 2 (paiement Sodobat, hors gros œuvre / exceptionnel)",
+    label: "Sous-traitants 2 (paiement Sodobat)",
     source: { view: "synthese", code: "syn_sous_traitance_sodobat" },
     controle: true,
     notes: "Toute la sous-traitance réglée par Sodobat : autoliquidation, TVA 20 %, intracom",
