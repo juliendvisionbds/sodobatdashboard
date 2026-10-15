@@ -32,6 +32,10 @@ export const users = pgTable("users", {
   role: text("role", { enum: ["admin", "daf", "saisie", "lecteur"] }).notNull(),
   // Entité du compte ; null = toutes (comptes de la holding).
   entityId: integer("entity_id").references(() => entities.id),
+  // Compte saisie qui lit tout le groupe : la seule entité sur laquelle il
+  // saisit (le dirigeant qui renseigne les prévisions de Sodobat). null = son
+  // entité de rattachement.
+  saisieEntityId: integer("saisie_entity_id").references(() => entities.id),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 

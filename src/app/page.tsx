@@ -4,7 +4,7 @@ import { db, tables } from "@/db";
 import AppHeader from "@/components/AppHeader";
 import { getSynthese, listVentileePeriods } from "@/lib/views";
 import { getNotesEntite, listValidatedMonths } from "@/lib/finance";
-import { canSaisir, getSession, ownsEntity } from "@/lib/auth";
+import { canSaisir, canWrite, getSession } from "@/lib/auth";
 import { VIDE, fmtEur, fmtEurAuto, fmtPct, monthLabel, monthLabelLong, splitAutoEur } from "@/lib/format";
 import MonthSelect from "@/components/MonthSelect";
 import PrintButton from "@/components/print";
@@ -106,7 +106,10 @@ export default async function SynthesePage({
     getNotesEntite(entity.id, data.months),
     listValidatedMonths(entity.id),
   ]);
-  const canEditNotes = !!session && canSaisir(session) && ownsEntity(session, entity.id);
+  const canEditNotes = !!session && canSaisir(session, entity.id);
+  // Les alertes relèvent de la DAF : leur compteur et leur carte ne s'affichent
+  // qu'aux profils qui peuvent les traiter (l'écran Alertes leur est réservé).
+  const voitAlertes = !!session && canWrite(session);
 
   const shown = data.monthsWithData;
   const nbMois = shown.length;
@@ -231,18 +234,20 @@ export default async function SynthesePage({
               <span>dont frais généraux {fmtEurAuto(data.totalFx.total)}</span>
             </div>
           </div>
-          <div className="kpi">
-            <div className="kpi-label">Alertes ouvertes</div>
-            <div className="kpi-value" style={{ color: openAlerts.length ? "var(--amber)" : "var(--green)" }}>
-              {openAlerts.length}
+          {voitAlertes && (
+            <div className="kpi">
+              <div className="kpi-label">Alertes ouvertes</div>
+              <div className="kpi-value" style={{ color: openAlerts.length ? "var(--amber)" : "var(--green)" }}>
+                {openAlerts.length}
+              </div>
+              <div className="kpi-sub">
+                <span className={`tag ${nbUnmapped ? "amber" : "gray"}`}>
+                  {nbUnmapped} non mappé{nbUnmapped > 1 ? "s" : ""}
+                </span>
+                <span>{nbUnmapped ? "à affecter dans Mapping" : "comptes tous affectés"}</span>
+              </div>
             </div>
-            <div className="kpi-sub">
-              <span className={`tag ${nbUnmapped ? "amber" : "gray"}`}>
-                {nbUnmapped} non mappé{nbUnmapped > 1 ? "s" : ""}
-              </span>
-              <span>{nbUnmapped ? "à affecter dans Mapping" : "comptes tous affectés"}</span>
-            </div>
-          </div>
+          )}
         </div>
 
         <div className="grid-2">
@@ -373,57 +378,59 @@ export default async function SynthesePage({
           </div>
         </div>
 
-        <div className="card flush" style={{ marginBottom: 20 }}>
-          <div className="card-head">
-            <div className="card-head-group">
-              <div className="card-label">Alertes de cohérence</div>
-              <span className={`count-badge${openAlerts.length ? "" : " ok"}`}>
-                {openAlerts.length} ouverte{openAlerts.length > 1 ? "s" : ""}
-              </span>
-            </div>
-            <Link href="/alertes" className="card-link">
-              Tout gérer →
-            </Link>
-          </div>
-          {openAlerts.length === 0 ? (
-            <div className="alert-more">
-              <span className="status ok">Aucune alerte ouverte, tous les contrôles sont au vert.</span>
-            </div>
-          ) : (
-            <div className="alert-list">
-              <div className="alert-line head">
-                <div>Compte</div>
-                <div>Libellé</div>
-                <div className="amount">Montant</div>
-                <div className="anomaly">Anomalie</div>
-                <div />
+        {voitAlertes && (
+          <div className="card flush" style={{ marginBottom: 20 }}>
+            <div className="card-head">
+              <div className="card-head-group">
+                <div className="card-label">Alertes de cohérence</div>
+                <span className={`count-badge${openAlerts.length ? "" : " ok"}`}>
+                  {openAlerts.length} ouverte{openAlerts.length > 1 ? "s" : ""}
+                </span>
               </div>
-              {openAlerts.slice(0, ALERTES_AFFICHEES).map((a) => (
-                <div className="alert-line" key={a.id} title={a.description ?? undefined}>
-                  <div className="code">{a.account ?? VIDE}</div>
-                  <div className="label">{alertLabel(a)}</div>
-                  <div className="amount">{a.amount != null ? fmtEur(Number(a.amount)) : VIDE}</div>
-                  <div className="anomaly">
-                    <span className={`status${a.severity === "error" ? " error" : a.severity === "info" ? " info" : ""}`}>
-                      {anomalie(a)}
-                    </span>
-                  </div>
-                  <Link href="/alertes" className="btn secondary sm action">
-                    Vérifier
-                  </Link>
-                </div>
-              ))}
-              {openAlerts.length > ALERTES_AFFICHEES && (
-                <div className="alert-more">
-                  + {openAlerts.length - ALERTES_AFFICHEES} autre
-                  {openAlerts.length - ALERTES_AFFICHEES > 1 ? "s" : ""} alerte
-                  {openAlerts.length - ALERTES_AFFICHEES > 1 ? "s" : ""}
-                  {" · "}le détail et le traitement de chacune se trouvent dans l&apos;écran Alertes.
-                </div>
-              )}
+              <Link href="/alertes" className="card-link">
+                Tout gérer →
+              </Link>
             </div>
-          )}
-        </div>
+            {openAlerts.length === 0 ? (
+              <div className="alert-more">
+                <span className="status ok">Aucune alerte ouverte, tous les contrôles sont au vert.</span>
+              </div>
+            ) : (
+              <div className="alert-list">
+                <div className="alert-line head">
+                  <div>Compte</div>
+                  <div>Libellé</div>
+                  <div className="amount">Montant</div>
+                  <div className="anomaly">Anomalie</div>
+                  <div />
+                </div>
+                {openAlerts.slice(0, ALERTES_AFFICHEES).map((a) => (
+                  <div className="alert-line" key={a.id} title={a.description ?? undefined}>
+                    <div className="code">{a.account ?? VIDE}</div>
+                    <div className="label">{alertLabel(a)}</div>
+                    <div className="amount">{a.amount != null ? fmtEur(Number(a.amount)) : VIDE}</div>
+                    <div className="anomaly">
+                      <span className={`status${a.severity === "error" ? " error" : a.severity === "info" ? " info" : ""}`}>
+                        {anomalie(a)}
+                      </span>
+                    </div>
+                    <Link href="/alertes" className="btn secondary sm action">
+                      Vérifier
+                    </Link>
+                  </div>
+                ))}
+                {openAlerts.length > ALERTES_AFFICHEES && (
+                  <div className="alert-more">
+                    + {openAlerts.length - ALERTES_AFFICHEES} autre
+                    {openAlerts.length - ALERTES_AFFICHEES > 1 ? "s" : ""} alerte
+                    {openAlerts.length - ALERTES_AFFICHEES > 1 ? "s" : ""}
+                    {" · "}le détail et le traitement de chacune se trouvent dans l&apos;écran Alertes.
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
 
         <SyntheseTable
           data={data}

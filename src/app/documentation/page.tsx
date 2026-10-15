@@ -731,14 +731,15 @@ export default function DocumentationPage() {
             Quatre rôles : administrateur et DAF (tout), saisie (prévisions, notes et statut des
             chantiers), lecteur (consultation). Le détail est dans le{" "}
             <Link href="/guide#roles">guide utilisateur</Link>. Un compte peut être rattaché à une
-            entité, quel que soit son rôle : il ne voit et ne modifie qu’elle. Le serveur ne sert
-            jamais une entité fermée ou interdite au compte, quelle que soit la préférence enregistrée
-            dans le navigateur.
+            entité, quel que soit son rôle : il ne voit et ne modifie qu’elle. Un compte saisie peut
+            aussi lire tout le groupe et ne saisir que pour une entité. Le serveur ne sert jamais une
+            entité fermée ou interdite au compte, quelle que soit la préférence enregistrée dans le
+            navigateur.
           </p>
           <p>
             Connexion par email et mot de passe, session de 7 jours ; toutes les pages, y compris
-            cette documentation, exigent d’être connecté. Les écrans Imports et Mapping sont protégés
-            côté serveur.
+            cette documentation, exigent d’être connecté. Les écrans Imports, Mapping et Alertes sont
+            protégés côté serveur.
           </p>
         </DocBlock>
         <DocBlock title="Fraîcheur">

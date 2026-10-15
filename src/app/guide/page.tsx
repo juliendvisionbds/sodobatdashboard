@@ -124,9 +124,9 @@ export default function GuidePage() {
           <p>
             Les onglets donnent les cinq vues : <b>Synthèse</b>, <b>Chantiers</b>,{" "}
             <b>Frais généraux</b>, <b>Objectifs</b> et <b>Assistant IA</b>. Le menu utilisateur, sous
-            vos initiales en haut à droite, donne accès à <b>Comptes</b>, <b>Alertes</b>, à ce guide
-            et à la documentation détaillée, et pour la DAF à <b>Imports</b> et <b>Mapping</b>. C’est
-            aussi là qu’on se déconnecte.
+            vos initiales en haut à droite, donne accès à <b>Comptes</b>, à ce guide et à la
+            documentation détaillée, et pour la DAF à <b>Imports</b>, <b>Mapping</b> et{" "}
+            <b>Alertes</b>. C’est aussi là qu’on se déconnecte.
           </p>
         </DocBlock>
         <DocBlock title="Choisir un mois, imprimer">
@@ -152,9 +152,9 @@ export default function GuidePage() {
       >
         <DocBlock title="Synthèse" aside="Page d’accueil · balance ventilée">
           <p>
-            Les résultats cumulés de l’exercice. En tête, quatre indicateurs : chiffre d’affaires
+            Les résultats cumulés de l’exercice. En tête, les indicateurs : chiffre d’affaires
             cumulé (comparé à N-1 si l’exercice précédent est importé), résultat d’exploitation,
-            résultat net, et nombre d’alertes ouvertes. Puis les graphiques : chiffre d’affaires
+            résultat net et, pour la DAF, le nombre d’alertes ouvertes. Puis les graphiques : chiffre d’affaires
             mensuel, principales charges en % du CA, résultat net des six derniers mois, et ratios
             clés (sous-traitance, personnel et exploitation rapportés au CA).
           </p>
@@ -166,8 +166,8 @@ export default function GuidePage() {
             par mois ; elle se fige quand la DAF valide le mois.
           </p>
           <p>
-            La carte <b>Alertes de cohérence</b> montre les premières alertes ouvertes ; « Tout gérer
-            » mène à la page Alertes.
+            Pour la DAF, la carte <b>Alertes de cohérence</b> montre les premières alertes ouvertes ;
+            « Tout gérer » mène à la page Alertes.
           </p>
         </DocBlock>
 
@@ -264,7 +264,7 @@ export default function GuidePage() {
           </p>
         </DocBlock>
 
-        <DocBlock title="Alertes" aside="Menu utilisateur · traitement par la DAF">
+        <DocBlock title="Alertes" aside="Menu utilisateur · DAF et administrateur">
           <p>
             Toutes les alertes ouvertes, regroupées par type, avec un conseil et un bouton d’action ;
             puis l’historique des alertes traitées. Voir <a href="#alertes">Les alertes</a>.
@@ -492,7 +492,7 @@ export default function GuidePage() {
             </thead>
             <tbody>
               <tr>
-                <td>Consulter les vues, Comptes, Alertes, l’assistant</td>
+                <td>Consulter les vues, Comptes, l’assistant, le guide</td>
                 <td className="c"><Y /></td>
                 <td className="c"><Y /></td>
                 <td className="c"><Y /></td>
@@ -534,7 +534,7 @@ export default function GuidePage() {
                 <td className="c"><Y /></td>
               </tr>
               <tr>
-                <td>Importer, Mapping, traiter les alertes</td>
+                <td>Imports, Mapping, Alertes</td>
                 <td className="c"><Y /></td>
                 <td className="c"><Y /></td>
                 <td className="c"><N /></td>
@@ -547,8 +547,9 @@ export default function GuidePage() {
           Le profil <b>Saisie</b> est celui des entités : il renseigne les prévisions et les notes de
           ses chantiers, en brouillon. Le profil <b>Lecteur</b> (dirigeants, associés) voit les mêmes
           chiffres que la DAF, sans rien modifier. Tout compte peut être rattaché à une entité : il ne
-          voit alors qu’elle. Les écrans Imports et Mapping restent fermés aux autres profils, même
-          en tapant leur adresse.
+          voit alors qu’elle. Un compte Saisie peut aussi lire tout le groupe et ne saisir que pour
+          une société : c’est le cas du dirigeant qui renseigne les prévisions de Sodobat. Les écrans
+          Imports, Mapping et Alertes restent fermés aux autres profils, même en tapant leur adresse.
         </p>
       </DocSection>
 

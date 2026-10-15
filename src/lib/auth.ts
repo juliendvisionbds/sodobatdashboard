@@ -18,6 +18,8 @@ export type Session = {
   role: Role;
   /** entité du compte ; null ou absent = toutes */
   entityId?: number | null;
+  /** compte saisie : seule entité où il saisit ; null ou absent = son entité */
+  saisieEntityId?: number | null;
 };
 
 export async function login(
@@ -38,6 +40,7 @@ export async function login(
     name: user.name,
     role: user.role,
     entityId: user.entityId ?? null,
+    saisieEntityId: user.saisieEntityId ?? null,
   };
   const token = await new SignJWT(session)
     .setProtectedHeader({ alg: "HS256" })
@@ -83,11 +86,14 @@ export function canWrite(s: Session) {
 }
 
 /**
- * Saisir la prévision, la note et le statut d'un chantier : les entités
- * (rôle saisie) le font elles-mêmes ; admin et daf aussi.
+ * Saisir la prévision, la note et le statut d'un chantier de cette entité :
+ * admin et daf partout ; un compte saisie sur son entité, ou sur la seule
+ * entité de saisie qu'on lui a donnée quand il lit tout le groupe.
  */
-export function canSaisir(s: Session) {
-  return canWrite(s) || s.role === "saisie";
+export function canSaisir(s: Session, entityId: number) {
+  if (canWrite(s)) return true;
+  if (s.role !== "saisie" || !ownsEntity(s, entityId)) return false;
+  return s.saisieEntityId == null || s.saisieEntityId === entityId;
 }
 
 /** Figer une saisie, ou la rouvrir : la DAF garde la main sur la validation. */
@@ -100,7 +106,7 @@ export function ownsEntity(s: Session, entityId: number) {
   return s.entityId == null || s.entityId === entityId;
 }
 
-/** Garde de page : redirige les lecteurs vers l'accueil (imports, mapping). */
+/** Garde de page : redirige les lecteurs vers l'accueil (imports, mapping, alertes). */
 export async function requireWriterOrRedirect(): Promise<Session> {
   const s = await getSession();
   if (!s || !canWrite(s)) redirect("/");

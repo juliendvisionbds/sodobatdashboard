@@ -278,7 +278,7 @@ export async function saveManualEntryAction(formData: FormData) {
   // DAF (ou l'admin) fige, rouvre, et reste seule sur les autres champs
   // (objectifs, ventilations, reports).
   if (!ownsEntity(session, entity.id)) throw new Error("Accès en écriture refusé : autre entité.");
-  const droit = CHAMPS_ENTITE.has(field) ? canSaisir(session) : canWrite(session);
+  const droit = CHAMPS_ENTITE.has(field) ? canSaisir(session, entity.id) : canWrite(session);
   if (!droit) throw new Error("Accès en écriture refusé.");
   if (status === "final" && !canFiger(session))
     throw new Error("Seule la DAF peut figer une saisie.");

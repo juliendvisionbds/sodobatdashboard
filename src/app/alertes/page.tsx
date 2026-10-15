@@ -2,7 +2,7 @@ import Link from "next/link";
 import { and, desc, eq } from "drizzle-orm";
 import { db, tables } from "@/db";
 import AppHeader from "@/components/AppHeader";
-import { canWrite, getSession } from "@/lib/auth";
+import { requireWriterOrRedirect } from "@/lib/auth";
 import { currentFiscalCutoff, splitAlerts } from "@/lib/alerts";
 import { fmtEur, monthLabelLong } from "@/lib/format";
 import { forgetAlertAction, resolveAlertAction } from "@/app/actions";
@@ -47,10 +47,11 @@ const TYPE_META: Record<
 };
 
 export default async function AlertesPage() {
+  // Traiter les alertes relève de la DAF : l'écran lui est réservé, comme
+  // Imports et Mapping ; les autres profils sont renvoyés à l'accueil.
+  await requireWriterOrRedirect();
   const entity = await getCurrentEntity();
   if (!entity) return null;
-  const session = await getSession();
-  const writer = !!session && canWrite(session);
 
   const allOpen = await db
     .select()
@@ -128,36 +129,34 @@ export default async function AlertesPage() {
                       {a.period ? ` · Période : ${monthLabelLong(String(a.period))}` : ""}
                     </div>
                   </div>
-                  {writer && (
-                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                      {a.type === "compte_non_mappe" && (
-                        <Link href="/admin/mapping" className="btn" style={{ padding: "7px 14px" }}>
-                          Affecter dans Mapping
-                        </Link>
-                      )}
-                      <form action={resolveAlertAction}>
-                        <input type="hidden" name="alertId" value={a.id} />
-                        <button
-                          type="submit"
-                          className="btn secondary"
-                          style={{ padding: "7px 12px" }}
-                          title={
-                            a.type === "montant_constant"
-                              ? "Ne reviendra plus tant que ce montant reste identique"
-                              : a.type === "ecart_controle"
-                                ? "Clôt cette alerte ; un écart sur un prochain import sera re-signalé"
-                                : a.type === "centre_import_ascii"
-                                  ? "Clôt l'alerte de ce mois ; re-signalée au prochain import si le centre subsiste"
-                                  : "Ne reviendra plus aux prochains imports"
-                          }
-                        >
-                          {a.type === "montant_constant"
-                            ? "Marquer comme normal"
-                            : "Marquer comme traitée"}
-                        </button>
-                      </form>
-                    </div>
-                  )}
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    {a.type === "compte_non_mappe" && (
+                      <Link href="/admin/mapping" className="btn" style={{ padding: "7px 14px" }}>
+                        Affecter dans Mapping
+                      </Link>
+                    )}
+                    <form action={resolveAlertAction}>
+                      <input type="hidden" name="alertId" value={a.id} />
+                      <button
+                        type="submit"
+                        className="btn secondary"
+                        style={{ padding: "7px 12px" }}
+                        title={
+                          a.type === "montant_constant"
+                            ? "Ne reviendra plus tant que ce montant reste identique"
+                            : a.type === "ecart_controle"
+                              ? "Clôt cette alerte ; un écart sur un prochain import sera re-signalé"
+                              : a.type === "centre_import_ascii"
+                                ? "Clôt l'alerte de ce mois ; re-signalée au prochain import si le centre subsiste"
+                                : "Ne reviendra plus aux prochains imports"
+                        }
+                      >
+                        {a.type === "montant_constant"
+                          ? "Marquer comme normal"
+                          : "Marquer comme traitée"}
+                      </button>
+                    </form>
+                  </div>
                 </div>
               ))}
             </div>
@@ -191,14 +190,12 @@ export default async function AlertesPage() {
                     {a.amount ? ` · ${fmtEur(Number(a.amount))}` : ""}
                   </span>
                 </div>
-                {writer && (
-                  <form action={resolveAlertAction}>
-                    <input type="hidden" name="alertId" value={a.id} />
-                    <button type="submit" className="btn secondary sm">
-                      Marquer comme traitée
-                    </button>
-                  </form>
-                )}
+                <form action={resolveAlertAction}>
+                  <input type="hidden" name="alertId" value={a.id} />
+                  <button type="submit" className="btn secondary sm">
+                    Marquer comme traitée
+                  </button>
+                </form>
               </div>
             ))}
           </div>
@@ -232,19 +229,17 @@ export default async function AlertesPage() {
                       : ""}
                   </div>
                 </div>
-                {writer && (
-                  <form action={forgetAlertAction}>
-                    <input type="hidden" name="alertId" value={a.id} />
-                    <button
-                      type="submit"
-                      className="btn secondary"
-                      style={{ padding: "6px 12px" }}
-                      title="Annule la décision : l'alerte sera recréée au prochain import si l'anomalie persiste"
-                    >
-                      Réactiver la surveillance
-                    </button>
-                  </form>
-                )}
+                <form action={forgetAlertAction}>
+                  <input type="hidden" name="alertId" value={a.id} />
+                  <button
+                    type="submit"
+                    className="btn secondary"
+                    style={{ padding: "6px 12px" }}
+                    title="Annule la décision : l'alerte sera recréée au prochain import si l'anomalie persiste"
+                  >
+                    Réactiver la surveillance
+                  </button>
+                </form>
               </div>
             ))}
           </div>

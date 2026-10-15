@@ -37,7 +37,7 @@ export default async function ChantiersPage({
   // et valide. La balance analytique du mois peut précéder sa ventilée : un mois
   // reste donc saisissable même quand un mois plus récent est importé.
   const locked = !!validation?.current;
-  const writer = !!session && canSaisir(session) && !locked;
+  const writer = !!session && canSaisir(session, entity.id) && !locked;
   const freezer = !!session && canFiger(session) && !locked;
   const validator = !!session && canFiger(session);
 

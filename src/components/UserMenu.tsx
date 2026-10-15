@@ -62,7 +62,9 @@ export default function UserMenu({
           >
             Comptes
           </Link>
-          {!showAdminLinks && <div className="user-dropdown-sep" />}
+          <div className="user-dropdown-sep" />
+          {/* Imports, Mapping, Alertes : le panneau de la DAF. Les autres profils
+              n'en voient pas les liens, et ces pages les renvoient à l'accueil. */}
           {showAdminLinks && (
             <>
               <Link
@@ -81,18 +83,17 @@ export default function UserMenu({
               >
                 Mapping
               </Link>
+              <Link
+                href="/alertes"
+                role="menuitem"
+                className="user-dropdown-item"
+                onClick={() => setOpen(false)}
+              >
+                Alertes
+              </Link>
               <div className="user-dropdown-sep" />
             </>
           )}
-          <Link
-            href="/alertes"
-            role="menuitem"
-            className="user-dropdown-item"
-            onClick={() => setOpen(false)}
-          >
-            Alertes
-          </Link>
-          <div className="user-dropdown-sep" />
           <Link
             href="/guide"
             role="menuitem"

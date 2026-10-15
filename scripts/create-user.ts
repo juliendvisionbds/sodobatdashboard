@@ -5,11 +5,14 @@
 //
 //   npm run db:user -- --email marie@sodobat.fr --name "Marie Dupont" --role saisie --entity sodobat
 //   npm run db:user -- --email daf@visionbds.com --role daf            (modifie un compte existant)
+//   npm run db:user -- --email f@sodobat.fr --name "Frédéric Donat" --role saisie --saisie-entity sodobat
+//                                                                        (lit tout le groupe, ne saisit que Sodobat)
 //   … --password 'celui-que-je-veux'                                    (sinon tiré au hasard, affiché une fois)
 //
 // Rôles : admin, daf (tout, toutes entités) · saisie (prévision, note et
 // statut de la vue Chantiers de son entité, sans figer) · lecteur.
-// Un compte saisie doit avoir une entité ; admin et daf n'en ont pas (toutes).
+// Un compte saisie doit avoir une entité (--entity), ou lire tout le groupe et
+// ne saisir que pour une (--saisie-entity) ; admin et daf n'en ont pas (toutes).
 import "dotenv/config";
 import { randomBytes } from "node:crypto";
 import bcrypt from "bcryptjs";
@@ -31,35 +34,49 @@ async function main() {
   const role = arg("role") as Role | undefined;
   const name = arg("name");
   const entityCode = arg("entity");
+  const saisieEntityCode = arg("saisie-entity");
   if (!email || !role || !ROLES.includes(role)) {
     console.error(
-      "Usage : --email <adresse> --role admin|daf|saisie|lecteur [--name <nom>] [--entity <code>] [--password <mdp>]"
+      "Usage : --email <adresse> --role admin|daf|saisie|lecteur [--name <nom>] [--entity <code>] [--saisie-entity <code>] [--password <mdp>]"
     );
     process.exit(1);
   }
-  if (role === "saisie" && !entityCode) {
-    console.error("Un compte saisie doit être rattaché à une entité : --entity sodobat");
+  if (role === "saisie" && !entityCode && !saisieEntityCode) {
+    console.error(
+      "Un compte saisie doit être rattaché à une entité (--entity sodobat), ou lire tout le groupe et ne saisir que pour une (--saisie-entity sodobat)"
+    );
+    process.exit(1);
+  }
+  if (saisieEntityCode && role !== "saisie") {
+    console.error("--saisie-entity ne vaut que pour le rôle saisie : les autres rôles saisissent partout ou nulle part");
     process.exit(1);
   }
   console.log(`Base : ${describeTarget()}\n`);
 
-  // Colonne ajoutée au schéma le 24 septembre 2026 ; équivalent de `drizzle-kit push`.
+  // Colonnes ajoutées au schéma le 24 septembre (entity_id) et le 15 octobre 2026
+  // (saisie_entity_id) ; équivalent de `drizzle-kit push`. À lancer avant de
+  // déployer une version qui lit la colonne : la connexion la sélectionne.
   await db.execute(
     sql`alter table users add column if not exists entity_id integer references entities(id)`
   );
+  await db.execute(
+    sql`alter table users add column if not exists saisie_entity_id integer references entities(id)`
+  );
 
-  let entityId: number | null = null;
-  if (entityCode) {
+  async function entityIdOf(code: string): Promise<number> {
     const [e] = await db
       .select({ id: tables.entities.id })
       .from(tables.entities)
-      .where(eq(tables.entities.code, entityCode));
+      .where(eq(tables.entities.code, code));
     if (!e) {
-      console.error(`Entité inconnue : ${entityCode}`);
+      console.error(`Entité inconnue : ${code}`);
       process.exit(1);
     }
-    entityId = e.id;
+    return e.id;
   }
+  const entityId = entityCode ? await entityIdOf(entityCode) : null;
+  const saisieEntityId = saisieEntityCode ? await entityIdOf(saisieEntityCode) : null;
+  const perimetre = `${entityCode ?? "toutes entités"}${saisieEntityCode ? ` · saisie sur ${saisieEntityCode}` : ""}`;
 
   const [existing] = await db.select().from(tables.users).where(eq(tables.users.email, email));
   const givenPassword = arg("password");
@@ -71,11 +88,12 @@ async function main() {
       .set({
         role,
         entityId,
+        saisieEntityId,
         ...(name ? { name } : {}),
         ...(password ? { passwordHash: await bcrypt.hash(password, 10) } : {}),
       })
       .where(eq(tables.users.id, existing.id));
-    console.log(`Compte mis à jour : ${email} · ${name ?? existing.name} · ${role} · ${entityCode ?? "toutes entités"}`);
+    console.log(`Compte mis à jour : ${email} · ${name ?? existing.name} · ${role} · ${perimetre}`);
   } else {
     if (!name) {
       console.error("Un nouveau compte a besoin d'un nom : --name \"Prénom Nom\"");
@@ -86,9 +104,10 @@ async function main() {
       name,
       role,
       entityId,
+      saisieEntityId,
       passwordHash: await bcrypt.hash(password!, 10),
     });
-    console.log(`Compte créé : ${email} · ${name} · ${role} · ${entityCode ?? "toutes entités"}`);
+    console.log(`Compte créé : ${email} · ${name} · ${role} · ${perimetre}`);
   }
   if (password) console.log(`Mot de passe : ${password}\n\nÀ transmettre maintenant : rien n'est conservé en clair.`);
   process.exit(0);
