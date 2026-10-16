@@ -124,7 +124,7 @@ export default function GuidePage() {
           <p>
             Les onglets donnent les cinq vues : <b>Synthèse</b>, <b>Chantiers</b>,{" "}
             <b>Frais généraux</b>, <b>Objectifs</b> et <b>Assistant IA</b>. Le menu utilisateur, sous
-            vos initiales en haut à droite, donne accès à <b>Comptes</b>, à ce guide et à la
+            l’initiale de votre prénom en haut à droite, donne accès à <b>Comptes</b>, à ce guide et à la
             documentation détaillée, et pour la DAF à <b>Imports</b>, <b>Mapping</b> et{" "}
             <b>Alertes</b>. C’est aussi là qu’on se déconnecte.
           </p>

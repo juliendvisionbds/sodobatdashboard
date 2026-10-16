@@ -15,11 +15,9 @@ export default function UserMenu({
 }) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
-  // « Marie Blanc » → MB ; un nom d'un seul mot donne ses deux premières lettres.
-  const words = name.trim().split(/\s+/).filter(Boolean);
-  const initials = (
-    words.length > 1 ? words[0][0] + words[words.length - 1][0] : (words[0] ?? "").slice(0, 2)
-  ).toUpperCase();
+  // Une seule lettre, celle du prénom : deux initiales forment vite un sigle
+  // malheureux en français (« PD »), et le rond n'a pas à distinguer les comptes.
+  const initial = (name.trim()[0] ?? "?").toUpperCase();
 
   useEffect(() => {
     if (!open) return;
@@ -48,7 +46,7 @@ export default function UserMenu({
         title={`${name} (${role})`}
         onClick={() => setOpen((v) => !v)}
       >
-        {initials}
+        {initial}
       </button>
 
       {open && (
