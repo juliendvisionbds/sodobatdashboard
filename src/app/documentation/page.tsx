@@ -145,7 +145,8 @@ export default function DocumentationPage() {
         <p>
           L’entité <b>Demo</b> est une entreprise de bâtiment imaginaire, au format Cegid de
           Sodobat, réservée aux démonstrations. Elle lit la maquette de Sodobat sans règle propre ; son
-          compte de démonstration n’a accès qu’à elle.
+          compte de démonstration n’a accès qu’à elle, et seuls les profils administrateur et DAF de la
+          holding la voient.
         </p>
       </DocSection>
 

@@ -153,9 +153,9 @@ qu'aurait eues un vrai cycle. Les fichiers vont dans `demo/` (ignoré par git) :
   démonstration importe en direct (ventilée jusqu'à septembre, analytique de
   septembre avec le mois saisi à la main), puis saisit et valide.
 
-Tout est rattaché à l'entité Demo : `--reset` n'efface que ses données. Les
-comptes de la holding (admin, DAF, lecteur) voient aussi l'entité dans leur
-menu, les comptes rattachés à une autre entité non.
+Tout est rattaché à l'entité Demo : `--reset` n'efface que ses données. Seuls
+les comptes admin et DAF de la holding voient aussi l'entité dans leur menu ;
+les lecteurs, les dirigeants et les comptes rattachés à une autre entité non.
 
 Pour répéter une opération avant de la lancer en production, copier une
 sauvegarde dans une base locale jetable :

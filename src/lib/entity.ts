@@ -9,22 +9,38 @@
 import { cookies } from "next/headers";
 import { cache } from "react";
 import { db, tables } from "@/db";
-import { getSession, ownsEntity, type Session } from "@/lib/auth";
+import { canWrite, getSession, ownsEntity, type Session } from "@/lib/auth";
 import type { Entity } from "@/lib/finance";
 import { ENTITY_COOKIE } from "@/components/entity-cookie";
 
 /** Entité servie quand rien n'est choisi : celle du compte, sinon l'entité pilote. */
 const DEFAULT_ENTITY = "sodobat";
 
+/** Entité de démonstration, aux chiffres inventés : hors du groupe pour qui ne fait que le lire. */
+const DEMO_ENTITY = "demo";
+
+/**
+ * Ce compte peut-il ouvrir cette entité ? Un compte rattaché n'ouvre que la
+ * sienne. Un compte de la holding ouvre tout le groupe, sauf Demo, réservée à
+ * ceux qui écrivent (admin, DAF) : les dirigeants et les lecteurs n'ont pas à
+ * tomber sur une entreprise fictive dans leur menu.
+ */
+export function canSeeEntity(session: Session | null, e: Entity): boolean {
+  if (!session) return true;
+  if (!ownsEntity(session, e.id)) return false;
+  if (e.code === DEMO_ENTITY) return canWrite(session) || session.entityId === e.id;
+  return true;
+}
+
 /** Toutes les entités du groupe, dans l'ordre de leur création. */
 export const listEntities = cache(async function listEntities(): Promise<Entity[]> {
   return db.select().from(tables.entities).orderBy(tables.entities.id);
 });
 
-/** Entités que ce compte peut ouvrir : actives, et la sienne seulement s'il est rattaché. */
+/** Entités que ce compte peut ouvrir : actives, et parmi celles que canSeeEntity lui accorde. */
 export async function allowedEntities(session: Session | null): Promise<Entity[]> {
   const all = await listEntities();
-  return all.filter((e) => e.active && (!session || ownsEntity(session, e.id)));
+  return all.filter((e) => e.active && canSeeEntity(session, e));
 }
 
 /** Entité de la requête en cours, ou null si le compte n'a accès à aucune. */

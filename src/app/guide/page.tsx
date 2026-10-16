@@ -110,7 +110,8 @@ export default function GuidePage() {
           </p>
           <p>
             L’entité <b>Demo</b> est une entreprise fictive, aux chiffres inventés, qui sert aux
-            démonstrations : elle se manipule librement sans toucher aux données du groupe.
+            démonstrations : elle se manipule librement sans toucher aux données du groupe. Seuls
+            l’administrateur et la DAF la voient dans leur menu.
           </p>
         </DocBlock>
         <DocBlock title="L’exercice">

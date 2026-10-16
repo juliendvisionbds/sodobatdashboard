@@ -1,10 +1,10 @@
 import Link from "next/link";
-import { getSession, canWrite, ownsEntity } from "@/lib/auth";
+import { getSession, canWrite } from "@/lib/auth";
 import { fiscalYearLabel } from "@/lib/format";
 import { debutExercice } from "@/lib/nomenclature/entites";
 import UserMenu from "@/components/UserMenu";
 import EntityMenu from "@/components/EntityMenu";
-import { allowedEntities, getCurrentEntity, listEntities } from "@/lib/entity";
+import { allowedEntities, canSeeEntity, getCurrentEntity, listEntities } from "@/lib/entity";
 import { NAV_TABS } from "@/components/nav-tabs";
 
 export default async function AppHeader({
@@ -31,9 +31,10 @@ export default async function AppHeader({
     allowedEntities(session),
   ]);
   // Un compte rattaché à une entité ne voit qu'elle dans le menu ; les comptes
-  // de la holding voient tout le groupe, les entités fermées en « Coming soon ».
+  // de la holding voient tout le groupe (Demo pour la DAF seulement), les
+  // entités fermées en « Coming soon ».
   const choices = entities
-    .filter((e) => !session || ownsEntity(session, e.id))
+    .filter((e) => canSeeEntity(session, e))
     .map((e) => ({
       code: e.code,
       name: e.name,
